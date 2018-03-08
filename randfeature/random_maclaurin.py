@@ -6,22 +6,6 @@ from scipy.sparse import csc_matrix
 from scipy.special import factorial
 
 
-def _index_hash(D, p, d, rng):
-    return rng.randint(D, size=(p,d))
-
-
-def _bit_hash(p, d, rng):
-    return 2*rng.randint(2, size=(p,d)) -1
-
-
-def _make_projection_matrices(i_hash, b_hash, D):
-    p, d = i_hash.shape
-    projs = []
-    for pi in range(p):
-        projs.append(csc_matrix((b_hash[pi], (range(d), i_hash[pi])), shape=(d, D)))
-    return projs
-
-
 class RandomMaclaurin(BaseEstimator, TransformerMixin):
     def __init__(self, D, p, kernel='poly', degree=2, gamma='auto', bias=0, coefs=None, 
                  random_state=1, max_n=50, h01=False):
