@@ -2,8 +2,6 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.extmath import safe_sparse_dot
-from scipy.sparse import csc_matrix
-from scipy.special import factorial
 
 
 class RandomFourier(BaseEstimator, TransformerMixin):
