@@ -6,9 +6,7 @@ from sklearn.svm import LinearSVC, SVC
 
 
 if __name__ == '__main__':
-    train, _, test = load_data()
-    X_train, y_train = train
-    X_test, y_test = test
+    X_train, y_train, X_test, y_test = load_data()
     clf = LinearSVC()
     clf.fit(X_train, y_train)
     print('Linear model Accuracy:{}'.format(clf.score(X_test, y_test)))

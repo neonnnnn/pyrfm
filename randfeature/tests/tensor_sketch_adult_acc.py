@@ -3,11 +3,11 @@ from sklearn.datasets import load_svmlight_file
 from randfeature import TensorSketch
 import numpy as np
 from sklearn.svm import LinearSVC, SVC
+from load_a9a import load_data
 
 
 if __name__ == '__main__':
-    X_train, y_train = load_svmlight_file('a9a', 123)
-    X_test, y_test = load_svmlight_file('a9a.t', 123)
+    X_train, y_train, X_test, y_test = load_data()
     clf = LinearSVC()
     clf.fit(X_train, y_train)
     print('Linear model Accuracy:{}'.format(clf.score(X_test, y_test)))

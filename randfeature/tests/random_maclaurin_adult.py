@@ -1,12 +1,11 @@
 from sklearn.datasets import load_svmlight_file
 from randfeature import RandomMaclaurin
 import numpy as np
+from load_a9a import load_data
 
 
 if __name__ == '__main__':
-    X_train, y_train = load_svmlight_file('a9a', 123)
-    X_test, y_test = load_svmlight_file('a9a.t', 123)
-    X_test = X_test
+    X_train, y_train, X_test, y_test = load_a9a()
     print('compute gram matrix...')
     gram = (X_test*X_test.T).power(2)
     nnz = gram.nonzero()
