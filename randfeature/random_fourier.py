@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.extmath import safe_sparse_dot
+from math import sqrt
 
 
 class RandomFourier(BaseEstimator, TransformerMixin):
@@ -20,7 +21,7 @@ class RandomFourier(BaseEstimator, TransformerMixin):
             self._gamma = self.gamma
 
         if self.kernel in ['rbf', 'gaussian']:
-            self.Omega = rng.normal(scale=sqrt(self._gamma*2), size=(d, self.D))
+            self.Omega = rng.normal(scale=np.sqrt(self._gamma*2), size=(d, self.D))
         else:
             raise ValueError('Kernel {} is not supported.'.format(self.kernel))
         self.b = rng.uniform(0, 2*np.pi, size=self.D)
