@@ -16,10 +16,8 @@ if __name__ == '__main__':
         print('compute tensor sketcing...')
         ts.fit(X_test)
         X_test_ts = ts.transform(X_test)
-        print('done.')
         gram_ts = np.dot(X_test_ts, X_test_ts.T)
         relative_error = np.mean(np.abs(1 - gram_ts[nnz[0], nnz[1]]/gram))
-        print('done.')
         print('D:{}, Relative_Error:{}'.format(D, relative_error))
 
 

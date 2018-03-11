@@ -20,11 +20,9 @@ if __name__ == '__main__':
         rm.fit(X_test)
         X_train_rm = rm.transform(X_train)
         X_test_rm = rm.transform(X_test)
-        print('done.')
         print('fit LinearSVC...')
         clf = LinearSVC()
         clf.fit(X_train_rm, y_train)
-        print('done.')
         test_acc = clf.score(X_test_rm, y_test)
         print('D:{}, Accuracy:{}'.format(D, test_acc))
 
