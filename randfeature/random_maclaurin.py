@@ -5,8 +5,9 @@ from sklearn.utils.extmath import safe_sparse_dot
 from scipy.sparse import csc_matrix
 from scipy.special import factorial, binom
 
+
 class RandomMaclaurin(BaseEstimator, TransformerMixin):
-    def __init__(self, D, p, kernel='poly', degree=2, gamma='auto', bias=0.,
+    def __init__(self, D=100, p=10, kernel='poly', degree=2, gamma='auto', bias=0.,
                  coefs=None, random_state=1, max_n=50, h01=False):
         self.D = D
         self.p = p
@@ -15,12 +16,13 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         self.coefs = coefs
         self.bias = float(bias)
         self.kernel = kernel
-        self.random_state = check_random_state(random_state)
+        self.random_state = random_state
         self.max_n = max_n
         self.p_choice = None
         self.h01 = h01
 
     def fit(self, X, y=None):
+        random_state = check_random_state(self.random_state)
         d = check_array(X, True).shape[1]
 
         if self.gamma == 'auto':
@@ -51,14 +53,20 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
                 p_choice /= np.sum(p_choice)
             self.p_choice = p_choice
 
-        self.orders = self.random_state.choice(len(self.p_choice), self.D, p=self.p_choice)
-        self.projs = [self.random_state.randint(2, size=(d, order))*2-1 for order in self.orders]
+        self.orders = random_state.choice(len(self.p_choice),
+                                          self.D, p=self.p_choice)
+        self.projs = [random_state.randint(2, size=(d, order))*2-1
+                      for order in self.orders]
 
         return self
 
     def transform(self, raw_X):
         n, d = check_array(raw_X, True).shape
         output = np.empty((n, 0))
+        if self.h01:
+            output = np.hstack([raw_X, output])
+            output = np.hstack((np.ones(n, 1), output))
+
         for proj in self.projs:
             if proj.shape[1] == 0:
                 P = np.ones((n, 1))
@@ -69,7 +77,5 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
 
         output *= np.sqrt(self.coefs[self.orders]/self.D)
         output /= np.sqrt(self.p_choice[self.orders])
-        if self.h01:
-            output = np.hstack([raw_X, output])
-            output = np.hstack((np.ones(n, 1), output))
+
         return output

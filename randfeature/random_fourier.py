@@ -6,13 +6,14 @@ from math import sqrt
 
 
 class RandomFourier(BaseEstimator, TransformerMixin):
-    def __init__(self, D, kernel='rbf', gamma='auto', random_state=None):
+    def __init__(self, D=100, kernel='rbf', gamma='auto', random_state=None):
         self.D = D
         self.gamma = gamma
         self.kernel = kernel
-        self.random_state = check_random_state(random_state)
+        self.random_state = random_state
 
     def fit(self, X, y=None):
+        random_state = check_random_state(self.random_state)
         d = check_array(X, True).shape[1]
 
         if self.gamma == 'auto':
@@ -21,7 +22,8 @@ class RandomFourier(BaseEstimator, TransformerMixin):
             self._gamma = self.gamma
 
         if self.kernel in ['rbf', 'gaussian']:
-            self.Omega = rng.normal(scale=np.sqrt(self._gamma*2), size=(d, self.D))
+            self.Omega = random_state.normal(scale=np.sqrt(self._gamma*2),
+                                             size=(d, self.D))
         else:
             raise ValueError('Kernel {} is not supported.'.format(self.kernel))
         self.b = rng.uniform(0, 2*np.pi, size=self.D)
