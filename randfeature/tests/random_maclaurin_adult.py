@@ -11,7 +11,7 @@ if __name__ == '__main__':
     nnz = gram.nonzero()
     gram = gram[nnz[0], nnz[1]]
     print('done.')
-    for D in [500, 1000, 1500, 2000, 2500, 3000]:
+    for D in [100, 200, 300, 400, 500, 1000, 1500, 2000]:
         ts = RandomMaclaurin(D, 10)
         print('compute rancom maclaurin...')
         ts.fit(X_test)

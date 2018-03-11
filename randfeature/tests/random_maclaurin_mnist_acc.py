@@ -14,7 +14,7 @@ if __name__ == '__main__':
     #clf.fit(X_train, y_train)
     #print('Poly model Accuracy:{}'.format(clf.score(X_test, y_test)))
 
-    for D in [100, 200, 300, 400, 500, 1000]:
+    for D in [100, 200, 300, 400, 500, 1000, 1500, 2000]:
         rm = RandomMaclaurin(D, 10, 'poly', degree=2)
         print('compute random maclaurin...')
         rm.fit(X_test)

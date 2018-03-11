@@ -14,7 +14,7 @@ if __name__ == '__main__':
     nnz = np.where(np.abs(gram) > 1e-10)
     gram = gram[nnz[0], nnz[1]]
     print('done.')
-    for D in [1,10,100, 200, 300, 400, 500, 1000, 1500, 2000, 2500, 10000]:
+    for D in [100, 200, 300, 400, 500, 1000, 1500, 2000]:
         rkp = RandomKernelProduct(D)
         print('compute random kernel product...')
         rkp.fit(X_test)
