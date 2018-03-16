@@ -1,6 +1,7 @@
 from lightning._build_utils import maybe_cythonize_extensions
 import numpy
 
+
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
 

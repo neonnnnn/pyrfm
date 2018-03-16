@@ -1,5 +1,5 @@
 from sklearn.datasets import load_svmlight_file
-from randfeature import RandomKernelProduct, anova
+from randfeature import RandomKernel, anova
 import numpy as np
 from load_a9a import load_data
 from sklearn.preprocessing import normalize
@@ -15,11 +15,11 @@ if __name__ == '__main__':
     gram = gram[nnz[0], nnz[1]]
     print('done.')
     for D in [100, 200, 300, 400, 500, 1000, 1500, 2000]:
-        rkp = RandomKernelProduct(D)
+        rk = RandomKernel(D)
         print('compute random kernel product...')
-        rkp.fit(X_test)
-        X_test_rkp = rkp.transform(X_test)
-        gram_rkp = np.dot(X_test_rkp, X_test_rkp.T)
-        print(np.max(gram_rkp))
-        relative_error = np.mean(np.abs(1 - gram_rkp[nnz[0], nnz[1]]/gram))
+        rk.fit(X_test)
+        X_test_rk = rk.transform(X_test)
+        gram_rk = np.dot(X_test_rk, X_test_rk.T)
+        print(np.max(gram_rk))
+        relative_error = np.mean(np.abs(1 - gram_rk[nnz[0], nnz[1]]/gram))
         print('D:{}, Relative_Error:{}'.format(D, relative_error))

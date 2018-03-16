@@ -1,5 +1,5 @@
 from sklearn.datasets import load_svmlight_file
-from randfeature import RandomKernelProduct, anova
+from randfeature import RandomKernel, anova
 import numpy as np
 from sklearn.svm import LinearSVC, SVC
 from load_a9a import load_data
@@ -22,14 +22,14 @@ if __name__ == '__main__':
     print('ANOVA kernel model Accuracy:{}'.format(clf.score(X_test, y_test)))
 
     for D in [100, 200, 300, 400, 500, 1000, 1500, 2000]:
-        rkp = RandomKernelProduct(D)
+        rk = RandomKernel(D)
         print('compute random kernel product...')
-        rkp.fit(X_test)
-        X_train_rkp = rkp.transform(X_train)
-        X_test_rkp = rkp.transform(X_test)
+        rk.fit(X_test)
+        X_train_rk = rk.transform(X_train)
+        X_test_rk = rk.transform(X_test)
         print('fit LinearSVC...')
         clf = LinearSVC()
-        clf.fit(X_train_rkp, y_train)
-        test_acc = clf.score(X_test_rkp, y_test)
+        clf.fit(X_train_rk, y_train)
+        test_acc = clf.score(X_test_rk, y_test)
         print('D:{}, Accuracy:{}'.format(D, test_acc))
 
