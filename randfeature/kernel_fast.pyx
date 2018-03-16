@@ -1,92 +1,96 @@
+# cython: language_level=3
+# cython: cdivision=True
+# cython: boudscheck=False
+# cython: wraparound=False
+
 from lightning.impl.dataset_fast import get_dataset
-from lightning.impl.dataset_fast cimport RowDataset
+from lightning.impl.dataset_fast cimport RowDataset, ColumnDataset
 import numpy as np
 cimport numpy as np
 from cython.view cimport array
 
 
-cdef void canova(double[:, ::1] output,
-                 RowDataset X,
-                 RowDataset P,
-                 int degree):
+cdef void _canova(double[:, ::1] output,
+                  RowDataset X,
+                  ColumnDataset P,
+                  int degree):
     cdef double *x
     cdef double *p
     cdef int *x_indices
     cdef int *p_indices
-    cdef int X_n_nz, P_n_nz
-    cdef Py_ssize_t X_samples, P_samples, i, j, kk_p, kk_x, k, t
-    cdef double[:] a = array((degree+1, ), sizeof(double), 'd')
+    cdef int x_n_nz, p_n_nz
+    cdef Py_ssize_t X_samples, P_samples, i1, ii2, i2, jj, j, t
 
     X_samples = X.get_n_samples()
     P_samples = P.get_n_samples()
-    a[0] = 1
 
-    for i in range(X_samples):
-        X.get_row_ptr(i, &x_indices, &x, &X_n_nz)
-        for j in range(P_samples):
-            P.get_row_ptr(j, &p_indices, &p, &P_n_nz)
-            kk_p = 0
-            kk_x = 0
-            for t in range(degree):
-                a[degree-t] = 0
+    cdef double[:, ::1] a = array((P_samples, degree+1), sizeof(double), 'd')
+    for i2 in range(P_samples):
+        a[i2, 0] = 1.
+        for t in range(1, degree+1):
+            a[i2, t] = 0.
 
-            while (kk_x < X_n_nz) and (kk_p < P_n_nz):
-                if p_indices[kk_p] > x_indices[kk_x]:
-                    kk_x += 1
-                elif p_indices[kk_p] < x_indices[kk_x]:
-                    kk_p += 1
-                else:
-                    k = p_indices[kk_p]
-                    for t in range(degree):
-                        a[degree-t] += a[degree-t-1]*x[k]*p[k]
-                    kk_x += 1
-                    kk_p += 1
-            output[i, j] = a[degree]
+    for i1 in range(X_samples):
+        X.get_row_ptr(i1, &x_indices, &x, &x_n_nz)
+        for jj in range(x_n_nz-1):
+            j = x_indices[jj]
+            P.get_column_ptr(j, &p_indices, &p, &p_n_nz)
+            for ii2 in range(p_n_nz):
+                i2 = p_indices[ii2]
+                for t in range(degree):
+                    a[i2, degree-t] += a[i2, degree-t-1]*x[jj]*p[ii2]
+
+        jj = x_n_nz-1
+        j = x_indices[jj]
+        P.get_column_ptr(j, &p_indices, &p, &p_n_nz)
+        ii2 = 0
+        for i2 in range(P_samples):
+            output[i1, i2] = 0
+            for t in range(1, degree-1):
+                a[i2, degree] = 0
+            if i2  == p_indices[ii2]:
+                output[i1, i2] += a[i2, degree-1]*x[jj]*p[ii2]
+                ii2 += 1
+            output[i1, i2] += a[i2, degree]
+
+            a[i2, degree-1] = 0.
+            a[i2, degree] = 0.
 
 
-cdef void call_subset(double[:, ::1] output,
-                      RowDataset X,
-                      RowDataset P):
+cdef void _call_subset(double[:, ::1] output,
+                       RowDataset X,
+                       RowDataset P):
     cdef double *x
     cdef double *p
     cdef int *x_indices
     cdef int *p_indices
-    cdef int X_n_nz, P_n_nz
-    cdef Py_ssize_t X_samples, P_samples, i, j, kk_p, kk_x, k
+    cdef int x_n_nz, p_n_nz
+    cdef Py_ssize_t X_samples, P_samples, i1, ii2, i2, jj, j
     X_samples = X.get_n_samples()
     P_samples = P.get_n_samples()
 
-    for i in range(X_samples):
-        X.get_row_ptr(i, &x_indices, &x, &X_n_nz)
-        for j in range(P_samples):
-            P.get_row_ptr(j, &p_indices, &p, &P_n_nz)
-            kk_p = 0
-            kk_x = 0
-            output[i,j] = 1
-            while (kk_x < X_n_nz) and (kk_p < P_n_nz):
-                if p_indices[kk_p] > x_indices[kk_x]:
-                    kk_x += 1
-                elif p_indices[kk_p] < x_indices[kk_x]:
-                    kk_p += 1
-                else:
-                    k = p_indices[kk_p]
-                    output[i,j] *= (1+x[k]*p[k])
-                    kk_x += 1
-                    kk_p += 1
+    for i1 in range(X_samples):
+        X.get_row_ptr(i1, &x_indices, &x, &x_n_nz)
+        for jj in range(x_n_nz):
+            j = x_indices[jj]
+            P.get_row_ptr(j, &p_indices, &p, &p_n_nz)
+            for ii2 in range(p_n_nz):
+                i2 = x_indices[ii2]
+                output[i1, i2] *= (1 + x[jj]*p[ii2])
 
 
-def anova(X, P, degree):
+def canova(X, P, degree):
     output = np.zeros((X.shape[0], P.shape[0]))
-    canova(output,
-           get_dataset(X, order='c'),
-           get_dataset(P, order='c'),
-           degree)
+    _canova(output,
+            get_dataset(X, order='c'),
+            get_dataset(P, order='fortran'),
+            degree)
     return output
 
 
-def all_subset(X, P):
+def call_subset(X, P):
     output = np.ones((X.shape[0], P.shape[0]))
-    call_subset(output,
-                get_dataset(X, order='c'),
-                get_dataset(P, order='c'))
+    _call_subset(output,
+                 get_dataset(X, order='c'),
+                 get_dataset(P, order='fortran'))
     return output
