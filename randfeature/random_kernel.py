@@ -41,7 +41,7 @@ class RandomKernel(BaseEstimator, TransformerMixin):
             self._kernel = kernel
 
         if self.kernel == 'poly':
-            self.projs = [random_state.randint(2, size=(self.D, d))*2-1
+            self.Projs = [random_state.randint(2, size=(self.D, d))*2-1
                           for _ in range(self.degree)]
         else:
             self.Projs = random_state.randint(2, size=(self.D, d))*2-1
