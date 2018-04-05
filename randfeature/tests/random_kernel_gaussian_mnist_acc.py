@@ -6,6 +6,7 @@ from sklearn.svm import LinearSVC, SVC
 import timeit
 from sklearn.utils.extmath import safe_sparse_dot
 from scipy.sparse import issparse
+from random_kernel_gaussian import RandomKernelGaussian
 
 
 def safe_power(X, degree):
@@ -31,30 +32,38 @@ def _anova(degree):
 
 if __name__ == '__main__':
     X_train, y_train, X_test, y_test = load_data()
-    X_train, y_train = X_train[:10000], y_train[:10000]
+    X_train, y_train = X_train[:20000], y_train[:20000]
+    """
+    s = timeit.default_timer()
+    clf = LinearSVC()
+    clf.fit(X_train, y_train)
+    acc = clf.score(X_test, y_test)
+    e = timeit.default_timer()
+    print('Linear model Accuracy:{}, Time:{}'.format(acc, e-s))
 
-    gram = anova(X_train, X_train, 2)
-    nnz = np.where(gram != 0.)
-    for D in [1,2,3,4,5]:
-        print('compute random kernel map...')
-        abs_err = 0
-        rel_err = 0
-        time = 0
+    s = timeit.default_timer()
+    clf = SVC(kernel=_anova(2))
+    clf.fit(X_train, y_train)
+    acc = clf.score(X_test, y_test)
+    e = timeit.default_timer()
+    print('Kernel SVM Accuracy:{}, Time:{}'.format(acc, e-s))
+    """
+    for D in [784, 784*2, 784*3, 784*4, 784*5]:
+        time = 0.
+        test_acc = 0.
         for i in range(5):
+            print('compute random kernel gaussian map...')
             s = timeit.default_timer()
-            rk = RandomKernel(D*784, random_state=i)
-            rk.fit(X_train)
+            rk = RandomKernelGaussian(D)
+            rk.fit(X_test)
             X_train_rk = rk.transform(X_train)
-            e = timeit.default_timer()
-            time += e - s
-            gram_rk = np.dot(X_train_rk, X_train_rk.T)
-            abs_err += np.mean(np.abs(gram[nnz[0], nnz[1]] - gram_rk[nnz[0], nnz[1]]))
-            rel_err += np.mean(np.abs(1-gram_rk[nnz[0], nnz[1]]/gram[nnz[0], nnz[1]]))
-        abs_err /= 5.
-        rel_err /= 5.
-        time /= 5.
-        print('D:{}, Absolute Err:{}, Relative Err:{}, Time:{}'
-              .format(D, abs_err, rel_err, time))
+            X_test_rk = rk.transform(X_test)
+            print('fit LinearSVC...')
+            clf = LinearSVC()
+            clf.fit(X_train_rk, y_train)
+            test_acc += clf.score(X_test_rk, y_test)
+            time += timeit.default_timer() - s
+        print('D:{}, Accuracy:{}, Time:{}'.format(D, test_acc/5., time/5))
 
 
 """

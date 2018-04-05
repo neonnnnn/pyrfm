@@ -25,10 +25,8 @@ cdef void _canova(double[:, ::1] output,
     P_samples = P.get_n_samples()
 
     cdef double[:, ::1] a = array((P_samples, degree+1), sizeof(double), 'd')
-    for i2 in range(P_samples):
-        a[i2, 0] = 1.
-        for t in range(1, degree+1):
-            a[i2, t] = 0.
+    a[:, 0] = 1.
+    a[:, 1:] = 0.
 
     for i1 in range(X_samples):
         X.get_row_ptr(i1, &x_indices, &x, &x_n_nz)

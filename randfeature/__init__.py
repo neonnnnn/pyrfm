@@ -4,3 +4,4 @@ from .random_fourier import RandomFourier
 from .random_kernel import RandomKernel
 from .kernel_fast import call_subset, canova
 from .kernels import anova, all_subset
+from .random_kernel_signed_circulant import RandomKernelSignedCirculant

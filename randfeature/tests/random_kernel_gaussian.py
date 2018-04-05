@@ -4,7 +4,7 @@ from sklearn.utils import check_random_state, check_array
 from sklearn.utils.extmath import safe_sparse_dot
 from scipy.sparse import issparse
 from math import sqrt
-from .kernels import anova, all_subset
+from randfeature.kernels import anova, all_subset
 
 
 def _anova(degree=2):
@@ -21,28 +21,11 @@ def dot():
     return _dot
 
 
-def get_random_matrix(rng, distribution, size):
-    if distribution == 'rademacher':
-        return rng.randint(2, size)*2 - 1
-    elif distribution in ['gaussian', 'normal']:
-        return rng.normal(0, 1, size)
-    elif distribution == 'uniform':
-        return rng.uniform(-np.sqrt(3), np.sqrt(3), size)
-    elif distribution == 'laplace':
-        return rng.laplace(0, 1./np.sqrt(2), size)
-    else:
-        raise ValueError('{} distribution is not implemented. Please use'
-                         'rademacher, gaussian (normal), uniform or laplace.'
-                         .format(distribution))
-
-
-class RandomKernel(BaseEstimator, TransformerMixin):
-    def __init__(self, D=100, kernel='anova', degree=2,
-                 distribution='rademacher', random_state=None):
+class RandomKernelGaussian(BaseEstimator, TransformerMixin):
+    def __init__(self, D=100, kernel='anova', degree=2, random_state=None):
         self.D = D
         self.degree = degree
         self.random_state = random_state
-        self.distribution = distribuion
         self.kernel = kernel
 
     def fit(self, X, y=None):
@@ -57,13 +40,12 @@ class RandomKernel(BaseEstimator, TransformerMixin):
                 self._kerel = dot
         else:
             self._kernel = kernel
-        size = (self.D, d)
-        distribution = self.distribution.lower()
+
         if self.kernel == 'poly':
-            self.Projs = [get_random_matrix(random_state, distribution, size)
+            self.Projs = [random_state.normal(0, 0.1, size=(self.D, d))
                           for _ in range(self.degree)]
         else:
-            self.Projs = get_random_matrix(random_state, distribution, size)
+            self.Projs = random_state.normal(0, 0.1, size=(self.D, d))
 
         return self
 

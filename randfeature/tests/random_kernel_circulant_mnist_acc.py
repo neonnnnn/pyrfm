@@ -1,6 +1,6 @@
 from load_mnist import load_data
 from sklearn.datasets import load_svmlight_file
-from randfeature import RandomKernel, anova
+from randfeature import RandomKernelSignedCirculant, anova
 import numpy as np
 from sklearn.svm import LinearSVC, SVC
 import timeit
@@ -31,30 +31,25 @@ def _anova(degree):
 
 if __name__ == '__main__':
     X_train, y_train, X_test, y_test = load_data()
-    X_train, y_train = X_train[:10000], y_train[:10000]
-
-    gram = anova(X_train, X_train, 2)
-    nnz = np.where(gram != 0.)
-    for D in [1,2,3,4,5]:
-        print('compute random kernel map...')
-        abs_err = 0
-        rel_err = 0
-        time = 0
+    X_train, y_train = X_train[:20000], y_train[:20000]
+    d = X_train.shape[1]
+    for t in [1, 2, 3, 4, 5]:
+        test_acc = 0.
+        time = 0.
         for i in range(5):
+            print('compute random kernel signed circulant map...')
             s = timeit.default_timer()
-            rk = RandomKernel(D*784, random_state=i)
-            rk.fit(X_train)
+            rk = RandomKernelSignedCirculant(t, random_state=i)
+            rk.fit(X_test)
             X_train_rk = rk.transform(X_train)
+            X_test_rk = rk.transform(X_test)
+            print('fit LinearSVC...')
+            clf = LinearSVC()
+            clf.fit(X_train_rk, y_train)
+            test_acc += clf.score(X_test_rk, y_test)
             e = timeit.default_timer()
-            time += e - s
-            gram_rk = np.dot(X_train_rk, X_train_rk.T)
-            abs_err += np.mean(np.abs(gram[nnz[0], nnz[1]] - gram_rk[nnz[0], nnz[1]]))
-            rel_err += np.mean(np.abs(1-gram_rk[nnz[0], nnz[1]]/gram[nnz[0], nnz[1]]))
-        abs_err /= 5.
-        rel_err /= 5.
-        time /= 5.
-        print('D:{}, Absolute Err:{}, Relative Err:{}, Time:{}'
-              .format(D, abs_err, rel_err, time))
+            time += e-s
+        print('D:{}, Accuracy:{}, Time:{}'.format(t*d, test_acc/5, time/5))
 
 
 """

@@ -1,6 +1,6 @@
 from load_mnist import load_data
 from sklearn.datasets import load_svmlight_file
-from randfeature import RandomKernel, anova
+from randfeature import RandomKernelSignedCirculant, anova
 import numpy as np
 from sklearn.svm import LinearSVC, SVC
 import timeit
@@ -35,14 +35,15 @@ if __name__ == '__main__':
 
     gram = anova(X_train, X_train, 2)
     nnz = np.where(gram != 0.)
-    for D in [1,2,3,4,5]:
-        print('compute random kernel map...')
+    d = X_train.shape[1]
+    for t in [1, 2, 3, 4]:
+        print('compute random signed circulant kernel map...')
         abs_err = 0
         rel_err = 0
         time = 0
         for i in range(5):
             s = timeit.default_timer()
-            rk = RandomKernel(D*784, random_state=i)
+            rk = RandomKernelSignedCirculant(t, random_state=i)
             rk.fit(X_train)
             X_train_rk = rk.transform(X_train)
             e = timeit.default_timer()
@@ -54,17 +55,8 @@ if __name__ == '__main__':
         rel_err /= 5.
         time /= 5.
         print('D:{}, Absolute Err:{}, Relative Err:{}, Time:{}'
-              .format(D, abs_err, rel_err, time))
+              .format(t*d, abs_err, rel_err, time))
 
 
 """
-Linear model Accuracy:0.9041
-Poly model Accuracy:0.9695
-D:100, Accuracy:0.754
-D:200, Accuracy:0.8631
-D:300, Accuracy:0.8922
-D:400, Accuracy:0.8929
-D:500, Accuracy:0.9108
-D:1000, Accuracy:0.9282
-D:1500, Accuracy:0.9504
 """
