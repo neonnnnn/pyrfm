@@ -54,7 +54,7 @@ class RandomKernel(BaseEstimator, TransformerMixin):
             elif self.kernel == 'all_subset':
                 self._kernel = all_subset
             elif self.kernel in ['dot', 'poly']:
-                self._kerel = dot
+                self._kerel = dot()
         else:
             self._kernel = kernel
         size = (self.D, d)
