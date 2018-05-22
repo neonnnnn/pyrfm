@@ -3,14 +3,13 @@
 # cython: boudscheck=False
 # cython: wraparound=False
 
-from lightning.impl.dataset_fast import get_dataset
-from lightning.impl.dataset_fast cimport RowDataset, ColumnDataset
+from lightning.impl.dataset_fast import get_dataset, RowDataset, ColumnDataset
 import numpy as np
 cimport numpy as np
 from cython.view cimport array
 
 
-cdef void _canova(double[:, ::1] output,
+cdef void _anova(double[:, ::1] output,
                   RowDataset X,
                   ColumnDataset P,
                   int degree):
@@ -55,7 +54,7 @@ cdef void _canova(double[:, ::1] output,
             a[i2, degree] = 0.
 
 
-cdef void _call_subset(double[:, ::1] output,
+cdef void _all_subsets(double[:, ::1] output,
                        RowDataset X,
                        RowDataset P):
     cdef double *x
@@ -77,18 +76,18 @@ cdef void _call_subset(double[:, ::1] output,
                 output[i1, i2] *= (1 + x[jj]*p[ii2])
 
 
-def canova(X, P, degree):
+def anova(X, P, degree):
     output = np.zeros((X.shape[0], P.shape[0]))
-    _canova(output,
+    _anova(output,
             get_dataset(X, order='c'),
             get_dataset(P, order='fortran'),
             degree)
     return output
 
 
-def call_subset(X, P):
+def all_subsets(X, P):
     output = np.ones((X.shape[0], P.shape[0]))
-    _call_subset(output,
-                 get_dataset(X, order='c'),
-                 get_dataset(P, order='fortran'))
+    _all_subsets(output,
+                  get_dataset(X, order='c'),
+                  get_dataset(P, order='fortran'))
     return output

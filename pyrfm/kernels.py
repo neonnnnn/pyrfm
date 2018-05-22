@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.sparse import issparse
 from sklearn.utils.extmath import safe_sparse_dot
-from .kernel_fast import call_subset
 
 
 def safe_power(X, degree):
@@ -9,10 +8,6 @@ def safe_power(X, degree):
         return X.power(degree)
     else:
         return X ** degree
-
-
-def all_subset(X, P):
-    return call_subset(X, P)
 
 
 def D(X, P, degree):

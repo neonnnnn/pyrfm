@@ -1,8 +1,7 @@
-from sklearn.datasets import load_svmlight_file
 from randfeature import RandomKernel, anova
 import numpy as np
 from sklearn.svm import LinearSVC, SVC
-from load_a9a import load_data
+from .load_a9a import load_data
 
 
 def _anova(degree=2):
@@ -17,7 +16,7 @@ if __name__ == '__main__':
 
     clf.fit(X_train, y_train)
     print('Linear model Accuracy:{}'.format(clf.score(X_test, y_test)))
-    clf = SVC(kernel=_anova(degree), degree=2)
+    clf = SVC(kernel=_anova(2), degree=2)
     clf.fit(X_train, y_train)
     print('ANOVA kernel model Accuracy:{}'.format(clf.score(X_test, y_test)))
 

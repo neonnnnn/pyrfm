@@ -1,14 +1,12 @@
-import numpy
-import os
 from sklearn.datasets import fetch_mldata
 
 
 def load_data(datadir='datasets/'):
-    ''' Loads the dataset
+    """ Loads the dataset
 
     :type datadir: string
     :param datadir: the path to the dataset (here a9a)
-    '''
+    """
 
     #############
     # LOAD DATA #

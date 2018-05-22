@@ -1,14 +1,14 @@
 import numpy as np
-import os
 from sklearn.datasets import fetch_mldata
 
 
 def load_data(datadir='datasets/'):
-    ''' Loads the dataset
+    """
+    Loads the dataset
 
     :type datadir: string
     :param datadir: the path to the dataset (here MNIST)
-    '''
+    """
 
     mnist = fetch_mldata('MNIST original', data_name=datadir)
     rng = np.random.RandomState(1)

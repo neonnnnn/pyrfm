@@ -1,8 +1,6 @@
-from sklearn.datasers import load_svmlight_file
+from .load_mnist import load_data
 from randfeature import TensorSketch
-import numpy as np
 from sklearn.svm import LinearSVC, SVC
-from load_a9a import load_data
 
 
 if __name__ == '__main__':
@@ -15,14 +13,14 @@ if __name__ == '__main__':
     print('Poly model Accuracy:{}'.format(clf.score(X_test, y_test)))
 
     for D in [100, 200, 300, 400, 500, 1000, 1500, 2000]:
-        rs = TensorSketch(D, 2)
+        ts = TensorSketch(D, 2)
         print('compute tensor sketcing...')
-        rs.fit(X_test)
-        X_train_rs = rs.transform(X_train)
-        X_test_rs = rs.transform(X_test)
+        ts.fit(X_test)
+        X_train_ts = ts.transform(X_train)
+        X_test_ts = ts.transform(X_test)
         print('fit LinearSVC...')
-        clf = LinearSVC()
-        clf.fit(X_train_rs, y_train)
-        test_acc = clf.score(X_test_rs, y_test)
+        clf = LinearSVC(dual=False)
+        clf.fit(X_train_ts, y_train)
+        test_acc = clf.score(X_test_ts, y_test)
         print('D:{}, Accuracy:{}'.format(D, test_acc))
 

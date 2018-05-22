@@ -2,9 +2,9 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.extmath import safe_sparse_dot
-from scipy.sparse import issparse
 from math import sqrt
-from .kernels import anova, all_subset
+from .kernels import anova
+from .kernels_fast import all_subsets
 
 
 def _anova(degree=2):
@@ -42,39 +42,34 @@ class RandomKernel(BaseEstimator, TransformerMixin):
         self.D = D
         self.degree = degree
         self.random_state = random_state
-        self.distribution = distribuion
+        self.distribution = distribution
         self.kernel = kernel
 
     def fit(self, X, y=None):
         random_state = check_random_state(self.random_state)
-        d = check_array(X, ['csr']).shape[1]
-        if isinstance(self.kernel, str):
-            if self.kernel == 'anova':
-                self._kernel = _anova(self.degree)
-            elif self.kernel == 'all_subset':
-                self._kernel = all_subset
-            elif self.kernel in ['dot', 'poly']:
-                self._kerel = dot()
-        else:
-            self._kernel = kernel
+        n, d = check_array(X, ['csr']).shape
         size = (self.D, d)
         distribution = self.distribution.lower()
-        if self.kernel == 'poly':
-            self.Projs = [get_random_matrix(random_state, distribution, size)
-                          for _ in range(self.degree)]
-        else:
-            self.Projs = get_random_matrix(random_state, distribution, size)
+        self.Projs_ = get_random_matrix(random_state, distribution, size)
 
         return self
 
     def transform(self, raw_X):
         n, d = check_array(raw_X, ['csr']).shape
-        if self.kernel == 'poly':
-            output = self._kernel(raw_X, self.Pros[0]).astype(np.float64)
-            for proj in self.Projs[1:]:
-                output *= self._kernel(raw_X, proj).astype(np.float64)
+        if isinstance(self.kernel, str):
+            if self.kernel == 'anova':
+                kernel_ = _anova(self.degree)
+            elif self.kernel == 'all-subsets':
+                kernel_ = all_subsets
+            elif self.kernel == 'dot':
+                kernel_ = dot()
+            else:
+                raise ValueError('Kernel {} is not supported. '
+                                 'Use "{anova|all-subsets|dot}"'
+                                 .fortmat(self.kernel))
         else:
-            output = self._kernel(raw_X, self.Projs).astype(np.float64)
+            kernel_ = self.kernel
+        output = kernel_(raw_X, self.Projs_).astype(np.float64)
 
         output /= sqrt(self.D)
         return output

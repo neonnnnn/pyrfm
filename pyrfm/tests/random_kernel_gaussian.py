@@ -2,7 +2,6 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.extmath import safe_sparse_dot
-from scipy.sparse import issparse
 from math import sqrt
 from randfeature.kernels import anova, all_subset
 

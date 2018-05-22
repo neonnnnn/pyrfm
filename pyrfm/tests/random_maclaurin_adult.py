@@ -1,7 +1,6 @@
-from sklearn.datasets import load_svmlight_file
 from randfeature import RandomMaclaurin
 import numpy as np
-from load_a9a import load_data
+from .load_a9a import load_data
 
 
 if __name__ == '__main__':
@@ -13,7 +12,7 @@ if __name__ == '__main__':
     print('done.')
     for D in [100, 200, 300, 400, 500, 1000, 1500, 2000]:
         ts = RandomMaclaurin(D, 10)
-        print('compute rancom maclaurin...')
+        print('compute random Maclaurin...')
         ts.fit(X_test)
         X_test_ts = ts.transform(X_test)
         gram_ts = np.dot(X_test_ts, X_test_ts.T)

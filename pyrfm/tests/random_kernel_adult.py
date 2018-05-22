@@ -1,9 +1,8 @@
 from sklearn.datasets import load_svmlight_file
 from randfeature import RandomKernel, anova
 import numpy as np
-from load_a9a import load_data
+from .load_a9a import load_data
 from sklearn.preprocessing import normalize
-from sklearn.utils.extmath import safe_sparse_dot
 
 
 if __name__ == '__main__':

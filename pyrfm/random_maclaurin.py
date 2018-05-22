@@ -2,13 +2,12 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.extmath import safe_sparse_dot
-from scipy.sparse import csc_matrix
 from scipy.special import factorial, binom
 
 
 class RandomMaclaurin(BaseEstimator, TransformerMixin):
-    def __init__(self, D=100, p=10, kernel='poly', degree=2, gamma='auto', bias=0.,
-                 coefs=None, random_state=1, max_n=50, h01=False):
+    def __init__(self, D=100, p=10, kernel='poly', degree=2, gamma='auto',
+                 bias=0., coefs=None, random_state=1, max_n=50, h01=False):
         self.D = D
         self.p = p
         self.gamma = gamma
@@ -26,9 +25,9 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         d = check_array(X, True).shape[1]
 
         if self.gamma == 'auto':
-            self._gamma = 1.0 / X.shape[1]
+            gamma_ = 1.0 / X.shape[1]
         else:
-            self._gamma = self.gamma
+            gamma_ = self.gamma
 
         if self.coefs is None:
             if self.kernel == 'poly':
@@ -38,7 +37,7 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
                 self.coefs /= factorial(self.degree+1)
                 coefs = self.coefs
             elif self.kernel == 'exp':
-                coefs = self._gamma ** np.arange(self.max_n)
+                coefs = gamma_ ** np.arange(self.max_n)
                 coefs /= factorial(range(self.max_n))
         else:
             coefs = self.coefs
@@ -48,15 +47,15 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
 
         if self.p_choice is None:
             p_choice = (1/self.p) ** (np.arange(len(self.coefs)) + 1)
-            if np.sum(coefs==0.) != 0:
-                p_choice[coefs==0] = 0
+            if np.sum(coefs == 0.) != 0:
+                p_choice[coefs == 0] = 0
                 p_choice /= np.sum(p_choice)
             self.p_choice = p_choice
 
-        self.orders = random_state.choice(len(self.p_choice),
-                                          self.D, p=self.p_choice)
-        self.projs = [random_state.randint(2, size=(d, order))*2-1
-                      for order in self.orders]
+        self.orders_ = random_state.choice(len(self.p_choice),
+                                           self.D, p=self.p_choice)
+        self.projs_ = [random_state.randint(2, size=(d, order))*2-1
+                       for order in self.orders_]
 
         return self
 
@@ -67,7 +66,7 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
             output = np.hstack([raw_X, output])
             output = np.hstack((np.ones(n, 1), output))
 
-        for proj in self.projs:
+        for proj in self.projs_:
             if proj.shape[1] == 0:
                 P = np.ones((n, 1))
             else:
@@ -75,7 +74,7 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
                             axis=1, keepdims=True)
             output = np.hstack((output, P))
 
-        output *= np.sqrt(self.coefs[self.orders]/self.D)
-        output /= np.sqrt(self.p_choice[self.orders])
+        output *= np.sqrt(self.coefs[self.orders_]/self.D)
+        output /= np.sqrt(self.p_choice[self.orders_])
 
         return output

@@ -1,10 +1,7 @@
-from load_mnist import load_data
-from sklearn.datasets import load_svmlight_file
-from randfeature import RandomKernelSignedCirculant, anova
-import numpy as np
+from .load_mnist import load_data
+from randfeature import RandomKernel, anova
 from sklearn.svm import LinearSVC, SVC
 import timeit
-from sklearn.utils.extmath import safe_sparse_dot
 from scipy.sparse import issparse
 
 
@@ -32,34 +29,33 @@ def _anova(degree):
 if __name__ == '__main__':
     X_train, y_train, X_test, y_test = load_data()
     X_train, y_train = X_train[:20000], y_train[:20000]
-    d = X_train.shape[1]
-    for t in [1, 2, 3, 4, 5]:
-        test_acc = 0.
+
+    s = timeit.default_timer()
+    clf = LinearSVC()
+    clf.fit(X_train, y_train)
+    acc = clf.score(X_test, y_test)
+    e = timeit.default_timer()
+    print('Linear model Accuracy:{}, Time:{}'.format(acc, e-s))
+
+    s = timeit.default_timer()
+    clf = SVC(kernel=_anova(2))
+    clf.fit(X_train, y_train)
+    acc = clf.score(X_test, y_test)
+    e = timeit.default_timer()
+    print('Kernel SVM Accuracy:{}, Time:{}'.format(acc, e-s))
+
+    for D in [784, 784*2, 784*3, 784*4, 784*5]:
         time = 0.
+        test_acc = 0.
         for i in range(5):
-            print('compute random kernel signed circulant map...')
             s = timeit.default_timer()
-            rk = RandomKernelSignedCirculant(t, random_state=i)
+            rk = RandomKernel(D, distribution='gaussian')
             rk.fit(X_test)
             X_train_rk = rk.transform(X_train)
             X_test_rk = rk.transform(X_test)
-            print('fit LinearSVC...')
-            clf = LinearSVC()
+            clf = LinearSVC(dual=False)
             clf.fit(X_train_rk, y_train)
             test_acc += clf.score(X_test_rk, y_test)
-            e = timeit.default_timer()
-            time += e-s
-        print('D:{}, Accuracy:{}, Time:{}'.format(t*d, test_acc/5, time/5))
+            time += timeit.default_timer() - s
+        print('D:{}, Accuracy:{}, Time:{}'.format(D, test_acc/5., time/5))
 
-
-"""
-Linear model Accuracy:0.9041
-Poly model Accuracy:0.9695
-D:100, Accuracy:0.754
-D:200, Accuracy:0.8631
-D:300, Accuracy:0.8922
-D:400, Accuracy:0.8929
-D:500, Accuracy:0.9108
-D:1000, Accuracy:0.9282
-D:1500, Accuracy:0.9504
-"""

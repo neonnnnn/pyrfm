@@ -1,7 +1,6 @@
-from sklearn.datasets import load_svmlight_file
 from randfeature import TensorSketch
 import numpy as np
-from load_a9a import load_data
+from .load_a9a import load_data
 
 
 if __name__ == '__main__':
