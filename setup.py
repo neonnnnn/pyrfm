@@ -4,17 +4,19 @@ import sys
 import setuptools
 from numpy.distutils.core import setup
 
-DISTNAME = 'randfeature'
+DISTNAME = 'pyrfm'
 DESCRIPTION = 'A python library for random feature maps.'
-VERSION = '0.0.dev0'
+VERSION = '0.1.dev0'
+
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
 
     config = Configuration(None, parent_package, top_path)
-    config.add_subpackage('randfeature')
+    config.add_subpackage('pyrfm')
 
     return config
+
 
 if __name__ == '__main__':
     old_path = os.getcwd()
@@ -25,8 +27,9 @@ if __name__ == '__main__':
 
     setup(configuration=configuration,
           name=DISTNAME,
-          maintainer='neonnnnn',
+          maintainer='Kyohei Atarashi',
           include_package_data=True,
           version=VERSION,
           zip_safe=False,
+          requires=['NumPy', 'SciPy', 'scikit-learn', 'lightning']
           )

@@ -1,2 +1,2 @@
-# random-features
-Python implementation of random features.
+# pyrfm
+A python implementation of random feature maps.
