@@ -1,5 +1,5 @@
 from .load_mnist import load_data
-from randfeature import RandomKernelSignedCirculant, anova
+from pyrfm import SignedCirculantRandomKernel, anova
 import numpy as np
 import timeit
 from scipy.sparse import issparse

@@ -1,4 +1,4 @@
-from randfeature import RandomKernel, anova
+from pyrfm import RandomKernel, anova
 import numpy as np
 from sklearn.svm import LinearSVC, SVC
 from .load_a9a import load_data

@@ -1,4 +1,4 @@
-from randfeature import RandomMaclaurin
+from pyrfm import RandomMaclaurin
 import numpy as np
 from .load_a9a import load_data
 

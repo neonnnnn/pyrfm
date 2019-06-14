@@ -1,5 +1,5 @@
 from .load_mnist import load_data
-from randfeature import TensorSketch
+from pyrfm import TensorSketch
 from sklearn.svm import LinearSVC, SVC
 
 

@@ -1,5 +1,5 @@
 from .load_mnist import load_data
-from randfeature import RandomKernel, anova
+from pyrfm import RandomKernel, anova
 from sklearn.svm import LinearSVC, SVC
 import timeit
 

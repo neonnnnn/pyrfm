@@ -1,5 +1,5 @@
 from sklearn.datasets import load_svmlight_file
-from randfeature import RandomKernel, anova
+from pyrfm import RandomKernel, anova
 import numpy as np
 from .load_a9a import load_data
 from sklearn.preprocessing import normalize

@@ -1,5 +1,5 @@
 from .load_mnist import load_data
-from randfeature import RandomMaclaurin
+from pyrfm import RandomMaclaurin
 from sklearn.svm import LinearSVC, SVC
 
 
