@@ -1,75 +1,190 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
+from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
+from scipy.sparse import csr_matrix
 from math import sqrt
-from .kernels import anova
-from .kernels_fast import all_subsets
+from .kernels import anova, all_subsets
 
 
 def _anova(degree=2):
-    def __anova(X, P):
-        return anova(X, P, degree)
+    def __anova(X, P, dense_output=True):
+        return anova(X, P, degree, dense_output)
 
     return __anova
 
 
 def dot():
-    def _dot(X, Y):
-        return safe_sparse_dot(X, Y.T, True)
+    def _dot(X, Y, dense_output=True):
+        return safe_sparse_dot(X, Y.T, dense_output)
 
     return _dot
 
 
-def get_random_matrix(rng, distribution, size):
+def get_random_matrix(rng, distribution, size, p=0.):
     if distribution == 'rademacher':
-        return rng.randint(2, size)*2 - 1
+        return rng.randint(2, size=size)*2 - 1
     elif distribution in ['gaussian', 'normal']:
         return rng.normal(0, 1, size)
     elif distribution == 'uniform':
         return rng.uniform(-np.sqrt(3), np.sqrt(3), size)
     elif distribution == 'laplace':
         return rng.laplace(0, 1./np.sqrt(2), size)
+    elif distribution == 'sparse_rademacher':
+        mat = rng.choice([-1., 0., 1.], size=size,
+                         p=[(1-p)/2., p, (1-p)/2.])
+        return csr_matrix(mat) / np.sqrt(1-p)
     else:
         raise ValueError('{} distribution is not implemented. Please use'
                          'rademacher, gaussian (normal), uniform or laplace.'
                          .format(distribution))
 
 
+def get_feature_indices(rng, n_sub_features, n_features, n_components):
+    mat = np.array(
+        [rng.choice(np.arange(n_features), size=n_sub_features, replace=False)
+         for _ in range(n_components)]
+    )
+    return mat.ravel()
+
+
 class RandomKernel(BaseEstimator, TransformerMixin):
-    def __init__(self, D=100, kernel='anova', degree=2,
-                 distribution='rademacher', random_state=None):
-        self.D = D
+    """Approximates feature map of the ANOVA/all-subsets kernel by Monte Carlo
+    approximation by Random Kernel Feature map.
+
+    Parameters
+    ----------
+    n_components : int
+        Number of Monte Carlo samples per original features.
+        Equals the dimensionality of the computed (mapped) feature space.
+
+    degree : int
+        Parameter of the ANOVA kernel.
+
+    distribution : str
+        Distribution for random_weights_.
+        "rademacher", "gaussian", "laplace", "uniform", or "sparse_rademacher"
+        can be used.
+
+    kernel : str
+        Kernel to be approximated.
+        "anova", "dot", or "all-subsets" can be used.
+
+    p_sparse : float
+        Sparsity parameter for "sparse_rademacher" distribution.
+        If p_sparse = 0, "sparse_rademacher" is equivalent to "rademacher".
+
+    random_state : int, RandomState instance or None, optional (default=None)
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+
+    References
+    ----------
+    [1] Random Feature Maps for the Itemset Kernel.
+    Kyohei Atarashi, Subhransu Maji, and Satoshi Oyama
+    In AAAI 2019.
+    (https://eprints.lib.hokudai.ac.jp/dspace/bitstream/2115/73469/1/aaai19_3875_camera_ready.pdf)
+    """
+    def __init__(self, n_components=100, kernel='anova', degree=2,
+                 distribution='rademacher', p_sparse=0., random_state=None):
+        self.n_components = n_components
         self.degree = degree
-        self.random_state = random_state
         self.distribution = distribution
         self.kernel = kernel
+        self.p_sparse = p_sparse
+        self.random_state = random_state
 
     def fit(self, X, y=None):
         random_state = check_random_state(self.random_state)
-        n, d = check_array(X, ['csr']).shape
-        size = (self.D, d)
+        n_samples, n_features = check_array(X, ['csc']).shape
+        size = (self.n_components, n_features)
         distribution = self.distribution.lower()
-        self.Projs_ = get_random_matrix(random_state, distribution, size)
+        self.random_weights_ = get_random_matrix(random_state, distribution,
+                                                 size, self.p_sparse)
 
         return self
 
-    def transform(self, raw_X):
-        n, d = check_array(raw_X, ['csr']).shape
+    def transform(self, X):
+        check_is_fitted(self, "random_weights_")
+        X = check_array(X, ['csr'])
+        n_samples, n_features = X.shape
         if isinstance(self.kernel, str):
             if self.kernel == 'anova':
                 kernel_ = _anova(self.degree)
-            elif self.kernel == 'all-subsets':
+            elif self.kernel == 'all_subsets':
                 kernel_ = all_subsets
             elif self.kernel == 'dot':
                 kernel_ = dot()
             else:
                 raise ValueError('Kernel {} is not supported. '
-                                 'Use "{anova|all-subsets|dot}"'
-                                 .fortmat(self.kernel))
+                                 'Use "anova", "all_subsets" or "dot"'
+                                 .format(self.kernel))
         else:
             kernel_ = self.kernel
-        output = kernel_(raw_X, self.Projs_).astype(np.float64)
+        output = kernel_(X, self.random_weights_).astype(np.float64)
 
-        output /= sqrt(self.D)
+        output /= sqrt(self.n_components)
+        return output
+
+
+class RandomSubsetKernel(BaseEstimator, TransformerMixin):
+    def __init__(self, n_components=100, n_sub_features=5, kernel='anova',
+                 degree=2, distribution='rademacher', dense_output=False,
+                 random_state=None):
+        self.n_components = n_components
+        self.n_sub_features = n_sub_features
+        self.degree = degree
+        self.kernel = kernel
+        self.distribution = distribution
+        self.random_state = random_state
+        self.dense_output=dense_output
+
+    def fit(self, X, y=None):
+        if self.kernel not in ['anova']:
+            raise ValueError("RandomSubsetKernel now does not support"
+                             "{} kernel.".format(self.kernel))
+
+        if self.n_sub_features < self.degree:
+            raise ValueError("n_sub_features < degree.")
+
+        random_state = check_random_state(self.random_state)
+        n_samples, n_features = check_array(X, ['csr']).shape
+        size = (self.n_sub_features * self.n_components, )
+        distribution = self.distribution.lower()
+        data = get_random_matrix(random_state, distribution, size=size)
+        row = np.repeat(np.arange(self.n_components), self.n_sub_features)
+        col = get_feature_indices(random_state, self.n_sub_features,
+                                  n_features, self.n_components)
+        self.random_weights_ = csr_matrix((data, (row, col)),
+                                          shape=(self.n_components, n_features))
+        return self
+
+    def transform(self, X):
+        check_is_fitted(self, "random_weights_")
+        X = check_array(X, ['csr'])
+        n_samples, n_features = X.shape
+        const = np.arange(n_features, n_features-self.degree, -1)
+        denominator = np.arange(self.n_sub_features,
+                                self.n_sub_features-self.degree,
+                                -1)
+        const = np.prod(np.sqrt(const / denominator))
+        if isinstance(self.kernel, str):
+            if self.kernel == 'anova':
+                kernel_ = _anova(self.degree)
+            elif self.kernel == 'dot':
+                kernel_ = dot()
+            else:
+                raise ValueError('Kernel {} is not supported. '
+                                 'Use "anova" or "dot"'
+                                 .format(self.kernel))
+        else:
+            kernel_ = self.kernel
+        output = kernel_(X, self.random_weights_,
+                         dense_output=self.dense_output).astype(np.float64)
+
+        output /= sqrt(self.n_components)
+        output *= const
         return output
