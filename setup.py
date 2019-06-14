@@ -30,6 +30,5 @@ if __name__ == '__main__':
           maintainer='Kyohei Atarashi',
           include_package_data=True,
           version=VERSION,
-          zip_safe=False,
-          requires=['NumPy', 'SciPy', 'scikit-learn', 'lightning']
+          zip_safe=False
           )
