@@ -111,9 +111,6 @@ class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):
             max_iter, tol, eps, warm_start, random_state, verbose
         )
 
-    def _check_X_y(self, X, y):
-        return check_X_y(X, y, True, multi_output=False, y_numeric=False)
-
 
 class SparseMBRegressor(BaseSparseMBEstimator, LinearRegressorMixin):
     LOSSES = {
@@ -128,6 +125,3 @@ class SparseMBRegressor(BaseSparseMBEstimator, LinearRegressorMixin):
             n_components, loss, penalty, solver, C, alpha, fit_intercept,
             max_iter, tol, eps, warm_start, random_state, verbose
         )
-
-    def _check_X_y(self, X, y):
-        return check_X_y(X, y, True, multi_output=False, y_numeric=True)

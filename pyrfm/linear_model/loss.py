@@ -6,12 +6,11 @@ def sigmoid(pred):
 
 
 class LossFunction:
+    def loss(self, p, y):
+        raise NotImplementedError()
 
-     def loss(self, p, y):
-         raise NotImplementedError()
-
-     def dloss(self, p, y):
-         raise NotImplementedError()
+    def dloss(self, p, y):
+        raise NotImplementedError()
 
 
 class Squared(LossFunction):
