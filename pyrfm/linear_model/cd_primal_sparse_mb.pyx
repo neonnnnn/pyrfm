@@ -8,6 +8,8 @@ from libc.math cimport fabs
 from cython.view cimport array
 from lightning.impl.dataset_fast cimport ColumnDataset, RowDataset
 from .loss_fast cimport LossFunction
+import numpy as np
+cimport numpy as np
 
 
 # (block) coordinate descent
@@ -17,7 +19,7 @@ cdef double _cd_primal_epoch(double[:] coef,
                              ColumnDataset X,
                              double[:] y,
                              double[:] X_col_norms,
-                             double[::] y_pred,
+                             double[:] y_pred,
                              RowDataset H,
                              double alpha,
                              LossFunction loss,
@@ -36,26 +38,28 @@ cdef double _cd_primal_epoch(double[:] coef,
 
     n_features = coef.shape[0]
     sum_viol = 0
-
     for jj in range(n_features):
         j = index_ptr[jj]
         X.get_column_ptr(j, &indices, &data, &n_nz)
-        H.get_row_ptr(j, &indices_H, &data_H, &n_nz_H)
 
+        if n_nz == 0:
+            continue
+
+        H.get_row_ptr(j, &indices_H, &data_H, &n_nz_H)
         # inv_step size di
         inv_step_size = loss.mu * X_col_norms[j]
-        update = 0
 
+        update = 0
         for ii in range(n_nz):
             i = indices[ii]
             dloss = loss.dloss(y_pred[i], y[i])
             update += dloss * data[ii]
+
         for ii in range(n_nz_H):
             i = indices_H[ii]
-            update += coef[i] * data_H[ii]
+            update += coef[i] * data_H[ii] * alpha
 
-        inv_step_size += alpha*data_H[n_nz-2]
-
+        inv_step_size += alpha*data_H[n_nz_H-2]
         # update w[j]
         coef_old = coef[j]
         update /= inv_step_size
@@ -94,8 +98,10 @@ def _cd_primal(double[:] coef,
     it = 0
     for it in range(max_iter):
         viol = 0
+
         viol = _cd_primal_epoch(coef, X, y, X_col_norms, y_pred, H, alpha,
-                                loss, rng.permutation(n_features))
+                                loss, rng.permutation(n_features).astype(np.int32))
+
         if fit_intercept:
             update = 0
             for i in range(n_samples):

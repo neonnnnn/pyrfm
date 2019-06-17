@@ -3,7 +3,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_array
 from sklearn.utils.validation import check_is_fitted
 
-from scipy.sparse import csr_matrix
+from scipy.sparse import csc_matrix
 from math import sqrt
 import warnings
 from lightning.impl.dataset_fast import get_dataset
@@ -111,12 +111,12 @@ class SparseMB(BaseEstimator, TransformerMixin):
         if self.n_components_actual_ != self.n_grids_*n_features:
             raise ValueError("X.shape[1] is different from X_train.shape[1].")
         row = np.repeat(np.arange(n_samples), 2*n_features)
-        row = row.astype(np.int64)
-        col = np.array([np.ceil(X*self.n_grids_),
-                        np.ceil(X*self.n_grids_+1)])
-        col = col.T.ravel()
-        col = col.astype(np.int64)
-        X *= self.n_grids_
-        X -= np.ceil(X)
-        data = np.array([(1.-X).ravel(), X.ravel()]).T.ravel() / sqrt(self.n_grids_)
-        return csr_matrix((data, (row, col)))
+        col_pre = np.ceil(X*self.n_grids_)
+        col_pre += np.arange(n_features)*self.n_grids_
+        col_suf = np.ceil(X*self.n_grids_)+1
+        col_suf += np.arange(n_features)*self.n_grids_
+        col = np.array([col_pre.ravel(), col_suf.ravel()]).T.ravel()
+        val = X * self.n_grids_ - np.ceil(X)
+        data = np.array([(1.-val).ravel(), val.ravel()]).T.ravel() / sqrt(self.n_grids_)
+        return csc_matrix((data, (row, col)),
+                          shape=(n_samples, self.n_components_actual_))

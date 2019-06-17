@@ -37,14 +37,14 @@ class BaseSparseMBEstimator(BaseLinear):
     """
     LOSSES = {
         'squared': Squared(),
-        'suqared_hinge': SquaredHinge(),
+        'squared_hinge': SquaredHinge(),
         'logistic': Logistic(),
         'hinge': Hinge()
     }
 
     def __init__(self, n_components=1000, loss='squared_hinge', penalty='l2',
                  solver='cd', C=1.0, alpha=1.0, fit_intercept=True,
-                 max_iter=100, tol=1e-6, eps=1e-3, warm_start=False,
+                 max_iter=100, tol=1e-6, eps=1e-2, warm_start=False,
                  random_state=None, verbose=True):
         self.n_components = n_components
         self.loss = loss
@@ -62,42 +62,42 @@ class BaseSparseMBEstimator(BaseLinear):
 
     def fit(self, X, y):
         X, y = self._check_X_y(X, y)
-        if not self.warm_start and hasattr(self, 'transformer_'):
+        if not (self.warm_start and hasattr(self, 'transformer_')):
             self.transformer_ = SparseMB(n_components=self.n_components)
             self.transformer_.fit(X)
-        X = self.transformer_.transform(X)
+        X_trans = self.transformer_.transform(X)
+        if not (self.warm_start and hasattr(self, 'coef_')):
+            self.coef_ = np.zeros(self.n_components)
 
-        n_samples, n_features = X.shape
-        if not self.warm_start and hasattr(self, 'coef_'):
-            self.coef_ = np.zeros(n_features)
-
-        if not self.warm_start and hasattr(self, 'intercept_'):
+        if not (self.warm_start and hasattr(self, 'intercept_')):
             self.intercept_ = 0.
 
         if self.loss not in self.LOSSES:
-            raise ValueError("loss {} is not supported.")
+            raise ValueError("loss {} is not supported.".format(self.loss))
 
         loss = self.LOSSES[self.loss]
         alpha = self.alpha / self.C
-
         # make tridiagonal matrix
         H = sparse.diags([-1, 2+self.eps, -1], [-1, 0, 1],
-                         shape=(self.n_components, self.n_components))
+                         shape=(self.n_components, self.n_components)).tocsr()
         H[0, 0] = 1+self.eps
+        H[0, 1] = -1
         H[self.n_components-1, self.n_components-1] = 1+self.eps
-
+        H[self.n_components-1, self.n_components-2] = -1
         y_pred = self.decision_function(X)
-        X_col_norms = row_norms(X.T, True)
+        X_col_norms = row_norms(X_trans.T, squared=True)
+        X_trans_dataset = get_dataset(X_trans, 'fortran')
+        H_dataset = get_dataset(H, 'c')
         random_state = check_random_state(self.random_state)
-        _cd_primal(self.coef_, self.intercept_, get_dataset(X, 'f'), y,
-                   X_col_norms, y_pred, get_dataset(H, 'c'), alpha, loss,
+        _cd_primal(self.coef_, self.intercept_, X_trans_dataset, y,
+                   X_col_norms, y_pred, H_dataset, alpha, loss,
                    self.max_iter, self.tol, self.fit_intercept,
                    random_state, self.verbose)
 
 
 class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):
     LOSSES = {
-        'suqared_hinge': SquaredHinge(),
+        'squared_hinge': SquaredHinge(),
         'logistic': Logistic(),
         'hinge': Hinge()
     }
