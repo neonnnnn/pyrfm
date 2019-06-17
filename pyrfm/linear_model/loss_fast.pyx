@@ -36,9 +36,10 @@ cdef class Logistic(LossFunction):
         # log(1 + exp(-z))
         if z > 18:
             return exp(-z)
-        if z < -18:
+        elif z < -18:
             return -z
-        return log(1.0 + exp(-z))
+        else:
+            return log(1.0 + exp(-z))
 
     cdef double dloss(self, double p, double y):
         cdef double z = p * y
@@ -46,9 +47,10 @@ cdef class Logistic(LossFunction):
         # return y * (tau - 1)
         if z > 18.0:
             return -y * exp(-z)
-        if z < -18.0:
+        elif z < -18.0:
             return -y
-        return -y / (exp(z) + 1.0)
+        else:
+            return -y / (exp(z) + 1.0)
 
 
 cdef class SquaredHinge(LossFunction):
@@ -61,10 +63,33 @@ cdef class SquaredHinge(LossFunction):
         cdef double z = 1 - p * y
         if z > 0:
             return z * z
-        return 0.0
+        else:
+            return 0.0
 
     cdef double dloss(self, double p, double y):
         cdef double z = 1 - p * y
         if z > 0:
             return -2 * y * z
-        return 0.0
+        else:
+            return 0.0
+
+
+cdef class Hinge(LossFunction):
+    """hinge loss: L(p, y) = max(1 - y*p, 0)"""
+
+    def __init__(self):
+        self.mu = 0
+
+    cdef double loss(self, double p, double y):
+        cdef double z = 1 - p * y
+        if z > 0:
+            return z
+        else:
+            return 0.0
+
+    cdef double dloss(self, double p, double y):
+        cdef double z = 1 - p * y
+        if z > 0:
+            return -1
+        else:
+            return 0.0
