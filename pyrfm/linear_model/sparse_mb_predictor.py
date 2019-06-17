@@ -11,7 +11,7 @@ from lightning.impl.dataset_fast import get_dataset
 
 from .loss_fast import Squared, SquaredHinge, Logistic, Hinge
 from ..maji_berg import SparseMB
-from .cd_primal_sparse_mb import _cd_primal_epoch
+from .cd_primal_sparse_mb import _cd_primal
 from .base import BaseLinear, LinearClassifierMixin, LinearRegressorMixin
 
 
@@ -89,10 +89,10 @@ class BaseSparseMBEstimator(BaseLinear):
         y_pred = self.decision_function(X)
         X_col_norms = row_norms(X.T, True)
         random_state = check_random_state(self.random_state)
-        _cd_primal_epoch(self.coef_, self.intercept_, get_dataset(X, 'f'), y,
-                         X_col_norms, y_pred, get_dataset(H, 'c'), alpha, loss,
-                         self.max_iter, self.tol, self.fit_intercept,
-                         random_state, self.verbose)
+        _cd_primal(self.coef_, self.intercept_, get_dataset(X, 'f'), y,
+                   X_col_norms, y_pred, get_dataset(H, 'c'), alpha, loss,
+                   self.max_iter, self.tol, self.fit_intercept,
+                   random_state, self.verbose)
 
 
 class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):

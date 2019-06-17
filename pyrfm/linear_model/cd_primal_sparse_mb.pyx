@@ -70,20 +70,20 @@ cdef double _cd_primal_epoch(double[:] coef,
     return sum_viol
 
 
-def _cd_primal_epoch(double[:] coef,
-                     double intercept,
-                     ColumnDataset X,
-                     double[:] y,
-                     double[:] X_col_norms,
-                     double[:] y_pred,
-                     RowDataset H,
-                     double alpha,
-                     LossFunction loss,
-                     int max_iter,
-                     double tol,
-                     bint fit_intercept,
-                     rng,
-                     bint verbose):
+def _cd_primal(double[:] coef,
+               double intercept,
+               ColumnDataset X,
+               double[:] y,
+               double[:] X_col_norms,
+               double[:] y_pred,
+               RowDataset H,
+               double alpha,
+               LossFunction loss,
+               int max_iter,
+               double tol,
+               bint fit_intercept,
+               rng,
+               bint verbose):
 
     cdef Py_ssize_t it, i, n_features, n_samples
     cdef double viol, update
