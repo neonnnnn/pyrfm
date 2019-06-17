@@ -16,13 +16,13 @@ def sigmoid(pred):
 class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
     def _predict(self, X):
         check_is_fitted(self, 'coef_')
-        X = self.transformer_.trnasform(X)
-        pred = safe_sparse_dot(X, self.coef_.T, True)
+        X_trans = self.transformer_.transform(X)
+        pred = safe_sparse_dot(X_trans, self.coef_.T)
 
         if self.fit_intercept and hasattr(self, 'intercept_'):
             pred += self.intercept_
 
-        if pred.shape[1] == 1:
+        if pred.ndim == 1:
             pred = pred.ravel()
 
         return pred
