@@ -99,7 +99,8 @@ class RandomKernel(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         random_state = check_random_state(self.random_state)
-        n_samples, n_features = check_array(X, ['csc']).shape
+        X = check_array(X, accept_sparse=True)
+        n_samples, n_features = X.shape
         size = (self.n_components, n_features)
         distribution = self.distribution.lower()
         self.random_weights_ = get_random_matrix(random_state, distribution,
@@ -109,7 +110,7 @@ class RandomKernel(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
-        X = check_array(X, ['csr'])
+        X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         if isinstance(self.kernel, str):
             if self.kernel == 'anova':
@@ -151,7 +152,8 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
             raise ValueError("n_sub_features < degree.")
 
         random_state = check_random_state(self.random_state)
-        n_samples, n_features = check_array(X, ['csr']).shape
+        X = check_array(X, accept_sparse=True)
+        n_samples, n_features = X.shape
         size = (self.n_sub_features * self.n_components, )
         distribution = self.distribution.lower()
         data = get_random_matrix(random_state, distribution, size=size)
@@ -164,7 +166,7 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
-        X = check_array(X, ['csr'])
+        X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         const = np.arange(n_features, n_features-self.degree, -1)
         denominator = np.arange(self.n_sub_features,

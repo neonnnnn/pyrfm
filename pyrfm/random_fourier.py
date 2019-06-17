@@ -48,7 +48,8 @@ class RandomFourier(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         random_state = check_random_state(self.random_state)
-        n_features = check_array(X, True).shape[1]
+        X = check_array(X, accept_sparse=True)
+        n_samples, n_features = X.shape
 
         if self.use_offset:
             n_components = self.n_components
@@ -79,7 +80,8 @@ class RandomFourier(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
-        X = check_array(X, True)
+        X = check_array(X, accept_sparse=True)
+        n_samples, n_features = X.shape
         output = safe_sparse_dot(X, self.random_weights_, True)
         if self.use_offset:
             output += self.offset_

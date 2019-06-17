@@ -76,7 +76,8 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         random_state = check_random_state(self.random_state)
-        n_features = check_array(X, True).shape[1]
+        X = check_array(X, accept_sparse=True)
+        n_samples, n_features = X.shape
 
         if isinstance(self.kernel, str):
             if self.kernel not in ['exp', 'poly']:
@@ -128,7 +129,7 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
-        X = check_array(X, True)
+        X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         output = np.zeros((n_samples, self.n_components))
         s = 0

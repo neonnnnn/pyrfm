@@ -63,7 +63,7 @@ class MB(BaseEstimator, TransformerMixin):
 class SparseMB(BaseEstimator, TransformerMixin):
     """Approximates feature map of the intersection (min) kernel by sparse
     explicit feature map, which is proposed by S.Maji and A.C.Berg.
-    SparseMB does not approximate min kernel only itselt.
+    SparseMB does not approximate min kernel only itself.
     Linear classifier with SparseMB approximates linear classifier with MB.
     For more detail, see [1].
 
@@ -101,6 +101,7 @@ class SparseMB(BaseEstimator, TransformerMixin):
         check_is_fitted(self, "n_components_actual_")
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
+
         if np.max(X) > 1:
             raise ValueError("The maximum value of X is bigger than 1.")
 

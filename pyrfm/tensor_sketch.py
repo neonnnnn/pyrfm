@@ -63,9 +63,8 @@ class TensorSketch(BaseEstimator, TransformerMixin):
         self.random_state = random_state
 
     def fit(self, X, y=None):
-        X = check_array(X, True)
-        n_features = X.shape[1]
-
+        X = check_array(X, accept_sparse=True)
+        n_samples, n_features = X.shape
         random_state = check_random_state(self.random_state)
         i_hash = _index_hash(n_features, self.n_components, self.degree,
                              random_state)
