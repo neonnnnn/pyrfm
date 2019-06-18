@@ -40,3 +40,31 @@ def test_random_fourier():
         assert_less_equal(np.abs(np.mean(error)), 0.01)
         assert_less_equal(np.max(error), 0.1)  # nothing too far off
         assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
+
+
+def test_random_fourier_sparse():
+    # compute exact kernel
+    for gamma in [0.1, 1, 10]:
+        kernel = rbf_kernel(X, Y, gamma)
+        # approximate kernel mapping
+        rf_transform = RandomFourier(n_components=6000, gamma=gamma,
+                                     use_offset=True, random_state=0)
+        X_trans = rf_transform.fit_transform(csr_matrix(X))
+        Y_trans = rf_transform.transform(csr_matrix(Y))
+        kernel_approx = np.dot(X_trans, Y_trans.T)
+
+        error = kernel - kernel_approx
+        assert_less_equal(np.abs(np.mean(error)), 0.01)
+        assert_less_equal(np.max(error), 0.1)  # nothing too far off
+        assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
+
+        rf_transform = RandomFourier(n_components=6000, gamma=gamma,
+                                     use_offset=False, random_state=0)
+        X_trans = rf_transform.fit_transform(csr_matrix(X))
+        Y_trans = rf_transform.transform(csr_matrix(Y))
+        kernel_approx = np.dot(X_trans, Y_trans.T)
+
+        error = kernel - kernel_approx
+        assert_less_equal(np.abs(np.mean(error)), 0.01)
+        assert_less_equal(np.max(error), 0.1)  # nothing too far off
+        assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
