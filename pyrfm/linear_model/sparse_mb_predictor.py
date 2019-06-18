@@ -1,12 +1,9 @@
-from abc import ABCMeta, abstractmethod
-import warnings
-
 import numpy as np
 from scipy import sparse
 
 
-from sklearn.utils.extmath import safe_sparse_dot, row_norms
-from sklearn.utils import check_X_y, check_random_state
+from sklearn.utils.extmath import row_norms
+from sklearn.utils import check_random_state
 from lightning.impl.dataset_fast import get_dataset
 
 from .loss_fast import Squared, SquaredHinge, Logistic, Hinge
@@ -17,7 +14,7 @@ from .base import BaseLinear, LinearClassifierMixin, LinearRegressorMixin
 
 class BaseSparseMBEstimator(BaseLinear):
     """Linear model with feature map approximating the intersection (min)
-    kernel by sparse explicit feature map, which is proposed by S.Maji
+    kernel by sparse explicit feature map, which was proposed by S.Maji
     and A.C.Berg. SparseMB does not approximate min kernel only itself.
     Linear classifier with SparseMB approximates linear classifier with MB.
     For more detail, see [1].
@@ -27,6 +24,56 @@ class BaseSparseMBEstimator(BaseLinear):
     n_components : int
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
+
+    loss : str
+        Which loss function to use. Following losses can be used:
+            'squared' (for regression)
+            'squared_hinge' (for classification)
+            'logistic' (for classification)
+
+    C : double, default=1.0
+        Weight of loss term.
+
+    alpha : double, default=1.0
+        Weight of the penalty term.
+
+    fit_intercept : bool, default=True
+        Whether to fit intercept (bias term) or not.
+
+    max_iter : int
+        Maximum number of iterations.
+
+    tol : double
+        Tolerance of stopping criterion.
+        If sum of absolute val of update in one epoch is lower than tol,
+        the AdaGrad solver stops learning.
+
+    eps : double
+        A small double to avoid zero-division.
+
+    warm_start : bool
+        Whether to activate warm-start or not.
+
+    random_state : int, RandomState instance or None, optional (default=None)
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+
+    verbose : bool, default=True
+        Verbose mode or not.
+
+    Attributes
+    ----------
+    self.transformer_ : scikit-learn TransformMixin object.
+        The learned transformer for random feature maps.
+
+    self.coef_ : array, shape (n_components, )
+        The learned coefficients of the linear model.
+
+    self.intercept_ : array, shape (1, )
+        The learned intercept (bias) of the linear model.
+
 
     References
     ----------
@@ -42,13 +89,13 @@ class BaseSparseMBEstimator(BaseLinear):
         'hinge': Hinge()
     }
 
-    def __init__(self, n_components=1000, loss='squared_hinge', penalty='l2',
-                 solver='cd', C=1.0, alpha=1.0, fit_intercept=True,
+    def __init__(self, n_components=1000, loss='squared_hinge', solver='cd',
+                 C=1.0, alpha=1.0, fit_intercept=True,
                  max_iter=100, tol=1e-6, eps=1e-2, warm_start=False,
                  random_state=None, verbose=True):
         self.n_components = n_components
         self.loss = loss
-        self.penalty = penalty
+        # TODO Implement Group Lasso
         self.solver = solver
         self.C = C
         self.alpha = alpha
@@ -84,7 +131,7 @@ class BaseSparseMBEstimator(BaseLinear):
         H[0, 1] = -1
         H[self.n_components-1, self.n_components-1] = 1+self.eps
         H[self.n_components-1, self.n_components-2] = -1
-        y_pred = self.decision_function(X)
+        y_pred = self._predict(X)
         X_col_norms = row_norms(X_trans.T, squared=True)
         X_trans_dataset = get_dataset(X_trans, 'fortran')
         H_dataset = get_dataset(H, 'c')
@@ -102,12 +149,12 @@ class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):
         'hinge': Hinge()
     }
 
-    def __init__(self, n_components=1000, loss='squared_hinge', penalty='l2',
+    def __init__(self, n_components=1000, loss='squared_hinge',
                  solver='cd', C=1.0, alpha=1.0, fit_intercept=True,
                  max_iter=100, tol=1e-6, eps=1e-4, warm_start=False,
                  random_state=None, verbose=True):
         super(SparseMBClassifier, self).__init__(
-            n_components, loss, penalty, solver, C, alpha, fit_intercept,
+            n_components, loss, solver, C, alpha, fit_intercept,
             max_iter, tol, eps, warm_start, random_state, verbose
         )
 
@@ -117,11 +164,11 @@ class SparseMBRegressor(BaseSparseMBEstimator, LinearRegressorMixin):
         'squared': Squared(),
     }
 
-    def __init__(self, n_components=1000, loss='squared', penalty='l2',
+    def __init__(self, n_components=1000, loss='squared',
                  solver='cd', C=1.0, alpha=1.0, fit_intercept=True,
                  max_iter=100, tol=1e-6, eps=1e-4, warm_start=False,
                  random_state=None, verbose=True):
         super(SparseMBRegressor, self).__init__(
-            n_components, loss, penalty, solver, C, alpha, fit_intercept,
+            n_components, loss, solver, C, alpha, fit_intercept,
             max_iter, tol, eps, warm_start, random_state, verbose
         )
