@@ -11,11 +11,16 @@ def configuration(parent_package='', top_path=None):
                          sources=['loss_fast.pyx'],
                          language='c++',
                          include_dirs=[numpy.get_include()])
+
     config.add_extension('cd_primal_sparse_mb',
                          sources=['cd_primal_sparse_mb.pyx'],
                          language='c++',
                          include_dirs=[numpy.get_include()])
 
+    config.add_extension("adagrad_fast",
+                         sources=['adagrad_fast.pyx'],
+                         language='c++',
+                         include_dirs=[numpy.get_include()])
     maybe_cythonize_extensions(top_path, config)
     return config
 
