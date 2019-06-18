@@ -5,19 +5,22 @@ import numpy
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
 
-    config = Configuration('pyrfm', parent_package, top_path)
+    config = Configuration('linear_model', parent_package, top_path)
 
-    config.add_extension('kernels_fast',
-                         sources=['kernels_fast.pyx'],
-                         language='c++',
-                         include_dirs=[numpy.get_include()])
-    config.add_extension('unarize',
-                         sources=['unarize.pyx'],
+    config.add_extension('loss_fast',
+                         sources=['loss_fast.pyx'],
                          language='c++',
                          include_dirs=[numpy.get_include()])
 
-    config.add_subpackage('linear_model')
+    config.add_extension('cd_primal_sparse_mb',
+                         sources=['cd_primal_sparse_mb.pyx'],
+                         language='c++',
+                         include_dirs=[numpy.get_include()])
 
+    config.add_extension("adagrad_fast",
+                         sources=['adagrad_fast.pyx'],
+                         language='c++',
+                         include_dirs=[numpy.get_include()])
     maybe_cythonize_extensions(top_path, config)
     return config
 

@@ -70,7 +70,7 @@ def D(X, P, degree, dense_output=True):
 
 def test_anova_kernel():
     for degree in range(2, 4):
-        expected = np.zeros((X.shape[0], X.shape[0]))
+        expected = np.zeros((X.shape[0], Y.shape[0]))
         for i in range(X.shape[0]):
             for j in range(Y.shape[0]):
                 expected[i, j] = dumb_anova(X[i], Y[j], degree=degree)
@@ -84,7 +84,7 @@ def test_anova_kernel():
 
 def test_anova_kernel_sparse():
     for degree in range(2, 4):
-        expected = np.zeros((X.shape[0], X.shape[0]))
+        expected = np.zeros((X.shape[0], Y.shape[0]))
         for i in range(X.shape[0]):
             for j in range(Y.shape[0]):
                 expected[i, j] = dumb_anova(X[i], Y[j], degree=degree)
@@ -94,7 +94,7 @@ def test_anova_kernel_sparse():
 
         anova = pyrfm.anova(csr_matrix(X), Y, degree, False)
         assert_array_almost_equal(expected, anova, decimal=4)
-
+        
         anova = pyrfm.anova(X, csr_matrix(Y), degree, True)
         assert_array_almost_equal(expected, anova, decimal=4)
 
@@ -109,7 +109,7 @@ def test_anova_kernel_sparse():
 
 
 def test_all_subsets_kernel():
-    expected = np.zeros((X.shape[0], X.shape[0]))
+    expected = np.zeros((X.shape[0], Y.shape[0]))
     for i in range(X.shape[0]):
         for j in range(Y.shape[0]):
             expected[i, j] += dumb_all_subsets(X[i], Y[j])

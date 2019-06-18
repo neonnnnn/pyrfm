@@ -43,20 +43,22 @@ class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         random_state = check_random_state(self.random_state)
-        n_features = check_array(X, ['csr']).shape[1]
+        X = check_array(X, accept_sparse=True)
+        n_samples, n_features = X.shape
 
         if n_features > self.n_components:
             raise ValueError('n_components is lower than X.shape[1]')
 
         t = self.n_components//n_features
         size = (t, n_features)
+        self.n_components_actual_ = t * n_features
         self.random_weights_ = fft(random_state.randint(2, size=size)*2-1)
         self.signs_ = random_state.randint(2, size=size)*2-1
         return self
 
     def transform(self, X):
         check_is_fitted(self, ["signs_", "random_weights_"])
-        X = check_array(X, ['csr'])
+        X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         output = []
         fft_X = fft(X)
