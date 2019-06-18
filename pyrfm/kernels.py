@@ -38,7 +38,7 @@ def D(X, P, degree, dense_output=True):
 
 def anova(X, P, degree, dense_output=True):
     X = check_array(X, True)
-    P = check_array(X, True)
+    P = check_array(P, True)
 
     if degree == 2:
         H2 = safe_power(safe_sparse_dot(X, P.T, dense_output), 2, dense_output)
@@ -75,29 +75,29 @@ def anova(X, P, degree, dense_output=True):
 
 def hellinger(X, P):
     X = check_array(X, True)
-    P = check_array(X, True)
+    P = check_array(P, True)
     return safe_sparse_dot(np.sqrt(X), np.sqrt(P))
 
 
 def all_subsets(X, P):
     X = check_array(X, True)
-    P = check_array(X, True)
+    P = check_array(P, True)
     return _all_subsets(X, P)
 
 
 def anova_fast(X, P, degree, dense_output=True):
     X = check_array(X, True)
-    P = check_array(X, True)
+    P = check_array(P, True)
     return _anova(X, P, degree, dense_output)
 
 
 def intersection(X, P):
     X = check_array(X, True)
-    P = check_array(X, True)
+    P = check_array(P, True)
     return _intersection(X, P)
 
 
 def chi_square(X, P):
     X = check_array(X, True)
-    P = check_array(X, True)
+    P = check_array(P, True)
     return _chi_square(X, P)
