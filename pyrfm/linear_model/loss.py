@@ -15,7 +15,6 @@ class LossFunction:
 
 class Squared(LossFunction):
     """Squared loss: L(p, y) = 0.5 * (y - p)²"""
-
     def __init__(self):
         self.mu = 1
 
