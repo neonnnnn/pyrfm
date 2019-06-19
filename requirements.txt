@@ -1,0 +1,6 @@
+numpy
+scipy
+cython
+scikit-learn
+nose
+sklearn-contrib-lightning
