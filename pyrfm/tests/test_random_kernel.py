@@ -24,10 +24,10 @@ def test_anova_kernel():
             rk_transform = RandomKernel(n_components=1000, random_state=rng,
                                         kernel='anova', degree=degree,
                                         distribution=dist, p_sparse=0.5)
+
             X_trans = rk_transform.fit_transform(X)
             Y_trans = rk_transform.transform(Y)
             kernel_approx = np.dot(X_trans, Y_trans.T)
-
             error = kernel - kernel_approx
             assert_less_equal(np.abs(np.mean(error)), 0.0001)
             assert_less_equal(np.max(error), 0.001)  # nothing too far off
