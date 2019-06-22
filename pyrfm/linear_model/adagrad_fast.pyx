@@ -46,9 +46,8 @@ def _adagrad_fast(double[:] coef,
     cdef double[:] x = np.zeros((n_components, ), dtype=np.float64)
     it = 0
 
-    random_state.shuffle(indices)
     if mean is not None and t == 1:
-        i = indices[random_state.randint(n_samples-1)+1]
+        i = random_state.randint(n_samples)
 
         if is_sparse:
             x = transformer.transform(X[i])[0]
@@ -59,15 +58,16 @@ def _adagrad_fast(double[:] coef,
 
     for it in range(max_iter):
         viol = 0
-        if it != 0:
-            random_state.shuffle(indices)
+        random_state.shuffle(indices)
 
         for i in indices:
+
+
             if is_sparse:
                 x = transformer.transform(X[i])[0]
             else:
                 x = transformer.transform(np.atleast_2d(X[i]))[0]
-
+            
             # if normalize
             if mean is not None:
                 for j in range(n_components):

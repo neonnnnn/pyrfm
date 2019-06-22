@@ -96,11 +96,13 @@ def _cd_primal(double[:] coef,
     n_features = coef.shape[0]
     n_samples = X.get_n_samples()
     it = 0
+    cdef int[:] indices = np.arange(n_features, dtype=np.int32)
     for it in range(max_iter):
         viol = 0
+        rng.shuffle(indices)
 
         viol = _cd_primal_epoch(coef, X, y, X_col_norms, y_pred, H, alpha,
-                                loss, rng.permutation(n_features).astype(np.int32))
+                                loss, indices)
 
         if fit_intercept:
             update = 0

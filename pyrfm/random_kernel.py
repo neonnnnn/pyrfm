@@ -31,7 +31,7 @@ def dot():
 def get_random_matrix(rng, distribution, size, p=0.):
     # size = (n_components, n_features)
     if distribution == 'rademacher':
-        return rng.randint(2, size=size)*2 - 1
+        return (rng.randint(2, size=size)*2 - 1).astype(np.float64z)
     elif distribution in ['gaussian', 'normal']:
         return rng.normal(0, 1, size)
     elif distribution == 'uniform':
@@ -182,9 +182,9 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
         self.dense_output=dense_output
 
     def fit(self, X, y=None):
-        if self.kernel not in ['anova']:
+        if self.kernel not in ['anova', 'anova_cython']:
             raise ValueError("RandomSubsetKernel now does not support"
-                             "{} kernel.".format(self.kernel))
+                             " {} kernel.".format(self.kernel))
 
         if self.n_sub_features < self.degree:
             raise ValueError("n_sub_features < degree.")

@@ -14,7 +14,7 @@ X = rng.random_sample(size=(500, 50))*2-1
 n_train = int(X.shape[0]*0.9)
 n_test = X.shape[0] - n_train
 
-"""
+
 def test_adagrad_classifier_ts():
     # approximate kernel mapping
     transform = TensorSketch(n_components=1000, random_state=rng)
@@ -67,7 +67,6 @@ def test_adagrad_classifier_ts_normalize():
     assert_almost_equal(clf_baseline.score(X_trans[:n_train], y_train),
                         clf.score(X_train, y_train))
 
-"""
 
 def test_adagrad_classifier_warm_start():
     transform = TensorSketch(n_components=1000, random_state=rng)

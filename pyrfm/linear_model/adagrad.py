@@ -1,6 +1,3 @@
-from abc import ABCMeta, abstractmethod
-import warnings
-
 import numpy as np
 from scipy import sparse
 from sklearn.utils.extmath import safe_sparse_dot
@@ -223,7 +220,7 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
     }
 
     def __init__(self, transformer=RBFSampler(), eta=1.0, loss='squared_hinge',
-                 C=1.0, alpha=1.0, l1_ratio=0., normalize=True,
+                 C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6, eps=1e-4,
                  warm_start=False, random_state=None, verbose=True):
         super(AdaGradClassifier, self).__init__(
@@ -238,7 +235,7 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
     }
 
     def __init__(self, transformer=RBFSampler(), eta=1.0, loss='squared',
-                 C=1.0, alpha=1.0, l1_ratio=0., normalize=True,
+                 C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6, eps=1e-4,
                  warm_start=False, random_state=None, verbose=True):
         super(AdaGradRegressor, self).__init__(
