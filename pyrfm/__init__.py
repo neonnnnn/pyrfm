@@ -8,4 +8,5 @@ from .kernels_fast import _anova, _all_subsets, _chi_square, _intersection
 from .signed_circulant_random_kernel import SignedCirculantRandomKernel
 from .maji_berg import MB, SparseMB
 from .linear_model import (AdaGradRegressor, AdaGradClassifier,
-                           SparseMBRegressor, SparseMBClassifier)
+                           SparseMBRegressor, SparseMBClassifier,
+                           SDCARegressor, SDCAClassifier)

@@ -1,15 +1,22 @@
 # cython: language_level=3
 # cython: cdivision=True
 
-from libc.math cimport log, exp
+from libc.math cimport log, exp, fmax, fmin, fabs
 
 cdef class LossFunction:
 
-     cdef double loss(self, double p, double y):
-         raise NotImplementedError()
+    cdef double loss(self, double p, double y):
+        raise NotImplementedError()
 
-     cdef double dloss(self, double p, double y):
-         raise NotImplementedError()
+    cdef double dloss(self, double p, double y):
+        raise NotImplementedError()
+
+    cdef double conjugate(self, double alpha, double y):
+        raise NotImplementedError()
+
+    cdef double sdca_update(self, double alpha, double y, double p,
+                            double scale):
+        raise NotImplementedError()
 
 
 cdef class Squared(LossFunction):
@@ -23,6 +30,13 @@ cdef class Squared(LossFunction):
 
     cdef double dloss(self, double p, double y):
         return p - y
+
+    cdef double conjugate(self, double alpha, double y):
+        return alpha*y + 0.5*alpha**2
+
+    cdef double sdca_update(self, double alpha, double y, double p,
+                            double scale):
+        return (y-alpha-p) / (1+scale)
 
 
 cdef class Logistic(LossFunction):
@@ -52,6 +66,22 @@ cdef class Logistic(LossFunction):
         else:
             return -y / (exp(z) + 1.0)
 
+    cdef double conjugate(self, double alpha, double y):
+        cdef double z = alpha*y
+        if z == 0:
+            return 0
+        elif z == -1:
+            return 0
+        elif (-z < 1) and (-z > 0):
+            return -z*log(-z) + (1+z) * log(1+z)
+        else:
+            raise ValueError("alpha*y is bigger than 0 or lower than -1")
+
+    cdef double sdca_update(self, double alpha, double y, double p,
+                            double scale):
+        cdef double update = y*(exp(fmin(0, -p*y))/(1+exp(-fabs(p*y))))-alpha
+        return update / fmax(1, 0.25+scale)
+
 
 cdef class SquaredHinge(LossFunction):
     """Squared hinge loss: L(p, y) = max(1 - yp, 0)²"""
@@ -73,6 +103,19 @@ cdef class SquaredHinge(LossFunction):
         else:
             return 0.0
 
+    cdef double conjugate(self, double alpha, double y):
+        if alpha * y > 0:
+            raise ValueError("alpha*y > 0")
+        else:
+            return alpha*y + alpha*alpha/4
+
+    cdef double sdca_update(self, double alpha, double y, double p,
+                            double scale):
+        cdef double update = (y-p-0.5*alpha) / (0.5+scale)
+        if (alpha + update) * y < 0:
+            return -alpha
+        else:
+            return update
 
 cdef class Hinge(LossFunction):
     """hinge loss: L(p, y) = max(1 - y*p, 0)"""
@@ -93,3 +136,12 @@ cdef class Hinge(LossFunction):
             return -1
         else:
             return 0.0
+
+    cdef double conjugate(self, double alpha, double y):
+        return alpha*y
+
+    cdef double sdca_update(self, double alpha, double y, double p,
+                            double scale):
+        cdef double z = (1-y*p) / scale + alpha*y
+        return y*fmax(0, fmin(1, z)) - alpha
+
