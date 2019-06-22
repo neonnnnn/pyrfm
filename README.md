@@ -3,7 +3,7 @@ A library for random feature maps in Python.
 
 Random feature maps are promising methods for large-scale kernel methods.
 They are maps from a original feature space to a randomized feature space 
-approximating a kernel induced feature space.
+approximating a kernel-induced feature space.
 The idea is to run linear models on such randomized feature space for 
 classification, regression, clustering, etc.
 When the dimension of the random feature map D is not so high and the number of
