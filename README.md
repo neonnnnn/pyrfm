@@ -38,7 +38,9 @@ The random Fourier feature is also implemented in scikit-learn
 Moreover, pyrfm **supports following solvers for linear models**:
  - primal coordinate descent for sparse S.Maji and A.Berg feature [6,7]
  - AdaGrad for very-large-scale dataset: does not compute the random feature map
-  of all examples at the same time (slow but space efficient) [8]
+  of all examples at the same time (space efficient but slow) [8]
+ - SDCA for very-large-scale dataset: does not compute the random feature map
+  of all examples at the same time (space efficient but slow) [9]
  
  # Installation
  1. Download the source codes by
@@ -76,6 +78,8 @@ Moreover, pyrfm **supports following solvers for linear models**:
     [7] Kai-Wei Chang, Cho-Jui Hsieh, and Chih-Jen Lin. Coordinate Descent Method for Large-scale L2-loss Linear Support Vector Machines.
         JMLR, vol. 9, pp 1369-1398, 2008.
     [8] John Duchi, Elad Hazan, and Yoram Singer. Adaptive Subgradient Methods for Online Learning and Stochastic Optimization.
-        JMLR, vol 12, pp. 2121--2159, 2012.
+        JMLR, vol. 12, pp. 2121--2159, 2012.
+    [9] Shai Shalev-Shwartz, Tong Zhang. Stochastic Dual Coordinate Ascent Methods for Regularized Loss Minimization.
+        JMLR, vol. 14, pp. 567--599, 2013.
  # Authors
  - Kyohei Atarashi, 2018-present
