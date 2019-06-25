@@ -52,7 +52,7 @@ class LinearClassifierMixin(BaseLinear, ClassifierMixin):
                 pred = softmax(pred)
         return pred
 
-    def _check_X_y(self, X, y):
+    def _check_X_y(self, X, y, accept_sparse=True):
         is_2d = hasattr(y, 'shape') and len(y.shape) > 1 and y.shape[1] >= 2
         if is_2d or type_of_target(y) != 'binary':
             raise TypeError("Only binary targets supported. For training "
@@ -60,7 +60,7 @@ class LinearClassifierMixin(BaseLinear, ClassifierMixin):
                             "OneVsRest or OneVsAll metaestimators in "
                             "scikit-learn.")
 
-        X, Y = check_X_y(X, y, dtype=np.double, accept_sparse=True,
+        X, Y = check_X_y(X, y, dtype=np.double, accept_sparse=accept_sparse,
                          multi_output=False)
 
         self.label_binarizer_ = LabelBinarizer(pos_label=1, neg_label=-1)
@@ -72,8 +72,8 @@ class LinearRegressorMixin(BaseLinear, RegressorMixin):
     def predict(self, X):
         return self._predict(X)
 
-    def _check_X_y(self, X, y):
-        X, y = check_X_y(X, y, accept_sparse=True, multi_output=False,
+    def _check_X_y(self, X, y, accept_sparse=True):
+        X, y = check_X_y(X, y, accept_sparse=accept_sparse, multi_output=False,
                          dtype=np.double, y_numeric=True)
         y = y.astype(np.double).ravel()
         return X, y

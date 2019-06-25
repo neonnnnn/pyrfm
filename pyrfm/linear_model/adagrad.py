@@ -204,7 +204,7 @@ class BaseAdaGradEstimator(BaseLinear):
                            self.acc_grad_norm_,  self.acc_grad_intercept_,
                            self.acc_grad_norm_intercept_, self.mean_, self.var_,
                            loss, alpha, self.l1_ratio, self.eta, self.t_,
-                           self.max_iter, self.tol, self.eps, is_sparse,
+                           self.max_iter, self.tol, self.eps, 1e-6, is_sparse,
                            self.verbose, self.fit_intercept, random_state,
                            self.transformer)
         self.t_ += n_samples*(it+1)
