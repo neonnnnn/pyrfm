@@ -31,7 +31,7 @@ def test_sdca_classifier_ts():
     clf_baseline.fit(X_trans[:n_train], y_train)
 
     clf = SDCAClassifier(transform, max_iter=100, warm_start=True,
-                         verbose=False, fit_intercept=True, alpha=1,
+                         verbose=True, fit_intercept=True, alpha=1,
                          random_state=1, tol=0, loss='logistic')
     clf.fit(X_train, y_train)
     test_acc_base = clf_baseline.score(X_trans[n_train:], y_test)
@@ -58,7 +58,7 @@ def test_sdca_classifier_ts_normalize():
     clf_baseline.fit(X_trans[:n_train], y_train)
 
     clf = SDCAClassifier(transform, max_iter=100, warm_start=True,
-                         verbose=False, fit_intercept=False, alpha=1,
+                         verbose=True, fit_intercept=False, alpha=1,
                          normalize=True, random_state=1, loss='logistic')
     clf.fit(X_train, y_train)
 
