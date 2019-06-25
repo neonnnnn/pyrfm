@@ -137,7 +137,7 @@ class BaseSDCAEstimator(BaseLinear):
         return y_pred
 
     def fit(self, X, y):
-        X, y = self._check_X_y(X, y)
+        X, y = self._check_X_y(X, y, accept_sparse=['csr'])
         if not self.warm_start:
             self.transformer.fit(X)
 
