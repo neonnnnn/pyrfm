@@ -10,11 +10,10 @@ from sklearn.preprocessing import StandardScaler
 # generate data
 rng = np.random.RandomState(0)
 X = rng.random_sample(size=(500, 50))*2-1
-#X /= np.sum(X, axis=1, keepdims=True)*2-1
 n_train = int(X.shape[0]*0.9)
 n_test = X.shape[0] - n_train
 
-"""
+
 def test_adagrad_classifier_ts():
     # approximate kernel mapping
     transform = TensorSketch(n_components=1000, random_state=rng)
@@ -30,8 +29,8 @@ def test_adagrad_classifier_ts():
     clf_baseline.fit(X_trans[:n_train], y_train)
 
     clf = AdaGradClassifier(transform, max_iter=200, warm_start=True,
-                            verbose=False, fit_intercept=True, alpha=1,
-                            random_state=1)
+                            verbose=False, fit_intercept=True,
+                            alpha=1/X.shape[0], random_state=1)
     clf.fit(X_train, y_train)
     test_acc_base = clf_baseline.score(X_trans[n_train:], y_test)
     test_acc_ada = clf.score(X_test, y_test)
@@ -67,7 +66,6 @@ def test_adagrad_classifier_ts_normalize():
     assert_almost_equal(clf_baseline.score(X_trans[:n_train], y_train),
                         clf.score(X_train, y_train))
 
-"""
 
 def test_adagrad_classifier_warm_start():
     transform = TensorSketch(n_components=1000, random_state=rng)
@@ -75,10 +73,8 @@ def test_adagrad_classifier_warm_start():
     coef = rng.normal(0.2, 4, size=(X_trans.shape[1]))
     y = np.dot(X_trans, coef)
     y = np.sign(y)
-    y_train = y[:n_train]
-    y_test = y[n_train:]
     X_train = X[:n_train]
-    X_test = X[n_train:]
+    y_train = y[:n_train]
 
     clf = AdaGradClassifier(transform, max_iter=20, warm_start=True,
                             verbose=True, fit_intercept=False, alpha=1,

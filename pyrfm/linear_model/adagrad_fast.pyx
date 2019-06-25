@@ -10,6 +10,22 @@ import numpy as np
 cimport numpy as np
 
 
+cdef inline void normalize(double[:] x,
+                           double[:] mean,
+                           double[:] var,
+                           int t,
+                           Py_ssize_t n_components,
+                           double eps):
+    cdef double mean_new
+    cdef Py_ssize_t j
+    for j in range(n_components):
+        mean_new = mean[j] + (x[j] - mean[j]) / (t+1)
+        var[j] = var[j] * (1-1./t)
+        var[j] += (x[j] - mean[j])*(x[j] - mean_new) / t
+        mean[j] = mean_new
+        x[j] = (x[j] - mean[j]) / (eps + sqrt(var[j]))
+
+
 def _adagrad_fast(double[:] coef,
                   double[:] intercept,
                   X,
@@ -28,6 +44,7 @@ def _adagrad_fast(double[:] coef,
                   unsigned int max_iter,
                   double tol,
                   double eps,
+                  double eps_normalize,
                   bint is_sparse,
                   bint verbose,
                   bint fit_intercept,
@@ -35,7 +52,7 @@ def _adagrad_fast(double[:] coef,
                   transformer,
                   ):
     cdef Py_ssize_t it, i, n_samples, n_components, j
-    cdef double dloss, eta_t, viol, y_pred, denom, mean_new
+    cdef double dloss, eta_t, viol, y_pred, denom
     cdef double intercept_new, coef_new_j, lam1, lam2
     lam1 = alpha * l1_ratio
     lam2 = alpha * (1-l1_ratio)
@@ -46,9 +63,8 @@ def _adagrad_fast(double[:] coef,
     cdef double[:] x = np.zeros((n_components, ), dtype=np.float64)
     it = 0
 
-    random_state.shuffle(indices)
     if mean is not None and t == 1:
-        i = indices[random_state.randint(n_samples-1)+1]
+        i = random_state.randint(n_samples)
 
         if is_sparse:
             x = transformer.transform(X[i])[0]
@@ -59,23 +75,17 @@ def _adagrad_fast(double[:] coef,
 
     for it in range(max_iter):
         viol = 0
-        if it != 0:
-            random_state.shuffle(indices)
+        random_state.shuffle(indices)
 
         for i in indices:
             if is_sparse:
                 x = transformer.transform(X[i])[0]
             else:
                 x = transformer.transform(np.atleast_2d(X[i]))[0]
-
+            
             # if normalize
             if mean is not None:
-                for j in range(n_components):
-                    mean_new = mean[j] + (x[j] - mean[j]) / (t+1)
-                    var[j] = var[j] * (1-1./t)
-                    var[j] += (x[j] - mean[j])*(x[j] - mean_new) / t
-                    mean[j] = mean_new
-                    x[j] = (x[j] - mean[j]) / (eps + sqrt(var[j]))
+                normalize(x, mean, var, t, n_components, eps_normalize)
 
             y_pred = 0
             for j in range(n_components):

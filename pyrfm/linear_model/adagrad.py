@@ -1,6 +1,3 @@
-from abc import ABCMeta, abstractmethod
-import warnings
-
 import numpy as np
 from scipy import sparse
 from sklearn.utils.extmath import safe_sparse_dot
@@ -154,7 +151,7 @@ class BaseAdaGradEstimator(BaseLinear):
         return y_pred
 
     def fit(self, X, y):
-        X, y = self._check_X_y(X, y)
+        X, y = self._check_X_y(X, y, accept_sparse=['csr'])
         if not self.warm_start:
             self.transformer.fit(X)
 
@@ -207,7 +204,7 @@ class BaseAdaGradEstimator(BaseLinear):
                            self.acc_grad_norm_,  self.acc_grad_intercept_,
                            self.acc_grad_norm_intercept_, self.mean_, self.var_,
                            loss, alpha, self.l1_ratio, self.eta, self.t_,
-                           self.max_iter, self.tol, self.eps, is_sparse,
+                           self.max_iter, self.tol, self.eps, 1e-6, is_sparse,
                            self.verbose, self.fit_intercept, random_state,
                            self.transformer)
         self.t_ += n_samples*(it+1)
@@ -223,7 +220,7 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
     }
 
     def __init__(self, transformer=RBFSampler(), eta=1.0, loss='squared_hinge',
-                 C=1.0, alpha=1.0, l1_ratio=0., normalize=True,
+                 C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6, eps=1e-4,
                  warm_start=False, random_state=None, verbose=True):
         super(AdaGradClassifier, self).__init__(
@@ -238,7 +235,7 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
     }
 
     def __init__(self, transformer=RBFSampler(), eta=1.0, loss='squared',
-                 C=1.0, alpha=1.0, l1_ratio=0., normalize=True,
+                 C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6, eps=1e-4,
                  warm_start=False, random_state=None, verbose=True):
         super(AdaGradRegressor, self).__init__(

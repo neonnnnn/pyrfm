@@ -57,7 +57,7 @@ cdef _canova_sparse(RowDataset X,
     cdef int *x_indices
     cdef int *p_indices
     cdef int x_n_nz, p_n_nz, n_nz_all
-    cdef int n_samples_x, n_samples_p, i1, ii2, i2, jj, j, t
+    cdef Py_ssize_t n_samples_x, n_samples_p, i1, ii2, i2, jj, j, t
 
     cdef vector[double] data_vec
     cdef vector[int] row_vec
@@ -105,7 +105,7 @@ cdef _canova_sparse(RowDataset X,
         row[i1] = row_vec[i1]
         col[i1] = col_vec[i1]
 
-    return csc_matrix((data, (row, col)))
+    return csc_matrix((data, (row, col)), shape=(n_samples_x, n_samples_p))
 
 
 cdef void _call_subsets(double[:, ::1] output,

@@ -31,7 +31,7 @@ def dot():
 def get_random_matrix(rng, distribution, size, p=0.):
     # size = (n_components, n_features)
     if distribution == 'rademacher':
-        return rng.randint(2, size=size)*2 - 1
+        return (rng.randint(2, size=size)*2 - 1).astype(np.float64)
     elif distribution in ['gaussian', 'normal']:
         return rng.normal(0, 1, size)
     elif distribution == 'uniform':
@@ -53,12 +53,14 @@ def get_random_matrix(rng, distribution, size, p=0.):
         indices = rng.choice(np.arange(size[0]), size=n_nzs[0], replace=False)
         arange = np.arange(size[0])
 
+        """
         for nnz in n_nzs[1:]:
             indices = np.append(indices,
                                 rng.choice(arange, size=nnz, replace=False))
-
+        """
+        indices = [rng.choice(arange, size=nnz, replace=False) for nnz in n_nzs]
         data = (rng.randint(2, size=np.sum(n_nzs))*2-1) / np.sqrt(1-p)
-        return csc_matrix((data, indices.ravel(), indptr), shape=size)
+        return csc_matrix((data, np.concatenate(indices), indptr), shape=size)
 
     else:
         raise ValueError('{} distribution is not implemented. Please use'
@@ -146,7 +148,7 @@ class RandomKernel(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
-        X = check_array(X, accept_sparse=True)
+        X = check_array(X, accept_sparse=['csr'])
         n_samples, n_features = X.shape
         if isinstance(self.kernel, str):
             if self.kernel == 'anova':
@@ -182,9 +184,9 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
         self.dense_output=dense_output
 
     def fit(self, X, y=None):
-        if self.kernel not in ['anova']:
+        if self.kernel not in ['anova', 'anova_cython']:
             raise ValueError("RandomSubsetKernel now does not support"
-                             "{} kernel.".format(self.kernel))
+                             " {} kernel.".format(self.kernel))
 
         if self.n_sub_features < self.degree:
             raise ValueError("n_sub_features < degree.")

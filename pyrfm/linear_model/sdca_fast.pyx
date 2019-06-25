@@ -10,6 +10,22 @@ import numpy as np
 cimport numpy as np
 
 
+cdef inline void normalize(double[:] x,
+                           double[:] mean,
+                           double[:] var,
+                           int t,
+                           Py_ssize_t n_components,
+                           double eps):
+    cdef double mean_new
+    cdef Py_ssize_t j
+    for j in range(n_components):
+        mean_new = mean[j] + (x[j]-mean[j]) / (t+1)
+        mean_new = mean[j] + (x[j] - mean[j]) / (t+1)
+        var[j] = var[j] * (1-1./t)
+        var[j] += (x[j] - mean[j])*(x[j] - mean_new) / t
+        mean[j] = mean_new
+        x[j] = (x[j] - mean[j]) / (eps + sqrt(var[j]))
+
 
 cdef void _sgd_initialization(double[:] coef,
                               double[:] dual_coef,
@@ -31,7 +47,7 @@ cdef void _sgd_initialization(double[:] coef,
                               int[:] indices,
                               ):
     cdef Py_ssize_t i, n_samples, n_components, j
-    cdef double dloss, viol, y_pred, coef_old, mean_new, update
+    cdef double dloss, viol, y_pred, coef_old, update
     cdef double lam1, lam2, norm
     lam1 = alpha * l1_ratio
     lam2 = alpha * (1-l1_ratio)
@@ -46,12 +62,7 @@ cdef void _sgd_initialization(double[:] coef,
 
         # if normalize
         if mean is not None:
-            for j in range(n_components):
-                mean_new = mean[j] + (x[j] - mean[j]) / (t+1)
-                var[j] = var[j] * (1-1./t)
-                var[j] += (x[j] - mean[j])*(x[j] - mean_new) / t
-                mean[j] = mean_new
-                x[j] = (x[j] - mean[j]) / (eps + sqrt(var[j]))
+            normalize(x, mean, var, t, n_components, eps)
 
         y_pred = 0
         norm = 0
@@ -110,8 +121,8 @@ def _sdca_fast(double[:] coef,
                transformer,
                ):
     cdef Py_ssize_t it, i, n_samples, n_components, j
-    cdef double dloss, viol, y_pred, coef_old, mean_new, update
-    cdef double lam1, lam2, norm
+    cdef double dloss, viol, y_pred, coef_old, update
+    cdef double lam1, lam2, norm, primal, dual, reg
     lam1 = alpha * l1_ratio
     lam2 = alpha * (1-l1_ratio)
     n_samples = X.shape[0]
@@ -123,7 +134,6 @@ def _sdca_fast(double[:] coef,
 
     if mean is not None and t == 1:
         i = random_state.randint(n_samples)
-
         if is_sparse:
             x = transformer.transform(X[i])[0]
         else:
@@ -140,21 +150,18 @@ def _sdca_fast(double[:] coef,
     # start epoch
     for it in range(max_iter):
         viol = 0
+        primal = 0.
+        dual = 0.
+        reg = 0.
         random_state.shuffle(indices)
         for i in indices:
             if is_sparse:
                 x = transformer.transform(X[i])[0]
             else:
                 x = transformer.transform(np.atleast_2d(X[i]))[0]
-
             # if normalize
             if mean is not None:
-                for j in range(n_components):
-                    mean_new = mean[j] + (x[j] - mean[j]) / (t+1)
-                    var[j] = var[j] * (1-1./t)
-                    var[j] += (x[j] - mean[j])*(x[j] - mean_new) / t
-                    mean[j] = mean_new
-                    x[j] = (x[j] - mean[j]) / (eps + sqrt(var[j]))
+                normalize(x, mean, var, t, n_components, eps)
 
             y_pred = 0
             norm = 0
@@ -172,25 +179,34 @@ def _sdca_fast(double[:] coef,
             dual_coef[i] += update
 
             # update primal coef
+            y_pred = 0
             for j in range(n_components):
                 coef_old = coef[j]
                 coef[j] += update * x[j] / (n_samples*lam2)
                 # proximal
-                if coef[j] > lam1:
-                    coef[j] -= lam1
-                elif coef[j] < -lam1:
-                    coef[j] += lam1
-                else:
-                    coef[j] = 0
+                if lam1 != 0:
+                    if coef[j] > lam1:
+                        coef[j] -= lam1
+                    elif coef[j] < -lam1:
+                        coef[j] += lam1
+                    else:
+                        coef[j] = 0
+
                 viol += fabs(coef_old-coef[j])
+                y_pred += coef[j]*x[j]
+                reg += coef[j]**2
+
             if fit_intercept:
                 intercept[0] += update / (n_samples*lam2)
+                y_pred += intercept[0]
+
+            primal += loss.loss(y_pred, y[i])
+            dual -= loss.conjugate(-dual_coef[i], y[i])
             t += 1
 
         if verbose:
             print("Iteration {} Violation {}".format(it, viol))
-        # TODO: use duality gap for stopping criterion
-        if viol < tol:
+        if (primal - dual + lam2*reg)/n_samples < tol:
             if verbose:
                 print("Converged at iteration {}".format(it))
             break
