@@ -7,6 +7,8 @@ from sklearn.utils import check_X_y
 from sklearn.utils.validation import check_is_fitted
 from sklearn.externals import six
 from sklearn.utils.multiclass import type_of_target
+from ..random_feature import (RandomFourier, RandomMaclaurin, TensorSketch,
+                              RandomKernel)
 
 
 def sigmoid(pred):
@@ -14,18 +16,59 @@ def sigmoid(pred):
 
 
 class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
+    TRANSFORMERS = (RandomFourier, RandomMaclaurin, TensorSketch, RandomKernel)
+
     def _predict(self, X):
         check_is_fitted(self, 'coef_')
-        X_trans = self.transformer_.transform(X)
-        pred = safe_sparse_dot(X_trans, self.coef_.T)
+        if getattr(self, 'stochastic', False):
+            y_pred = np.zeros(X.shape[0])
+            for i, x in enumerate(X):
+                x_trans = self.transformer_.transform(x)
+                y_pred[i] = safe_sparse_dot(x_trans, self.coef_.T)[0]
+        else:
+            X_trans = self.transformer_.transform(X)
+            y_pred = safe_sparse_dot(X_trans, self.coef_.T)
 
         if self.fit_intercept and hasattr(self, 'intercept_'):
-            pred += self.intercept_
+            y_pred += self.intercept_
 
-        if pred.ndim == 1:
-            pred = pred.ravel()
+        if y_pred.ndim == 1:
+            y_pred = y_pred.ravel()
 
-        return pred
+        return y_pred
+
+    def _get_id_transformer(self):
+        if isinstance(self.transformer, self.TRANSFORMERS):
+            id_transformer = self.TRANSFORMERS.index(type(self.transformer))
+        else:
+            id_transformer = -1
+        if isinstance(self.transformer, RandomKernel):
+            if self.transformer.kernel not in ['anova', 'all_subsets']:
+                id_transformer = -1
+        return id_transformer
+
+    def _get_transformer_params(self, id_transformer):
+        params = {}
+        params['random_weights'] = getattr(self.transformer, 'random_weights_',
+                                           None)
+        params['offset'] = getattr(self.transformer, 'offset_', None)
+        params['orders'] = getattr(self.transformer, 'orders_', None)
+        params['p_choice'] = getattr(self.transformer, 'p_choice', None)
+        params['coefs_maclaurin'] = getattr(self.transformer, 'coefs', None)
+        params['hash_indices'] = getattr(self.transformer, 'hash_indices_',
+                                         None)
+        params['hash_signs'] = getattr(self.transformer, 'hash_signs_', None)
+        params['degree'] = getattr(self.transformer, 'degree', None)
+        kernel = -1
+        if id_transformer == 2:
+            params['random_weights'] = None
+        if id_transformer == 3:
+            if self.transformer.kernel == 'anova':
+                kernel = 0
+            elif self.transformer.kernel == 'all_subsets':
+                kernel = 1
+        params['kernel'] = kernel
+        return params
 
 
 class LinearClassifierMixin(BaseLinear, ClassifierMixin):
