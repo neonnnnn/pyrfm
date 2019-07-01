@@ -3,7 +3,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.validation import check_is_fitted
 from scipy.fftpack import fft, ifft
-from .kernels import safe_power
+from ..kernels import safe_power
 import warnings
 from math import sqrt
 

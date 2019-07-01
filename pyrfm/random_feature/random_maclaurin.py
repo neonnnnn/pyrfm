@@ -50,6 +50,16 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         If None, the random number generator is the RandomState instance used
         by `np.random`.
 
+    Attributes
+    ----------
+    orders_ : array, shape (n_components, )
+        The sampled orders of the Maclaurin expansion.
+        The j-th components of random feature approximates orders_[j]-th order
+        of the Maclaurin expansion.
+
+    random_weights_ : array, shape (n_components*np.sum(orders_), n_features)
+        The sampled basis.
+
     References
     ----------
     [1] Random Feature Maps for Dot Product Kernels.
@@ -123,7 +133,7 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
                                            self.n_components,
                                            p=self.p_choice)
 
-        size = (np.sum(self.orders_), n_features, )
+        size = (np.sum(self.orders_), n_features)
         self.random_weights_ = 2*random_state.randint(2, size=size) - 1
         return self
 
@@ -141,7 +151,7 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         output /= np.sqrt(self.p_choice[self.orders_])
         if self.h01 and self.bias != 0:
             linear = X * np.sqrt(self.degree*self.bias**(self.degree-1))
-            output = np.hstack([linear, output])
-            dummy= np.sqrt(self.bias**self.degree)*np.ones((n_samples, 1))
+            output = np.hstack([linear.toarray(), output])
+            dummy = np.sqrt(self.bias**self.degree)*np.ones((n_samples, 1))
             output = np.hstack((dummy, output))
         return output

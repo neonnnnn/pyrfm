@@ -44,7 +44,7 @@ class MB(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         check_is_fitted(self, "n_components_actual_")
-        X = check_array(X, accept_sparse=True)
+        X = check_array(X, accept_sparse=['csc'])
         n_samples, n_features = X.shape
         if np.max(X) > 1:
             raise ValueError("The maximum value of X is bigger than 1.")
@@ -117,6 +117,7 @@ class SparseMB(BaseEstimator, TransformerMixin):
         col_suf += np.arange(n_features)*self.n_grids_
         col = np.array([col_pre.ravel(), col_suf.ravel()]).T.ravel()
         val = X * self.n_grids_ - np.ceil(X)
-        data = np.array([(1.-val).ravel(), val.ravel()]).T.ravel() / sqrt(self.n_grids_)
+        data = np.array([(1.-val).ravel(), val.ravel()]).T.ravel()
+        data /= sqrt(self.n_grids_)
         return csc_matrix((data, (row, col)),
                           shape=(n_samples, self.n_components_actual_))

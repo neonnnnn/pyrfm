@@ -28,5 +28,6 @@ cdef void _cunarize(double[:, ::1] output,
                 output[i, j*n_grids+k] = (n_grids*x[jj] - int(n_grids*x[jj]))
                 output[i, j*n_grids+k] /= sqrt(n_grids)
 
+
 def unarize(output, X, n_grids):
     _cunarize(output, X, n_grids)

@@ -5,7 +5,7 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
 from scipy.sparse import csc_matrix, issparse
 from math import sqrt
-from .kernels import anova, all_subsets, anova_fast
+from ..kernels import anova, all_subsets, anova_fast
 
 
 def _anova(degree=2, dense_output=True):
@@ -116,6 +116,11 @@ class RandomKernel(BaseEstimator, TransformerMixin):
         If RandomState instance, random_state is the random number generator;
         If None, the random number generator is the RandomState instance used
         by `np.random`.
+
+    Attributes
+    ----------
+    random_weights_ : array, shape (n_components, n_features)
+        The sampled basis.
 
     References
     ----------

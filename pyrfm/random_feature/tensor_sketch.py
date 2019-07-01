@@ -1,12 +1,13 @@
+import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.extmath import safe_sparse_dot
 from scipy.sparse import csc_matrix
-from scipy.fftpack import fft, ifft
+from scipy.fftpack import rfft, irfft
 from sklearn.utils.validation import check_is_fitted
 
 
-def _index_hash(n_inputs, n_outputs, size, rng):
+def _index_hash(n_inputs, n_outputs, degree, rng):
     """
     # h(j) = (a*j + b mod p) mod n_outputs,
     # where p is a prime number that is enough large (p >> n_outputs)
@@ -15,19 +16,21 @@ def _index_hash(n_inputs, n_outputs, size, rng):
     b = rng.randint(p, size)
     return (((a * np.arange(n_outputs)) % p + b) % p) % n_outputs
     """
-    return rng.randint(n_outputs, size=(size, n_inputs))
+    return rng.randint(n_outputs, size=(degree, n_inputs), dtype=np.int32)
 
 
-def _bit_hash(degree, d, rng):
-    return 2*rng.randint(2, size=(degree, d)) - 1
+def _sign_hash(n_inputs, degree, rng):
+    return 2*rng.randint(2, size=(degree, n_inputs), dtype=np.int32) - 1
 
 
-def _make_projection_matrices(i_hash, b_hash, n_components):
+def _make_projection_matrices(i_hash, s_hash, n_components):
     degree, d = i_hash.shape
-    random_weights = []
-    for pi in range(degree):
-        random_weights.append(csc_matrix((b_hash[pi], (range(d), i_hash[pi])),
-                                         shape=(d, n_components)))
+    val = s_hash.ravel()
+    row = i_hash.ravel()
+    col = np.arange(d*degree)
+    random_weights = csc_matrix((val, (row, col)),
+                                shape=(n_components, d*degree))
+
     return random_weights
 
 
@@ -50,6 +53,18 @@ class TensorSketch(BaseEstimator, TransformerMixin):
         If None, the random number generator is the RandomState instance used
         by `np.random`.
 
+    Attributes
+    ----------
+    hash_indices_ : array, shape (degree, n_features)
+        Hash matrix for CountSketch.
+
+    hash_signs_ : array, shape (degree, n_features)
+        Sign matrix for CountSketch.
+
+    random_weights_ : list of csc_matrix, len=degree
+        The sampled basis created by hash_indices and hash_signs for
+        convenience.
+
     References
     ----------
     [1] Fast and scalable polynomial kernels via explicit feature maps.
@@ -68,8 +83,10 @@ class TensorSketch(BaseEstimator, TransformerMixin):
         random_state = check_random_state(self.random_state)
         i_hash = _index_hash(n_features, self.n_components, self.degree,
                              random_state)
-        b_hash = _bit_hash(self.degree, n_features, random_state)
-        self.random_weights_ = _make_projection_matrices(i_hash, b_hash,
+        s_hash = _sign_hash(n_features, self.degree, random_state)
+        self.hash_indices_ = i_hash.ravel()
+        self.hash_signs_= s_hash.ravel()
+        self.random_weights_ = _make_projection_matrices(i_hash, s_hash,
                                                          self.n_components)
 
         return self
@@ -77,10 +94,12 @@ class TensorSketch(BaseEstimator, TransformerMixin):
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
         X = check_array(X, True)
-        P = safe_sparse_dot(X, self.random_weights_[0], True)
-        output = fft(P)
-        for random_weight in self.random_weights_[1:]:
-            P = safe_sparse_dot(X, random_weight, True)
-            output *= fft(P)
+        n_samples, n_features = X.shape
+        P = safe_sparse_dot(X, self.random_weights_[:, :n_features].T, True)
+        output = rfft(P)
+        for offset in range(n_features, n_features*self.degree, n_features):
+            random_weight = self.random_weights_[:, offset:offset+n_features]
+            P = safe_sparse_dot(X, random_weight.T, True)
+            output *= rfft(P)
 
-        return ifft(output).real
+        return irfft(output)

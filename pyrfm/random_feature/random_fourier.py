@@ -23,13 +23,26 @@ class RandomFourier(BaseEstimator, TransformerMixin):
         Kernel to be approximated.
         "anova", "dot", or "all-subsets" can be used.
 
-    use_offset : bool
-        
+    use_offset : bool, default=False
+        If True, Z(x) = (cos(w_1x+b_1), cos(w_2x+b_2), ... , cos(w_Dx+b_D),
+        where w is random_weights and b is offset (D=n_components).
+        If False, Z(x) = (cos(w1x), ..., cos(w_{D/2}x), sin(w_1x), ...,
+        sin(w_{D/2}x)).
+
     random_state : int, RandomState instance or None, optional (default=None)
         If int, random_state is the seed used by the random number generator;
-        If RandomState instance, random_state is the random number generator;
+        If np.RandomState instance, random_state is the random number generator;
         If None, the random number generator is the RandomState instance used
         by `np.random`.
+
+    Attributes
+    ----------
+    random_weights_ : array, shape (n_components, n_features) (use_offset=True)
+                                   or (n_components/2, n_features) (otherwise)
+        The sampled basis.
+
+    offset_ : array or None, shape (n_components, )
+        The sampled offset vector. If use_offset=False, offset_=None.
 
     References
     ----------
@@ -61,7 +74,7 @@ class RandomFourier(BaseEstimator, TransformerMixin):
         else:
             gamma = self.gamma
 
-        size = (n_features, n_components)
+        size = (n_components, n_features)
         # TODO: Implement other shift-invariant kernels
         if self.kernel in ['rbf', 'gaussian']:
             self.random_weights_ = random_state.normal(size=size,
@@ -73,14 +86,14 @@ class RandomFourier(BaseEstimator, TransformerMixin):
             self.offset_ = random_state.uniform(0, 2*np.pi,
                                                 size=self.n_components)
         else:
-            self.offset_ = 0.
+            self.offset_ = None
 
         return self
 
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=True)
-        output = safe_sparse_dot(X, self.random_weights_, True)
+        output = safe_sparse_dot(X, self.random_weights_.T, True)
         if self.use_offset:
             output += self.offset_
             output = np.cos(output)
