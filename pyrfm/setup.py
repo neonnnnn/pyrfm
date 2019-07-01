@@ -11,11 +11,7 @@ def configuration(parent_package='', top_path=None):
                          sources=['kernels_fast.pyx'],
                          language='c++',
                          include_dirs=[numpy.get_include()])
-    config.add_extension('unarize',
-                         sources=['unarize.pyx'],
-                         language='c++',
-                         include_dirs=[numpy.get_include()])
-
+    config.add_subpackage('random_feature')
     config.add_subpackage('linear_model')
 
     maybe_cythonize_extensions(top_path, config)
