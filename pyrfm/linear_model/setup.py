@@ -17,6 +17,10 @@ def configuration(parent_package='', top_path=None):
                          language='c++',
                          include_dirs=[numpy.get_include()])
 
+    config.add_extension("random_mapping", sources=['random_mapping.pyx'],
+                         language='c++',
+                         include_dirs=[numpy.get_include()])
+
     config.add_extension("adagrad_fast",
                          sources=['adagrad_fast.pyx'],
                          language='c++',
