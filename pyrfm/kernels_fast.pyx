@@ -11,7 +11,7 @@ from cython.view cimport array
 from libc.math cimport fmin
 from libcpp.vector cimport vector
 from scipy.sparse import csc_matrix
-from libc cimport stdlib
+
 
 cdef void _canova(double[:, ::1] output,
                   RowDataset X,
