@@ -112,7 +112,7 @@ cdef class SquaredHinge(LossFunction):
     cdef double sdca_update(self, double alpha, double y, double p,
                             double scale):
         cdef double update = (y-p-0.5*alpha) / (0.5+scale)
-        if (alpha + update) * y < 0:
+        if -(alpha + update) * y > 0:
             return -alpha
         else:
             return update
