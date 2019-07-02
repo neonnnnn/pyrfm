@@ -131,10 +131,11 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
 
         self.orders_ = random_state.choice(len(self.p_choice),
                                            self.n_components,
-                                           p=self.p_choice)
+                                           p=self.p_choice).astype(np.int32)
 
         size = (np.sum(self.orders_), n_features)
-        self.random_weights_ = 2*random_state.randint(2, size=size) - 1
+        self.random_weights_ = 2*random_state.randint(2, size=size) - 1.
+
         return self
 
     def transform(self, X):

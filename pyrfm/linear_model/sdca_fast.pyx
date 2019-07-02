@@ -48,8 +48,8 @@ cdef inline void transform(RowDataset X,
                            double[:] z_cache,
                            int[:] hash_indices,
                            int[:] hash_signs,
-                           int kernel,
                            int degree,
+                           int kernel,
                            double[:] anova,
                            ):
     cdef Py_ssize_t j
@@ -135,7 +135,7 @@ cdef double _sgd_initialization(double[:] coef,
         transform(X, X_array, z, i, data, indices, n_nz, is_sparse, transformer,
                   id_transformer, random_weights, offset, orders, p_choice,
                   coefs_maclaurin, z_cache, hash_indices, hash_signs,
-                  kernel, degree, anova)
+                  degree, kernel, anova)
 
         for j in range(n_components):
             mean[j] = z[j]
@@ -147,7 +147,7 @@ cdef double _sgd_initialization(double[:] coef,
         transform(X, X_array, z, i, data, indices, n_nz, is_sparse, transformer,
                   id_transformer, random_weights, offset, orders, p_choice,
                   coefs_maclaurin, z_cache, hash_indices, hash_signs,
-                  kernel, degree, anova)
+                  degree, kernel, anova)
 
         # if normalize
         if mean is not None:
@@ -236,7 +236,7 @@ cdef inline double _sdca_epoch(double[:] coef,
         transform(X, X_array, z, i, data, indices, n_nz, is_sparse, transformer,
                   id_transformer, random_weights, offset, orders, p_choice,
                   coefs_maclaurin, z_cache, hash_indices, hash_signs,
-                  kernel, degree, anova)
+                  degree, kernel, anova)
 
         # if normalize
         if mean is not None:
@@ -314,26 +314,33 @@ def _sdca_fast(double[:] coef,
     n_samples = X.get_n_samples()
     n_components = coef.shape[0]
 
-    cdef int[:] indices = np.arange(n_samples, dtype=np.int32)
-    #cdef double[:] z = array((n_components, ), sizeof(double), format='d')
-    cdef double[:] z = np.zeros((n_components, ), dtype=np.float64)
+    cdef int[:] indices_samples = np.arange(n_samples, dtype=np.int32)
+    cdef double[:] z = array((n_components, ), sizeof(double), format='d')
+    for i in range(n_components):
+        z[i] = 0
     cdef double[:] z_cache = None
     cdef double[:] anova = None
     if id_transformer == 2:
-        z_cache = np.zeros((n_components, ), dtype=np.float64)
+        z_cache = array((n_components, ), sizeof(double), format='d')
+        for i in range(n_components):
+            z_cache[i] = 0
     if id_transformer == 3 and kernel == 0:
-        anova = np.zeros((degree+1, ), dtype=np.float64)
+        anova = array((degree+1, ), sizeof(double), format='d')
+        for i in range(degree+1):
+            anova[i] = 0
+        anova[0] = 1
+
     it = 0
 
     # initialize by SGD if t == 1
-
     if t == 1:
-        random_state.shuffle(indices)
+        random_state.shuffle(indices_samples)
         gap = _sgd_initialization(coef, dual_coef, intercept, X, X_array, y,
                                   mean, var, loss, lam1, lam2, &t, tol, eps,
                                   is_sparse, fit_intercept, transformer,
-                                  id_transformer, indices, z,  random_weights,
-                                  offset, orders, p_choice, coefs_maclaurin,
+                                  id_transformer, indices_samples, z,
+                                  random_weights, offset, orders, p_choice,
+                                  coefs_maclaurin,
                                   z_cache, hash_indices, hash_signs, degree,
                                   kernel, anova, random_state)
         if verbose:
@@ -341,10 +348,10 @@ def _sdca_fast(double[:] coef,
 
     # start epoch
     for it in range(max_iter):
-        random_state.shuffle(indices)
+        random_state.shuffle(indices_samples)
         gap = _sdca_epoch(coef, dual_coef, intercept, X, X_array, y, mean, var,
                           loss, lam1, lam2, &t, eps, is_sparse, fit_intercept,
-                          transformer, id_transformer, indices, z,
+                          transformer, id_transformer, indices_samples, z,
                           random_weights, offset, orders, p_choice,
                           coefs_maclaurin, z_cache, hash_indices,
                           hash_signs, degree, kernel, anova)

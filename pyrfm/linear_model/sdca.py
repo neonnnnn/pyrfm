@@ -16,6 +16,7 @@ class BaseSDCAEstimator(BaseLinear):
     random feature maps.
     Random feature mapping is computed just before computing prediction and
     gradient.
+    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
 
     Parameters
     ----------
@@ -32,7 +33,7 @@ class BaseSDCAEstimator(BaseLinear):
             'logistic' (for classification)
 
     C : double, default=1.0
-        Weight of loss term.
+        Weight of the loss term.
 
     alpha : double, default=1.0
         Weight of the penalty term.
@@ -73,6 +74,9 @@ class BaseSDCAEstimator(BaseLinear):
     verbose : bool, default=True
         Verbose mode or not.
 
+    fast_solver : bool, default=True
+        Use cython fast solver or not. This argument is valid when transformer
+        is in {RandomFourier|RandomMaclaurin|TensorSketch|RandomKernel}.
 
     Attributes
     ----------
@@ -102,13 +106,13 @@ class BaseSDCAEstimator(BaseLinear):
         'logistic': Logistic(),
         'hinge': Hinge()
     }
+    stochastic = True
 
     def __init__(self, transformer=RBFSampler(), loss='squared_hinge',
                  C=1.0, alpha=1.0, l1_ratio=0, normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6,
                  warm_start=False, random_state=None, verbose=True,
                  fast_solver=True):
-        self.stochastic = True
         self.transformer = transformer
         self.transformer_ = transformer
         self.loss = loss

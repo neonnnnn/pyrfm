@@ -59,16 +59,18 @@ cdef void random_maclaurin(double[:] z,
     for i in range(n_components):
         z[i] = 0
         for deg in range(orders[i]):
+            tmp = 0
             for jj in range(n_nz):
                 j = indices[jj]
-                tmp = data[jj]*random_weights[offset+deg, j]
+                tmp += data[jj]*random_weights[offset+deg, j]
             if deg == 0:
                 z[i] = tmp
             else:
                 z[i] *= tmp
 
             tmp = 0
-        z[i] *= sqrt(coefs[i]/(n_components*p_choice[i]))
+        z[i] *= sqrt(coefs[orders[i]]/n_components)
+        z[i] /= sqrt(p_choice[orders[i]])
         offset += orders[i]
 
 
