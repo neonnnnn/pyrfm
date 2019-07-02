@@ -106,7 +106,8 @@ class BaseSDCAEstimator(BaseLinear):
     def __init__(self, transformer=RBFSampler(), loss='squared_hinge',
                  C=1.0, alpha=1.0, l1_ratio=0, normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6,
-                 warm_start=False, random_state=None, verbose=True):
+                 warm_start=False, random_state=None, verbose=True,
+                 fast_solver=True):
         self.stochastic = True
         self.transformer = transformer
         self.transformer_ = transformer
@@ -121,6 +122,7 @@ class BaseSDCAEstimator(BaseLinear):
         self.warm_start = warm_start
         self.random_state = random_state
         self.verbose = verbose
+        self.fast_solver=fast_solver
 
     def _predict(self, X):
         check_is_fitted(self, "coef_")
@@ -178,6 +180,8 @@ class BaseSDCAEstimator(BaseLinear):
 
         is_sparse = sparse.issparse(X)
         id_transformer = self._get_id_transformer()
+        if not self.fast_solver:
+            id_transformer = -1
         params = self._get_transformer_params(id_transformer)
         it = _sdca_fast(self.coef_, self.dual_coef_, self.intercept_,
                         get_dataset(X, order='c'), X, y,
@@ -201,10 +205,12 @@ class SDCAClassifier(BaseSDCAEstimator, LinearClassifierMixin):
     def __init__(self, transformer=RBFSampler(), loss='squared_hinge',
                  C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6,
-                 warm_start=False, random_state=None, verbose=True):
+                 warm_start=False, random_state=None, verbose=True,
+                 fast_solver=True):
         super(SDCAClassifier, self).__init__(
             transformer, loss, C, alpha, l1_ratio, normalize,
-            fit_intercept, max_iter, tol, warm_start, random_state, verbose
+            fit_intercept, max_iter, tol, warm_start, random_state, verbose,
+            fast_solver
         )
 
 
@@ -216,8 +222,10 @@ class SDCARegressor(BaseSDCAEstimator, LinearRegressorMixin):
     def __init__(self, transformer=RBFSampler(), loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6,
-                 warm_start=False, random_state=None, verbose=True):
+                 warm_start=False, random_state=None, verbose=True,
+                 fast_solver=True):
         super(SDCARegressor, self).__init__(
             transformer, loss, C, alpha, l1_ratio, normalize,
-            fit_intercept, max_iter, tol, warm_start, random_state, verbose
+            fit_intercept, max_iter, tol, warm_start, random_state, verbose,
+            fast_solver
         )
