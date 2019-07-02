@@ -8,12 +8,14 @@ from .base import BaseLinear, LinearClassifierMixin, LinearRegressorMixin
 from sklearn.kernel_approximation import RBFSampler
 from .adagrad_fast import _adagrad_fast
 from sklearn.utils.validation import check_is_fitted
+from lightning.impl.dataset_fast import get_dataset
 
 
 class BaseAdaGradEstimator(BaseLinear):
     """AdaGrad solver for linear models with random feature maps.
     Random feature mapping is computed just before computing prediction and
     gradient.
+    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
 
     Parameters
     ----------
@@ -33,7 +35,7 @@ class BaseAdaGradEstimator(BaseLinear):
             'logistic' (for classification)
 
     C : double, default=1.0
-        Weight of loss term.
+        Weight of the loss term.
 
     alpha : double, default=1.0
         Weight of the penalty term.
@@ -77,6 +79,9 @@ class BaseAdaGradEstimator(BaseLinear):
     verbose : bool, default=True
         Verbose mode or not.
 
+    fast_solver : bool, default=True
+        Use cython fast solver or not. This argument is valid when transformer
+        is in {RandomFourier|RandomMaclaurin|TensorSketch|RandomKernel}.
 
     Attributes
     ----------
@@ -113,10 +118,13 @@ class BaseAdaGradEstimator(BaseLinear):
         'hinge': Hinge()
     }
 
+    stochastic = True
+
     def __init__(self, transformer=RBFSampler(), eta=1.0, loss='squared_hinge',
                  C=1.0, alpha=1.0, l1_ratio=0, normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6,  eps=1e-6,
-                 warm_start=False, random_state=None, verbose=True):
+                 warm_start=False, random_state=None, verbose=True,
+                 fast_solver=True):
         self.transformer = transformer
         self.transformer_ = transformer
         self.eta = eta
@@ -132,6 +140,7 @@ class BaseAdaGradEstimator(BaseLinear):
         self.warm_start = warm_start
         self.random_state = random_state
         self.verbose = verbose
+        self.fast_solver = fast_solver
 
     def _predict(self, X):
         check_is_fitted(self, "coef_")
@@ -199,14 +208,20 @@ class BaseAdaGradEstimator(BaseLinear):
         alpha = self.alpha / self.C
         random_state = check_random_state(self.random_state)
 
+        id_transformer = self._get_id_transformer()
+        if not self.fast_solver:
+            id_transformer = -1
+        params = self._get_transformer_params(id_transformer)
+
         is_sparse = sparse.issparse(X)
-        it = _adagrad_fast(self.coef_, self.intercept_, X, y, self.acc_grad_,
+        it = _adagrad_fast(self.coef_, self.intercept_,
+                           get_dataset(X, order='c'), X, y, self.acc_grad_,
                            self.acc_grad_norm_,  self.acc_grad_intercept_,
                            self.acc_grad_norm_intercept_, self.mean_, self.var_,
                            loss, alpha, self.l1_ratio, self.eta, self.t_,
                            self.max_iter, self.tol, self.eps, 1e-6, is_sparse,
                            self.verbose, self.fit_intercept, random_state,
-                           self.transformer)
+                           self.transformer, id_transformer, **params)
         self.t_ += n_samples*(it+1)
 
         return self
@@ -222,10 +237,12 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
     def __init__(self, transformer=RBFSampler(), eta=1.0, loss='squared_hinge',
                  C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6, eps=1e-4,
-                 warm_start=False, random_state=None, verbose=True):
+                 warm_start=False, random_state=None, verbose=True,
+                 fast_solver=True):
         super(AdaGradClassifier, self).__init__(
             transformer, eta, loss, C, alpha, l1_ratio, normalize,
-            fit_intercept, max_iter, tol, eps, warm_start, random_state, verbose
+            fit_intercept, max_iter, tol, eps, warm_start, random_state,
+            verbose, fast_solver
         )
 
 
@@ -237,8 +254,10 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
     def __init__(self, transformer=RBFSampler(), eta=1.0, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6, eps=1e-4,
-                 warm_start=False, random_state=None, verbose=True):
+                 warm_start=False, random_state=None, verbose=True,
+                 fast_solver=True):
         super(AdaGradRegressor, self).__init__(
             transformer, eta, loss, C, alpha, l1_ratio, normalize,
-            fit_intercept, max_iter, tol, eps, warm_start, random_state, verbose
+            fit_intercept, max_iter, tol, eps, warm_start, random_state,
+            verbose, fast_solver
         )
