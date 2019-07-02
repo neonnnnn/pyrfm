@@ -58,8 +58,9 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
         params['hash_indices'] = getattr(self.transformer, 'hash_indices_',
                                          None)
         params['hash_signs'] = getattr(self.transformer, 'hash_signs_', None)
-        params['degree'] = getattr(self.transformer, 'degree', None)
+        params['degree'] = getattr(self.transformer, 'degree', -1)
         kernel = -1
+
         if id_transformer == 2:
             params['random_weights'] = None
         if id_transformer == 3:
