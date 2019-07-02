@@ -6,6 +6,7 @@
 from libc.math cimport cos, sin, sqrt
 from lightning.impl.dataset_fast cimport ColumnDataset, RowDataset
 from scipy.fftpack._fftpack import drfft
+from cython.parallel import prange
 
 
 cdef void random_fourier(double[:] z,
@@ -13,12 +14,12 @@ cdef void random_fourier(double[:] z,
                          int* indices,
                          int n_nz,
                          double[:, ::1] random_weights,
-                         double[:] bias,
+                         double[:] offset,
                          ):
     cdef Py_ssize_t n_components = z.shape[0]
     cdef Py_ssize_t n_features = random_weights.shape[1]
     cdef Py_ssize_t i, jj, j
-    cdef Py_ssize_t offset = int(n_components/2)
+    cdef Py_ssize_t index_offset = n_components/2
     # z = (cos, cos, ..., cos)
     if n_components == random_weights.shape[0]:
         for i in range(n_components):
@@ -26,18 +27,18 @@ cdef void random_fourier(double[:] z,
             for jj in range(n_nz):
                 j = indices[jj]
                 z[i] += data[jj]*random_weights[i, j]
-            z[i] += bias[i]
-            z[i] = cos(z[i])
+            z[i] += offset[i]
+            z[i] = cos(z[i])*sqrt(2/n_components)
     # z = (cos, ..., cos, sin, ..., sin)
     else:
-        for i in range(offset):
+        for i in range(index_offset):
             z[i] = 0
-            z[i+offset] = 0
+            z[i+index_offset] = 0
             for jj in range(n_nz):
                 j = indices[jj]
                 z[i] += data[jj]*random_weights[i, j]
-            z[i+offset] = sin(z[i])
-            z[i] = cos(z[i])
+            z[i+index_offset] = sin(z[i])/sqrt(n_components)
+            z[i] = cos(z[i])/sqrt(n_components)
 
 
 cdef void random_maclaurin(double[:] z,
@@ -109,14 +110,14 @@ cdef void tensor_sketch(double[:] z,
     drfft(z, direction=-1, overwrite_x=True)
 
 
-cdef void random_kernel(double[:] z,
-                        double* data,
-                        int* indices,
-                        int n_nz,
-                        double[:, ::1] random_weights,
-                        int kernel,
-                        int degree,
-                        double[:] a):
+cdef inline void random_kernel(double[:] z,
+                              double* data,
+                              int* indices,
+                              int n_nz,
+                              double[:, ::1] random_weights,
+                              int kernel,
+                              int degree,
+                              double[:] a):
     if kernel == 0:
         anova(z, data, indices, n_nz, random_weights, degree, a)
     elif kernel == 1:
@@ -145,7 +146,7 @@ cdef inline void anova(double[:] z,
             for deg in range(degree):
                 a[degree-deg] += random_weights[i, j]*data[jj]*a[degree-deg-1]
 
-        z[i] = a[degree]
+        z[i] = a[degree] / sqrt(n_components)
 
 
 cdef inline void all_subsets(double[:] z,
@@ -161,3 +162,4 @@ cdef inline void all_subsets(double[:] z,
         for jj in range(n_nz):
             j = indices[jj]
             z[i] *= (1+data[jj]*random_weights[i, j])
+        z[i] /= sqrt(n_components)

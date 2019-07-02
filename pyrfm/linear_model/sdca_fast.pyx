@@ -321,7 +321,7 @@ def _sdca_fast(double[:] coef,
     cdef double[:] anova = None
     if id_transformer == 2:
         z_cache = np.zeros((n_components, ), dtype=np.float64)
-    if id_transformer == 3 and kernel == 1:
+    if id_transformer == 3 and kernel == 0:
         anova = np.zeros((degree+1, ), dtype=np.float64)
     it = 0
 
