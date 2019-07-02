@@ -8,6 +8,7 @@ from .base import BaseLinear, LinearClassifierMixin, LinearRegressorMixin
 from sklearn.kernel_approximation import RBFSampler
 from .sdca_fast import _sdca_fast
 from sklearn.utils.validation import check_is_fitted
+from lightning.impl.dataset_fast import get_dataset
 
 
 class BaseSDCAEstimator(BaseLinear):
@@ -94,6 +95,7 @@ class BaseSDCAEstimator(BaseLinear):
     Shai Shalev-Schwartz and Tong Zhang.
     JMLR 2013 (vol 14), pp. 567-599.
     """
+
     LOSSES = {
         'squared': Squared(),
         'squared_hinge': SquaredHinge(),
@@ -105,6 +107,7 @@ class BaseSDCAEstimator(BaseLinear):
                  C=1.0, alpha=1.0, l1_ratio=0, normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6,
                  warm_start=False, random_state=None, verbose=True):
+        self.stochastic = True
         self.transformer = transformer
         self.transformer_ = transformer
         self.loss = loss
@@ -174,12 +177,15 @@ class BaseSDCAEstimator(BaseLinear):
         random_state = check_random_state(self.random_state)
 
         is_sparse = sparse.issparse(X)
-        it = _sdca_fast(self.coef_, self.dual_coef_, self.intercept_, X, y,
+        id_transformer = self._get_id_transformer()
+        params = self._get_transformer_params(id_transformer)
+        it = _sdca_fast(self.coef_, self.dual_coef_, self.intercept_,
+                        get_dataset(X, order='c'), X, y,
                         self.mean_, self.var_, loss, alpha/n_samples,
                         self.l1_ratio, self.t_, self.max_iter, self.tol,
                         1e-6, is_sparse, self.verbose, self.fit_intercept,
-                        random_state,
-                        self.transformer)
+                        random_state, self.transformer, id_transformer,
+                        **params)
         self.t_ += n_samples*(it+1)
 
         return self

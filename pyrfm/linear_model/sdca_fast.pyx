@@ -8,67 +8,245 @@ from libc.math cimport fabs, sqrt
 from .loss_fast cimport LossFunction
 import numpy as np
 cimport numpy as np
+from lightning.impl.dataset_fast cimport RowDataset
+from .random_mapping cimport (random_fourier, random_maclaurin, tensor_sketch,
+                              random_kernel)
+from cython.view cimport array
 
 
-cdef inline void normalize(double[:] x,
+cdef inline void normalize(double[:] z,
                            double[:] mean,
                            double[:] var,
-                           int t,
+                           unsigned int t,
                            Py_ssize_t n_components,
                            double eps):
     cdef double mean_new
     cdef Py_ssize_t j
     for j in range(n_components):
-        mean_new = mean[j] + (x[j]-mean[j]) / (t+1)
-        mean_new = mean[j] + (x[j] - mean[j]) / (t+1)
+        mean_new = mean[j] + (z[j] - mean[j]) / (t+1)
         var[j] = var[j] * (1-1./t)
-        var[j] += (x[j] - mean[j])*(x[j] - mean_new) / t
+        var[j] += (z[j] - mean[j])*(z[j] - mean_new) / t
         mean[j] = mean_new
-        x[j] = (x[j] - mean[j]) / (eps + sqrt(var[j]))
+        z[j] = (z[j] - mean[j]) / (eps + sqrt(var[j]))
 
 
-cdef void _sgd_initialization(double[:] coef,
-                              double[:] dual_coef,
-                              double[:] intercept,
-                              X,
-                              double[:] y,
-                              double[:] mean,
-                              double[:] var,
-                              LossFunction loss,
-                              double alpha,
-                              double l1_ratio,
-                              unsigned int t,
-                              double tol,
-                              double eps,
-                              bint is_sparse,
-                              bint fit_intercept,
-                              transformer,
-                              double[:] x,
-                              int[:] indices,
-                              ):
-    cdef Py_ssize_t i, n_samples, n_components, j
-    cdef double dloss, viol, y_pred, coef_old, update
-    cdef double lam1, lam2, norm
-    lam1 = alpha * l1_ratio
-    lam2 = alpha * (1-l1_ratio)
-    n_samples = X.shape[0]
-    n_components = coef.shape[0]
-    # modified SGD
-    for i in indices:
+cdef inline void transform(RowDataset X,
+                           X_array,
+                           double[:] z,
+                           Py_ssize_t i,
+                           double* data,
+                           int* indices,
+                           int n_nz,
+                           bint is_sparse,
+                           transformer,
+                           int id_transformer,
+                           double[:, ::1] random_weights,
+                           double[:] offset,
+                           int[:] orders,
+                           double[:] p_choice,
+                           double[:] coefs_maclaurin,
+                           double[:] z_cache,
+                           int[:] hash_indices,
+                           int[:] hash_signs,
+                           int kernel,
+                           int degree,
+                           double[:] anova,
+                           ):
+    cdef Py_ssize_t j
+    if id_transformer == -1:
         if is_sparse:
-            x = transformer.transform(X[i])[0]
+            _z = transformer.transform(X_array[i])[0]
         else:
-            x = transformer.transform(np.atleast_2d(X[i]))[0]
+            _z = transformer.transform(np.atleast_2d(X_array[i]))[0]
+        for j in range(z.shape[0]):
+            z[j] = _z[j]
+    else:
+        if id_transformer == 0:
+            random_fourier(z, data, indices, n_nz, random_weights, offset)
+        elif id_transformer == 1:
+            random_maclaurin(z, data, indices, n_nz, random_weights,
+                             orders, p_choice, coefs_maclaurin)
+        elif id_transformer == 2:
+            tensor_sketch(z, z_cache, data, indices, n_nz, degree,
+                          hash_indices, hash_signs)
+        elif id_transformer == 3:
+            random_kernel(z, data, indices, n_nz, random_weights, kernel,
+                          degree, anova)
+        else:
+            raise ValueError("Random feature mapping must be RandomFourier,"
+                             "RandomMaclaurin, TensorSketch, or "
+                             "RandomKernel.")
+
+
+cdef inline double proximal(double coef,
+                            double lam):
+    if coef > lam:
+        return coef - lam
+    elif coef < lam:
+        return coef + lam
+    else:
+        return 0.
+
+
+cdef double _sgd_initialization(double[:] coef,
+                                double[:] dual_coef,
+                                double[:] intercept,
+                                RowDataset X,
+                                X_array,
+                                double[:] y,
+                                double[:] mean,
+                                double[:] var,
+                                LossFunction loss,
+                                double lam1,
+                                double lam2,
+                                unsigned int* t,
+                                double tol,
+                                double eps,
+                                bint is_sparse,
+                                bint fit_intercept,
+                                transformer,
+                                int id_transformer,
+                                int[:] indices_samples,
+                                double[:] z,
+                                double[:, ::1] random_weights,
+                                double[:] offset,
+                                int[:] orders,
+                                double[:] p_choice,
+                                double[:] coefs_maclaurin,
+                                double[:] z_cache,
+                                int[:] hash_indices,
+                                int[:] hash_signs,
+                                int degree,
+                                int kernel,
+                                double[:] anova,
+                                random_state):
+    cdef Py_ssize_t i, j, n_samples, n_components
+    cdef double y_pred, update, norm, gap
+    cdef int* indices
+    cdef double* data
+    cdef int n_nz
+    gap = 0.
+    n_samples = X.get_n_samples()
+    n_components = coef.shape[0]
+    if mean is not None and t[0] == 1:
+        i = random_state.randint(n_samples-1)+1
+        i = indices_samples[i]
+        X.get_row_ptr(i, &indices, &data, &n_nz)
+        transform(X, X_array, z, i, data, indices, n_nz, is_sparse, transformer,
+                  id_transformer, random_weights, offset, orders, p_choice,
+                  coefs_maclaurin, z_cache, hash_indices, hash_signs,
+                  kernel, degree, anova)
+
+        for j in range(n_components):
+            mean[j] = z[j]
+
+    # run modified SGD
+    for i in indices_samples:
+        X.get_row_ptr(i, &indices, &data, &n_nz)
+        # compute random feature
+        transform(X, X_array, z, i, data, indices, n_nz, is_sparse, transformer,
+                  id_transformer, random_weights, offset, orders, p_choice,
+                  coefs_maclaurin, z_cache, hash_indices, hash_signs,
+                  kernel, degree, anova)
 
         # if normalize
         if mean is not None:
-            normalize(x, mean, var, t, n_components, eps)
+            normalize(z, mean, var, t[0], n_components, eps)
 
         y_pred = 0
         norm = 0
         for j in range(n_components):
-            y_pred += x[j] * coef[j]
-            norm += x[j]**2
+            y_pred += z[j] * coef[j]
+            norm += z[j]**2
+        y_pred += intercept[0]
+        if fit_intercept:
+            norm += 1
+
+        # update dual_coef
+        update = loss.sdca_update(dual_coef[i], y[i], y_pred, norm/(lam2*t[0]))
+        dual_coef[i] += update
+
+        # update primal coef
+        y_pred = 0
+        # update primal coef
+        for j in range(n_components):
+            coef_old = coef[j]
+            coef[j] *= lam2*(t[0]-1)
+            coef[j] += update * z[j]
+            coef[j] /= lam2*t[0]
+            # proximal
+            coef[j] = proximal(coef[j], lam1)
+            y_pred +=  coef[j]*z[j]
+            gap += lam2*coef[j]**2 + 2*lam1*fabs(coef[j])
+
+        if fit_intercept:
+            intercept[0] *= lam2*(t[0]-1)
+            intercept[0] += update
+            intercept[0] /= lam2*t[0]
+
+        # compute duality gap
+        gap += loss.loss(y_pred, y[i]) + loss.conjugate(-dual_coef[i], y[i])
+        t[0] += 1
+    return fabs(gap/n_samples)
+
+
+cdef inline double _sdca_epoch(double[:] coef,
+                               double[:] dual_coef,
+                               double[:] intercept,
+                               RowDataset X,
+                               X_array,
+                               double[:] y,
+                               double[:] mean,
+                               double[:] var,
+                               LossFunction loss,
+                               double lam1,
+                               double lam2,
+                               unsigned int* t,
+                               double eps,
+                               bint is_sparse,
+                               bint fit_intercept,
+                               transformer,
+                               int id_transformer,
+                               int[:] indices_samples,
+                               double[:] z,
+                               double[:, ::1] random_weights,
+                               double[:] offset,
+                               int[:] orders,
+                               double[:] p_choice,
+                               double[:] coefs_maclaurin,
+                               double[:] z_cache,
+                               int[:] hash_indices,
+                               int[:] hash_signs,
+                               int degree,
+                               int kernel,
+                               double[:] anova
+                               ):
+    cdef Py_ssize_t i, j, n_samples, n_components
+    cdef double y_pred, update, norm, gap
+    # data pointers
+    cdef int* indices
+    cdef double* data
+    cdef int n_nz
+    gap = 0
+    n_samples = X.get_n_samples()
+    n_components = coef.shape[0]
+
+    for i in indices_samples:
+        X.get_row_ptr(i, &indices, &data, &n_nz)
+        transform(X, X_array, z, i, data, indices, n_nz, is_sparse, transformer,
+                  id_transformer, random_weights, offset, orders, p_choice,
+                  coefs_maclaurin, z_cache, hash_indices, hash_signs,
+                  kernel, degree, anova)
+
+        # if normalize
+        if mean is not None:
+            normalize(z, mean, var, t[0], n_components, eps)
+
+        y_pred = 0
+        norm = 0
+        for j in range(n_components):
+            y_pred += z[j] * coef[j]
+            norm += z[j]**2
 
         y_pred += intercept[0]
         if fit_intercept:
@@ -76,34 +254,33 @@ cdef void _sgd_initialization(double[:] coef,
 
         # update dual_coef
         update = loss.sdca_update(dual_coef[i], y[i], y_pred,
-                                  norm / (lam2*t))
+                                  norm / (lam2*n_samples))
         dual_coef[i] += update
 
         # update primal coef
+        y_pred = 0
         for j in range(n_components):
             coef_old = coef[j]
-            coef[j] *= lam2*(t-1)
-            coef[j] += update * x[j]
-            coef[j] /= lam2*t
+            coef[j] += update * z[j] / (n_samples*lam2)
             # proximal
-            if coef[j] > lam1:
-                coef[j] -= lam1
-            elif coef[j] < -lam1:
-                coef[j] += lam1
-            else:
-                coef[j] = 0
-
+            coef[j] = proximal(coef[j], lam1)
+            y_pred += coef[j]*z[j]
+            gap += lam2*coef[j]**2 + 2*lam1*fabs(coef[j])
         if fit_intercept:
-            intercept[0] *= lam2*(t-1)
-            intercept[0] += update
-            intercept[0] /= lam2*t
-        t += 1
+            intercept[0] += update / (n_samples*lam2)
+            y_pred += intercept[0]
+
+        # compute duality gap
+        gap += loss.loss(y_pred, y[i]) + loss.conjugate(-dual_coef[i], y[i])
+        t[0] += 1
+    return fabs(gap/n_samples)
 
 
 def _sdca_fast(double[:] coef,
                double[:] dual_coef,
                double[:] intercept,
-               X,
+               RowDataset X,
+               X_array,
                double[:] y,
                double[:] mean,
                double[:] var,
@@ -119,96 +296,63 @@ def _sdca_fast(double[:] coef,
                bint fit_intercept,
                random_state,
                transformer,
+               int id_transformer,
+               double[:, ::1] random_weights,
+               double[:] offset,
+               int[:] orders,
+               double[:] p_choice,
+               double[:] coefs_maclaurin,
+               int[:] hash_indices,
+               int[:] hash_signs,
+               int degree,
+               int kernel,
                ):
     cdef Py_ssize_t it, i, n_samples, n_components, j
-    cdef double dloss, viol, y_pred, coef_old, update
-    cdef double lam1, lam2, norm, primal, dual, reg
-    lam1 = alpha * l1_ratio
-    lam2 = alpha * (1-l1_ratio)
-    n_samples = X.shape[0]
+    cdef double gap, lam1, lam2
+    lam1 = alpha*l1_ratio
+    lam2 = alpha*(1-l1_ratio)
+    n_samples = X.get_n_samples()
     n_components = coef.shape[0]
 
     cdef int[:] indices = np.arange(n_samples, dtype=np.int32)
-    cdef double[:] x = np.zeros((n_components, ), dtype=np.float64)
+    #cdef double[:] z = array((n_components, ), sizeof(double), format='d')
+    cdef double[:] z = np.zeros((n_components, ), dtype=np.float64)
+    cdef double[:] z_cache = None
+    cdef double[:] anova = None
+    if id_transformer == 2:
+        z_cache = np.zeros((n_components, ), dtype=np.float64)
+    if id_transformer == 3 and kernel == 1:
+        anova = np.zeros((degree+1, ), dtype=np.float64)
     it = 0
 
-    if mean is not None and t == 1:
-        i = random_state.randint(n_samples)
-        if is_sparse:
-            x = transformer.transform(X[i])[0]
-        else:
-            x = transformer.transform(np.atleast_2d(X[i]))[0]
-        for j in range(n_components):
-            mean[j] = x[j]
+    # initialize by SGD if t == 1
 
-    # initialize by SGD
     if t == 1:
         random_state.shuffle(indices)
-        _sgd_initialization(coef, dual_coef, intercept, X, y, mean, var, loss,
-                            alpha, l1_ratio, t, tol, eps, is_sparse,
-                            fit_intercept, transformer, x, indices)
+        gap = _sgd_initialization(coef, dual_coef, intercept, X, X_array, y,
+                                  mean, var, loss, lam1, lam2, &t, tol, eps,
+                                  is_sparse, fit_intercept, transformer,
+                                  id_transformer, indices, z,  random_weights,
+                                  offset, orders, p_choice, coefs_maclaurin,
+                                  z_cache, hash_indices, hash_signs, degree,
+                                  kernel, anova, random_state)
+        if verbose:
+            print("SGD Initialization Done. Duality Gap {}".format(gap))
+
     # start epoch
     for it in range(max_iter):
-        viol = 0
-        primal = 0.
-        dual = 0.
-        reg = 0.
         random_state.shuffle(indices)
-        for i in indices:
-            if is_sparse:
-                x = transformer.transform(X[i])[0]
-            else:
-                x = transformer.transform(np.atleast_2d(X[i]))[0]
-            # if normalize
-            if mean is not None:
-                normalize(x, mean, var, t, n_components, eps)
-
-            y_pred = 0
-            norm = 0
-            for j in range(n_components):
-                y_pred += x[j] * coef[j]
-                norm += x[j]**2
-
-            y_pred += intercept[0]
-            if fit_intercept:
-                norm += 1
-
-            # update dual_coef
-            update = loss.sdca_update(dual_coef[i], y[i], y_pred,
-                                      norm / (lam2*n_samples))
-            dual_coef[i] += update
-
-            # update primal coef
-            y_pred = 0
-            for j in range(n_components):
-                coef_old = coef[j]
-                coef[j] += update * x[j] / (n_samples*lam2)
-                # proximal
-                if lam1 != 0:
-                    if coef[j] > lam1:
-                        coef[j] -= lam1
-                    elif coef[j] < -lam1:
-                        coef[j] += lam1
-                    else:
-                        coef[j] = 0
-
-                viol += fabs(coef_old-coef[j])
-                y_pred += coef[j]*x[j]
-                reg += coef[j]**2
-
-            if fit_intercept:
-                intercept[0] += update / (n_samples*lam2)
-                y_pred += intercept[0]
-
-            primal += loss.loss(y_pred, y[i])
-            dual -= loss.conjugate(-dual_coef[i], y[i])
-            t += 1
-
+        gap = _sdca_epoch(coef, dual_coef, intercept, X, X_array, y, mean, var,
+                          loss, lam1, lam2, &t, eps, is_sparse, fit_intercept,
+                          transformer, id_transformer, indices, z,
+                          random_weights, offset, orders, p_choice,
+                          coefs_maclaurin, z_cache, hash_indices,
+                          hash_signs, degree, kernel, anova)
         if verbose:
-            print("Iteration {} Violation {}".format(it, viol))
-        if (primal - dual + lam2*reg)/n_samples < tol:
+            print("Iteration {} Duality Gap {}".format(it+1, gap))
+        if gap < tol:
             if verbose:
-                print("Converged at iteration {}".format(it))
+                print("Converged at iteration {}".format(it+1))
             break
 
     return it
