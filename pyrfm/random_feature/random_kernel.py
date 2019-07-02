@@ -39,25 +39,11 @@ def get_random_matrix(rng, distribution, size, p=0.):
     elif distribution == 'laplace':
         return rng.laplace(0, 1./np.sqrt(2), size)
     elif distribution == 'sparse_rademacher':
-        """
-        mat = rng.choice([-1., 0., 1.], size=size,
-                         p=[(1-p)/2., p, (1-p)/2.])
-
-        return csr_matrix(mat) / np.sqrt(1-p)
-        """
         # n_nzs : (n_features, )
         # n_nzs[j] is n_nz of random_weights[:, j]
         n_nzs = rng.binomial(size[0], 1-p, size[1])
-
         indptr = np.append(0, np.cumsum(n_nzs))
-        indices = rng.choice(np.arange(size[0]), size=n_nzs[0], replace=False)
         arange = np.arange(size[0])
-
-        """
-        for nnz in n_nzs[1:]:
-            indices = np.append(indices,
-                                rng.choice(arange, size=nnz, replace=False))
-        """
         indices = [rng.choice(arange, size=nnz, replace=False) for nnz in n_nzs]
         data = (rng.randint(2, size=np.sum(n_nzs))*2-1) / np.sqrt(1-p)
         return csc_matrix((data, np.concatenate(indices), indptr), shape=size)
