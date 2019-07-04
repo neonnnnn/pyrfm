@@ -113,13 +113,13 @@ cdef void tensor_sketch(double[:] z,
 
 
 cdef inline void random_kernel(double[:] z,
-                              double* data,
-                              int* indices,
-                              int n_nz,
-                              double[:, ::1] random_weights,
-                              int kernel,
-                              int degree,
-                              double[:] a):
+                               double* data,
+                               int* indices,
+                               int n_nz,
+                               double[:, ::1] random_weights,
+                               int kernel,
+                               int degree,
+                               double[:] a):
     if kernel == 0:
         anova(z, data, indices, n_nz, random_weights, degree, a)
     elif kernel == 1:
