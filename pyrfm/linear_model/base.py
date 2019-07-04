@@ -9,6 +9,9 @@ from sklearn.externals import six
 from sklearn.utils.multiclass import type_of_target
 from ..random_feature import (RandomFourier, RandomMaclaurin, TensorSketch,
                               RandomKernel)
+from lightning.impl.dataset_fast import get_dataset
+from .stochastic_predict import _predict_fast
+from scipy import sparse
 
 
 def sigmoid(pred):
@@ -22,9 +25,30 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
         check_is_fitted(self, 'coef_')
         if getattr(self, 'stochastic', False):
             y_pred = np.zeros(X.shape[0])
-            for i, x in enumerate(X):
-                x_trans = self.transformer_.transform(x)
-                y_pred[i] = safe_sparse_dot(x_trans, self.coef_.T)[0]
+            id_transform = self._get_id_transformer()
+            is_sparse = sparse.issparse(X)
+
+            if id_transform == -1 or not self.fast_solver:
+                for i, xi in enumerate(X):
+                    if is_sparse:
+                        xi_trans = self.transformer.transform(xi).ravel()
+                    else:
+                        xi_trans = self.transformer.transform(
+                            np.atleast_2d(xi)).ravel()
+
+                    if self.normalize:
+                        xi_trans = (xi_trans - self.mean_)
+                        xi_trans /= np.sqrt(self.var_)+1e-6
+
+                    y_pred[i] = safe_sparse_dot(xi_trans, self.coef_)
+                    y_pred[i] += self.intercept_
+
+            else:
+                params = self._get_transformer_params(id_transform)
+                _predict_fast(self.coef_, self.intercept_,
+                              get_dataset(X, order='c'), y_pred, self.mean_,
+                              self.var_, self.transformer,
+                              id_transform, **params)
         else:
             X_trans = self.transformer_.transform(X)
             y_pred = safe_sparse_dot(X_trans, self.coef_.T)

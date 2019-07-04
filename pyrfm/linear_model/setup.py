@@ -26,9 +26,20 @@ def configuration(parent_package='', top_path=None):
                          language='c++',
                          include_dirs=[numpy.get_include()])
 
+    config.add_extension("adam_fast",
+                         sources=['adam_fast.pyx'],
+                         language='c++',
+                         include_dirs=[numpy.get_include()])
+
     config.add_extension("sdca_fast", sources=['sdca_fast.pyx'],
                          language='c++',
                          include_dirs=[numpy.get_include()])
+
+    config.add_extension("stochastic_predict",
+                         sources=['stochastic_predict.pyx'],
+                         language='c++',
+                         include_dirs=[numpy.get_include()])
+
     maybe_cythonize_extensions(top_path, config)
     return config
 
