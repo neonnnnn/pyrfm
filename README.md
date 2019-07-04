@@ -35,12 +35,14 @@ In other words, pyrfm now **provides approximaters for following kernels**:
 The random Fourier feature is also implemented in scikit-learn 
 (kernel_approximation.RBFSampler).
 
-Moreover, pyrfm **supports following solvers for linear models**:
+Moreover, pyrfm **supports following solvers for linear models with random features**:
  - primal coordinate descent for sparse S.Maji and A.Berg feature [6,7]
  - AdaGrad for very-large-scale dataset: does not compute the random feature map
   of all examples at the same time (space efficient but slow) [8]
  - SDCA for very-large-scale dataset: does not compute the random feature map
   of all examples at the same time (space efficient but slow) [9]
+ - Adam for very-large-scale dataset: does not compute the random feature map
+  of all examples at the same time (space efficient but slow) [10]
  
  # Installation
  1. Download the source codes by
@@ -81,5 +83,7 @@ Moreover, pyrfm **supports following solvers for linear models**:
         JMLR, vol. 12, pp. 2121--2159, 2012.
     [9] Shai Shalev-Shwartz, Tong Zhang. Stochastic Dual Coordinate Ascent Methods for Regularized Loss Minimization.
         JMLR, vol. 14, pp. 567--599, 2013.
+    [10] Diederik P. Kingma and Jimmy Lei Ba. Adam: A Method for Stochastic Optimization.
+        In. Proc. ICLR, 2015.
  # Authors
  - Kyohei Atarashi, 2018-present
