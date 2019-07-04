@@ -18,8 +18,7 @@ cdef inline void normalize(double[:] z,
                            double[:] mean,
                            double[:] var,
                            unsigned int t,
-                           Py_ssize_t n_components,
-                           double eps):
+                           Py_ssize_t n_components):
     cdef double mean_new
     cdef Py_ssize_t j
     for j in range(n_components):
@@ -27,7 +26,7 @@ cdef inline void normalize(double[:] z,
         var[j] = var[j] * (1-1./t)
         var[j] += (z[j] - mean[j])*(z[j] - mean_new) / t
         mean[j] = mean_new
-        z[j] = (z[j] - mean[j]) / (eps + sqrt(var[j]))
+        z[j] = (z[j] - mean[j]) / (1e-6 + sqrt(var[j]))
 
 
 cdef inline void transform(RowDataset X,
@@ -101,7 +100,6 @@ cdef double _sgd_initialization(double[:] coef,
                                 double lam2,
                                 unsigned int* t,
                                 double tol,
-                                double eps,
                                 bint is_sparse,
                                 bint fit_intercept,
                                 transformer,
@@ -151,7 +149,7 @@ cdef double _sgd_initialization(double[:] coef,
 
         # if normalize
         if mean is not None:
-            normalize(z, mean, var, t[0], n_components, eps)
+            normalize(z, mean, var, t[0], n_components)
 
         y_pred = 0
         norm = 0
@@ -202,7 +200,6 @@ cdef inline double _sdca_epoch(double[:] coef,
                                double lam1,
                                double lam2,
                                unsigned int* t,
-                               double eps,
                                bint is_sparse,
                                bint fit_intercept,
                                transformer,
@@ -240,7 +237,7 @@ cdef inline double _sdca_epoch(double[:] coef,
 
         # if normalize
         if mean is not None:
-            normalize(z, mean, var, t[0], n_components, eps)
+            normalize(z, mean, var, t[0], n_components)
 
         y_pred = 0
         norm = 0
@@ -290,7 +287,6 @@ def _sdca_fast(double[:] coef,
                unsigned int t,
                unsigned int max_iter,
                double tol,
-               double eps,
                bint is_sparse,
                bint verbose,
                bint fit_intercept,
@@ -336,7 +332,7 @@ def _sdca_fast(double[:] coef,
     if t == 1:
         random_state.shuffle(indices_samples)
         gap = _sgd_initialization(coef, dual_coef, intercept, X, X_array, y,
-                                  mean, var, loss, lam1, lam2, &t, tol, eps,
+                                  mean, var, loss, lam1, lam2, &t, tol,
                                   is_sparse, fit_intercept, transformer,
                                   id_transformer, indices_samples, z,
                                   random_weights, offset, orders, p_choice,
@@ -350,7 +346,7 @@ def _sdca_fast(double[:] coef,
     for it in range(max_iter):
         random_state.shuffle(indices_samples)
         gap = _sdca_epoch(coef, dual_coef, intercept, X, X_array, y, mean, var,
-                          loss, lam1, lam2, &t, eps, is_sparse, fit_intercept,
+                          loss, lam1, lam2, &t, is_sparse, fit_intercept,
                           transformer, id_transformer, indices_samples, z,
                           random_weights, offset, orders, p_choice,
                           coefs_maclaurin, z_cache, hash_indices,

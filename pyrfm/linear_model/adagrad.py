@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import sparse
 from sklearn.utils.extmath import safe_sparse_dot
-from sklearn.utils import check_X_y, check_random_state
+from sklearn.utils import check_random_state
 
 from .loss_fast import Squared, SquaredHinge, Logistic, Hinge
 from .base import BaseLinear, LinearClassifierMixin, LinearRegressorMixin
@@ -83,6 +83,9 @@ class BaseAdaGradEstimator(BaseLinear):
         Use cython fast solver or not. This argument is valid when transformer
         is in {RandomFourier|RandomMaclaurin|TensorSketch|RandomKernel}.
 
+    shuffle : bool, default=True
+        Whether shuffle data before each epoch or not.
+
     Attributes
     ----------
     self.coef_ : array, shape (n_components, )
@@ -124,7 +127,7 @@ class BaseAdaGradEstimator(BaseLinear):
                  C=1.0, alpha=1.0, l1_ratio=0, normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6,  eps=1e-6,
                  warm_start=False, random_state=None, verbose=True,
-                 fast_solver=True):
+                 fast_solver=True, shuffle=True):
         self.transformer = transformer
         self.transformer_ = transformer
         self.eta = eta
@@ -141,23 +144,7 @@ class BaseAdaGradEstimator(BaseLinear):
         self.random_state = random_state
         self.verbose = verbose
         self.fast_solver = fast_solver
-
-    def _predict(self, X):
-        check_is_fitted(self, "coef_")
-        y_pred = np.zeros((X.shape[0], ))
-        is_sparse = sparse.issparse(X)
-        for i, xi in enumerate(X):
-            if is_sparse:
-                xi_trans = self.transformer.transform(xi).ravel()
-            else:
-                xi_trans = self.transformer.transform(np.atleast_2d(xi)).ravel()
-
-            if self.normalize:
-                xi_trans = (xi_trans - self.mean_) / np.sqrt(self.var_)
-            y_pred[i] = safe_sparse_dot(xi_trans, self.coef_)
-            y_pred[i] += self.intercept_
-
-        return y_pred
+        self.shuffle = shuffle
 
     def fit(self, X, y):
         X, y = self._check_X_y(X, y, accept_sparse=['csr'])
@@ -219,9 +206,10 @@ class BaseAdaGradEstimator(BaseLinear):
                            self.acc_grad_norm_,  self.acc_grad_intercept_,
                            self.acc_grad_norm_intercept_, self.mean_, self.var_,
                            loss, alpha, self.l1_ratio, self.eta, self.t_,
-                           self.max_iter, self.tol, self.eps, 1e-6, is_sparse,
-                           self.verbose, self.fit_intercept, random_state,
-                           self.transformer, id_transformer, **params)
+                           self.max_iter, self.tol, self.eps, is_sparse,
+                           self.verbose, self.fit_intercept, self.shuffle,
+                           random_state, self.transformer, id_transformer,
+                           **params)
         self.t_ += n_samples*(it+1)
 
         return self
@@ -238,11 +226,11 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
                  C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6, eps=1e-4,
                  warm_start=False, random_state=None, verbose=True,
-                 fast_solver=True):
+                 fast_solver=True, shuffle=True):
         super(AdaGradClassifier, self).__init__(
             transformer, eta, loss, C, alpha, l1_ratio, normalize,
             fit_intercept, max_iter, tol, eps, warm_start, random_state,
-            verbose, fast_solver
+            verbose, fast_solver, shuffle
         )
 
 
@@ -255,9 +243,9 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
                  C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6, eps=1e-4,
                  warm_start=False, random_state=None, verbose=True,
-                 fast_solver=True):
+                 fast_solver=True, shuffle=True):
         super(AdaGradRegressor, self).__init__(
             transformer, eta, loss, C, alpha, l1_ratio, normalize,
             fit_intercept, max_iter, tol, eps, warm_start, random_state,
-            verbose, fast_solver
+            verbose, fast_solver, shuffle
         )
