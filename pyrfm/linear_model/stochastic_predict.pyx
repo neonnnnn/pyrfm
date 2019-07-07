@@ -52,7 +52,6 @@ cdef inline void transform(RowDataset X,
 
 
 def _predict_fast(double[:] coef,
-                  double[:] intercept,
                   RowDataset X,
                   double[:] y_pred,
                   double[:] mean,
@@ -106,5 +105,3 @@ def _predict_fast(double[:] coef,
         y_pred[i] = 0
         for j in range(n_components):
             y_pred[i] += z[j] * coef[j]
-
-        y_pred[i] += intercept[0]

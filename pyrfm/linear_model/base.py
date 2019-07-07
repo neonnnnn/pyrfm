@@ -41,13 +41,11 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
                         xi_trans /= np.sqrt(self.var_)+1e-6
 
                     y_pred[i] = safe_sparse_dot(xi_trans, self.coef_)
-                    y_pred[i] += self.intercept_
 
             else:
                 params = self._get_transformer_params(id_transform)
-                _predict_fast(self.coef_, self.intercept_,
-                              get_dataset(X, order='c'), y_pred, self.mean_,
-                              self.var_, self.transformer,
+                _predict_fast(self.coef_, get_dataset(X, order='c'), y_pred,
+                              self.mean_, self.var_, self.transformer,
                               id_transform, **params)
         else:
             X_trans = self.transformer_.transform(X)
