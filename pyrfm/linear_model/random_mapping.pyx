@@ -4,9 +4,11 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 from libc.math cimport cos, sin, sqrt
-from lightning.impl.dataset_fast cimport ColumnDataset, RowDataset
 from scipy.fftpack._fftpack import drfft
-from cython.parallel import prange
+import numpy as np
+cimport numpy as np
+from lightning.impl.dataset_fast import get_dataset
+from lightning.impl.dataset_fast cimport RowDataset
 
 
 cdef void random_fourier(double[:] z,
@@ -165,3 +167,86 @@ cdef inline void all_subsets(double[:] z,
             j = indices[jj]
             z[i] *= (1+data[jj]*random_weights[i, j])
         z[i] /= sqrt(n_components)
+
+
+def _random_fourier_fast(X, transformer):
+    cdef double[:, ::1] Z = np.zeros((X.shape[0], transformer.n_components),
+                                     dtype=np.float64)
+    cdef RowDataset dataset = get_dataset(X, order='c')
+    cdef Py_ssize_t i
+    cdef Py_ssize_t n_samples = dataset.get_n_samples()
+    cdef double* data
+    cdef int* indices
+    cdef int n_nz
+
+    for i in range(n_samples):
+        dataset.get_row_ptr(i, &indices, &data, &n_nz)
+        random_fourier(Z[i], data, indices, n_nz,
+                       transformer.random_weights_, transformer.offset_)
+    return Z
+
+
+def _tensor_sketch_fast(X, transformer):
+    cdef double[:, ::1] Z = np.zeros((X.shape[0], transformer.n_components),
+                                     dtype=np.float64)
+    cdef RowDataset dataset = get_dataset(X, order='c')
+    cdef Py_ssize_t i
+    cdef Py_ssize_t n_samples = dataset.get_n_samples()
+    cdef Py_ssize_t n_components = transformer.n_components_
+    cdef double[:] z_cache = np.zeros(n_components, dtype=np.float64)
+
+    # data pointers
+    cdef int* indices
+    cdef double* data
+    cdef int n_nz
+
+    for i in range(n_samples):
+        dataset.get_row_ptr(i, &indices, &data, &n_nz)
+        tensor_sketch(Z[i], z_cache, data, indices, n_nz,
+                      transformer.degree, transformer.hash_indices_,
+                      transformer.hash_signs_)
+    return Z
+
+
+def _random_maclaurin_fast(X, transformer):
+    cdef double[:, ::1] Z = np.zeros((X.shape[0], transformer.n_components),
+                                     dtype=np.float64)
+    cdef RowDataset dataset = get_dataset(X, order='c')
+    cdef Py_ssize_t i
+    cdef Py_ssize_t n_samples = dataset.get_n_samples()
+    cdef double* data
+    cdef int* indices
+    cdef int n_nz
+
+    for i in range(n_samples):
+        dataset.get_row_ptr(i, &indices, &data, &n_nz)
+        random_maclaurin(Z[i], data, indices, n_nz,
+                         transformer.random_weights_, transformer.orders_,
+                         transformer.p_choice, transformer.coefs)
+    return Z
+
+
+def _random_kernel_fast(X, transformer):
+    cdef double[:, ::1] Z = np.zeros((X.shape[0], transformer.n_components),
+                                     dtype=np.float64)
+    cdef RowDataset dataset = get_dataset(X, order='c')
+    cdef Py_ssize_t i
+    cdef Py_ssize_t n_samples = dataset.get_n_samples()
+    cdef double* data
+    cdef int* indices
+    cdef int n_nz
+    cdef double[:] anova = np.zeros(transformer.degree+1, dtype=np.float64)
+    cdef int kernel
+    if transformer.kernel == 'anova':
+        kernel = 0
+    elif transformer.kernel == 'all_subsets':
+        kernel = 1
+    else:
+        raise ValueError("{} is not supported.".format(transformer.kernel))
+
+    for i in range(n_samples):
+        dataset.get_row_ptr(i, &indices, &data, &n_nz)
+        random_kernel(Z[i], data, indices, n_nz,
+                      transformer.random_weights_, kernel,
+                      transformer.degree, anova)
+    return Z
