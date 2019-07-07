@@ -1,8 +1,7 @@
 import numpy as np
-
 from sklearn.utils.testing import assert_greater_equal, assert_almost_equal
 from pyrfm import (MB, TensorSketch, RandomKernel, RandomMaclaurin,
-                   SignedCirculantRandomKernel, RandomFourier, SDCAClassifier)
+                   SignedCirculantRandomKernel, RandomFourier, AdamClassifier)
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import StandardScaler
 
@@ -22,7 +21,7 @@ def make_target(X_trans, rng, low=-1., high=1.0, ):
     return y, coef
 
 
-def test_sdca_classifier_ts():
+def test_adam_classifier_ts():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
     transform = TensorSketch(n_components=100, random_state=rng)
@@ -38,9 +37,9 @@ def test_sdca_classifier_ts():
     clf_sgd.fit(X_trans[:n_train], y_train)
     test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
     train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = SDCAClassifier(transform, max_iter=100, warm_start=True,
+    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
                          verbose=False, fit_intercept=True,
-                         alpha=1, random_state=rng)
+                         alpha=1 / X.shape[0], random_state=rng)
     clf.fit(X_train, y_train)
 
     test_acc = clf.score(X_test, y_test)
@@ -49,7 +48,7 @@ def test_sdca_classifier_ts():
     assert_greater_equal(train_acc, train_acc_sgd)
 
 
-def test_sdca_classifier_ts_normalize():
+def test_adam_classifier_ts_normalize():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
     transform = TensorSketch(n_components=100, random_state=rng)
@@ -66,9 +65,9 @@ def test_sdca_classifier_ts_normalize():
     clf_sgd.fit(X_trans[:n_train], y_train)
     test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
     train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = SDCAClassifier(transform, max_iter=100, warm_start=True,
+    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
                          verbose=False, fit_intercept=True,
-                         alpha=1, random_state=rng)
+                         alpha=1 / X.shape[0], random_state=rng)
     clf.fit(X_train, y_train)
 
     test_acc = clf.score(X_test, y_test)
@@ -77,7 +76,7 @@ def test_sdca_classifier_ts_normalize():
     assert_greater_equal(train_acc, train_acc_sgd)
 
 
-def test_sdca_classifier_rk():
+def test_adam_classifier_rk():
     rng = np.random.RandomState(0)
     for degree in range(2, 5):
         # approximate kernel mapping
@@ -95,9 +94,9 @@ def test_sdca_classifier_rk():
         clf_sgd.fit(X_trans[:n_train], y_train)
         test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
         train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-        clf = SDCAClassifier(transform, max_iter=100, warm_start=True,
+        clf = AdamClassifier(transform, max_iter=100, warm_start=True,
                              verbose=False, fit_intercept=True,
-                             alpha=1, random_state=rng)
+                             alpha=1 / X.shape[0], random_state=rng)
         clf.fit(X_train, y_train)
 
         test_acc = clf.score(X_test, y_test)
@@ -106,7 +105,7 @@ def test_sdca_classifier_rk():
         assert_greater_equal(train_acc, train_acc_sgd)
 
 
-def test_sdca_classifier_rk_normalize():
+def test_adam_classifier_rk_normalize():
     rng = np.random.RandomState(0)
     for degree in range(2, 5):
         # approximate kernel mapping
@@ -126,9 +125,9 @@ def test_sdca_classifier_rk_normalize():
         clf_sgd.fit(X_trans[:n_train], y_train)
         test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
         train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-        clf = SDCAClassifier(transform, max_iter=100, warm_start=True,
+        clf = AdamClassifier(transform, max_iter=100, warm_start=True,
                              verbose=False, fit_intercept=True,
-                             alpha=1, random_state=rng)
+                             alpha=1 / X.shape[0], random_state=rng)
         clf.fit(X_train, y_train)
 
         test_acc = clf.score(X_test, y_test)
@@ -137,7 +136,7 @@ def test_sdca_classifier_rk_normalize():
         assert_greater_equal(train_acc, train_acc_sgd)
 
 
-def test_sdca_classifier_rk_as():
+def test_adam_classifier_rk_as():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
     transform = RandomKernel(n_components=100, random_state=rng,
@@ -154,9 +153,9 @@ def test_sdca_classifier_rk_as():
     clf_sgd.fit(X_trans[:n_train], y_train)
     test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
     train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = SDCAClassifier(transform, max_iter=100, warm_start=True,
+    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
                          verbose=False, fit_intercept=True,
-                         alpha=1, random_state=rng)
+                         alpha=1 / X.shape[0], random_state=rng)
     clf.fit(X_train, y_train)
 
     test_acc = clf.score(X_test, y_test)
@@ -165,7 +164,7 @@ def test_sdca_classifier_rk_as():
     assert_greater_equal(train_acc, train_acc_sgd)
 
 
-def test_sdca_classifier_rk_as_normalize():
+def test_adam_classifier_rk_as_normalize():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
     transform = RandomKernel(n_components=100, random_state=rng,
@@ -183,9 +182,9 @@ def test_sdca_classifier_rk_as_normalize():
     clf_sgd.fit(X_trans[:n_train], y_train)
     test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
     train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = SDCAClassifier(transform, max_iter=100, warm_start=True,
+    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
                          verbose=False, fit_intercept=True,
-                         alpha=1, random_state=rng)
+                         alpha=1 / X.shape[0], random_state=rng)
     clf.fit(X_train, y_train)
 
     test_acc = clf.score(X_test, y_test)
@@ -194,7 +193,7 @@ def test_sdca_classifier_rk_as_normalize():
     assert_greater_equal(train_acc, train_acc_sgd)
 
 
-def test_sdca_classifier_rm():
+def test_adam_classifier_rm():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
     transform = RandomMaclaurin(n_components=100, random_state=rng)
@@ -210,9 +209,9 @@ def test_sdca_classifier_rm():
     clf_sgd.fit(X_trans[:n_train], y_train)
     test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
     train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = SDCAClassifier(transform, max_iter=100, warm_start=True,
+    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
                          verbose=False, fit_intercept=True,
-                         alpha=1, random_state=rng)
+                         alpha=1 / X.shape[0], random_state=rng)
     clf.fit(X_train, y_train)
 
     test_acc = clf.score(X_test, y_test)
@@ -221,7 +220,7 @@ def test_sdca_classifier_rm():
     assert_greater_equal(train_acc, train_acc_sgd)
 
 
-def test_sdca_classifier_rm_normalize():
+def test_adam_classifier_rm_normalize():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
     transform = RandomMaclaurin(n_components=100, random_state=rng)
@@ -238,9 +237,9 @@ def test_sdca_classifier_rm_normalize():
     clf_sgd.fit(X_trans[:n_train], y_train)
     test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
     train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = SDCAClassifier(transform, max_iter=100, warm_start=True,
+    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
                          verbose=False, fit_intercept=True,
-                         alpha=1, random_state=rng)
+                         alpha=1 / X.shape[0], random_state=rng)
     clf.fit(X_train, y_train)
 
     test_acc = clf.score(X_test, y_test)
@@ -249,7 +248,7 @@ def test_sdca_classifier_rm_normalize():
     assert_greater_equal(train_acc, train_acc_sgd)
 
 
-def test_sdca_classifier_rf():
+def test_adam_classifier_rf():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
     transform = RandomFourier(n_components=100, random_state=rng, gamma=10)
@@ -265,9 +264,9 @@ def test_sdca_classifier_rf():
     clf_sgd.fit(X_trans[:n_train], y_train)
     test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
     train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = SDCAClassifier(transform, max_iter=100, warm_start=True,
+    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
                          verbose=False, fit_intercept=True,
-                         alpha=1, random_state=rng)
+                         alpha=1 / X.shape[0], random_state=rng)
     clf.fit(X_train, y_train)
 
     test_acc = clf.score(X_test, y_test)
@@ -276,7 +275,7 @@ def test_sdca_classifier_rf():
     assert_greater_equal(train_acc, train_acc_sgd)
 
 
-def test_sdca_classifier_rf_normalize():
+def test_adam_classifier_rf_normalize():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
     transform = RandomFourier(n_components=100, random_state=rng, gamma=10)
@@ -293,9 +292,9 @@ def test_sdca_classifier_rf_normalize():
     clf_sgd.fit(X_trans[:n_train], y_train)
     test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
     train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = SDCAClassifier(transform, max_iter=100, warm_start=True,
+    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
                          verbose=False, fit_intercept=True,
-                         alpha=1, random_state=rng)
+                         alpha=1 / X.shape[0], random_state=rng)
     clf.fit(X_train, y_train)
 
     test_acc = clf.score(X_test, y_test)
@@ -303,3 +302,24 @@ def test_sdca_classifier_rf_normalize():
     assert_greater_equal(test_acc, test_acc_sgd)
     assert_greater_equal(train_acc, train_acc_sgd)
 
+
+def test_adam_classifier_warm_start():
+    rng = np.random.RandomState(0)
+    transform = TensorSketch(n_components=100, random_state=rng)
+    X_trans = transform.fit_transform(X)
+    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y_train = y[:n_train]
+
+    clf = AdamClassifier(transform, max_iter=10, warm_start=True,
+                         verbose=False, fit_intercept=False, alpha=1,
+                         random_state=rng,
+                         shuffle=False)
+    clf.fit(X_train, y_train)
+
+    clf_warm = AdamClassifier(transform, max_iter=2, warm_start=True,
+                              verbose=False, fit_intercept=False, alpha=1,
+                              random_state=rng,
+                              shuffle=False)
+    for i in range(5):
+        clf_warm.fit(X_train, y_train)
+    assert_almost_equal(clf_warm.coef_, clf.coef_, decimal=3)
