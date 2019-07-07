@@ -185,8 +185,8 @@ cdef inline double adagrad_epoch(double[:] coef,
             acc_grad_intercept[0] += dloss
             acc_grad_norm_intercept[0] += dloss*dloss
             denom = sqrt(acc_grad_norm_intercept[0]) + eps
-            intercept_new = -eta_t*acc_grad_intercept[0] / t[0]
-            intercept_new /= denom
+
+            intercept_new = -eta*acc_grad_intercept[0] / denom
             viol += fabs(intercept_new - intercept[0])
             intercept[0] = intercept_new
 
