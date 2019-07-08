@@ -81,7 +81,7 @@ cdef inline double proximal(double coef,
                             double lam):
     if coef > lam:
         return coef - lam
-    elif coef < lam:
+    elif coef < -lam:
         return coef + lam
     else:
         return 0.
@@ -290,6 +290,7 @@ def _sdca_fast(double[:] coef,
                bint is_sparse,
                bint verbose,
                bint fit_intercept,
+               bint shuffle,
                random_state,
                transformer,
                int id_transformer,
@@ -330,7 +331,8 @@ def _sdca_fast(double[:] coef,
 
     # initialize by SGD if t == 1
     if t == 1:
-        random_state.shuffle(indices_samples)
+        if shuffle:
+            random_state.shuffle(indices_samples)
         gap = _sgd_initialization(coef, dual_coef, intercept, X, X_array, y,
                                   mean, var, loss, lam1, lam2, &t, tol,
                                   is_sparse, fit_intercept, transformer,
@@ -344,7 +346,8 @@ def _sdca_fast(double[:] coef,
 
     # start epoch
     for it in range(max_iter):
-        random_state.shuffle(indices_samples)
+        if shuffle:
+            random_state.shuffle(indices_samples)
         gap = _sdca_epoch(coef, dual_coef, intercept, X, X_array, y, mean, var,
                           loss, lam1, lam2, &t, is_sparse, fit_intercept,
                           transformer, id_transformer, indices_samples, z,

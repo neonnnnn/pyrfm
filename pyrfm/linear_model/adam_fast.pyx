@@ -29,7 +29,6 @@ cdef inline void normalize(double[:] z,
         z[j] = (z[j] - mean[j]) / (1e-6 + sqrt(var[j]))
 
 
-
 cdef inline void transform(RowDataset X,
                            X_array,
                            double[:] z,
@@ -82,7 +81,7 @@ cdef inline double proximal(double coef,
                             double lam):
     if coef > lam:
         return coef - lam
-    elif coef < lam:
+    elif coef < -lam:
         return coef + lam
     else:
         return 0.
@@ -191,19 +190,9 @@ cdef inline double adam_epoch(double[:] coef,
             denom = sqrt(var_grad[j]) + eps
             # coef_new_j = ((sqrt(v_hat_t)+eps)*coef[j] - eta*m_hat_t) / denom
             coef_new_j = coef[j] - eta_t * mean_grad[j] / denom
-            """
-            if fabs(m_hat_t) - lam1 < 0:
-                coef_new_j = 0
-            else:
-                coef_new_j = - eta / denom
-                if m_hat_t > 0:
-                    coef_new_j *= m_hat_t - lam1
-                else:
-                    coef_new_j *= m_hat_t + lam1
-            """
             viol += fabs(coef[j] - coef_new_j)
             coef[j] = coef_new_j
-            coef[j] = proximal(coef_new_j, eta_t*lam1)
+            coef[j] = proximal(coef_new_j, eta*lam1/sqrt(t[0]))
 
         if fit_intercept:
             mean_grad_intercept[0] *= beta1
