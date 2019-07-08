@@ -1,115 +1,157 @@
 import numpy as np
-from sklearn.utils.testing import assert_greater_equal, assert_almost_equal
+
+from sklearn.utils.testing import (assert_greater_equal, assert_almost_equal,
+                                   assert_less_equal)
 from pyrfm import (MB, TensorSketch, RandomKernel, RandomMaclaurin,
-                   SignedCirculantRandomKernel, RandomFourier, AdamClassifier)
-from sklearn.linear_model import SGDClassifier
+                   SignedCirculantRandomKernel, RandomFourier,
+                   AdamClassifier, AdamRegressor)
+from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.preprocessing import StandardScaler
 
 # generate data
-X = np.random.RandomState(0).random_sample(size=(500, 10)) * 2 - 1
-n_train = int(X.shape[0] * 0.9)
+X = np.random.RandomState(0).random_sample(size=(600, 10)) * 2 - 1
+n_train = 500
 n_test = X.shape[0] - n_train
 X_train = X[:n_train]
 X_test = X[n_train:]
 
 
-def make_target(X_trans, rng, low=-1., high=1.0, ):
+def make_target(X_trans, rng, low=-1., high=1.0):
     coef = rng.uniform(low, high, size=X_trans.shape[1])
     y = np.dot(X_trans, coef)
     y -= np.mean(y)
-    y = np.sign(y)
     return y, coef
 
 
-def test_adam_classifier_ts():
+def _test_regressor(transform, y_train, y_test, X_trans, normalize=False):
+    for loss in ['squared']:
+        # overfitting
+        clf = AdamRegressor(transform, max_iter=200, warm_start=True,
+                            verbose=False, fit_intercept=True, loss=loss,
+                            alpha=0.0001, random_state=0,
+                            normalize=normalize)
+        clf.fit(X_train, y_train)
+        l2 = np.mean((y_train - clf.predict(X_train)) ** 2)
+        assert_less_equal(l2, 0.01)
+
+        # underfitting
+        clf_under = AdamRegressor(transform, max_iter=100, warm_start=True,
+                                  verbose=False, fit_intercept=True,
+                                  loss=loss,
+                                  alpha=100000, random_state=0,
+                                  normalize=normalize)
+        clf_under.fit(X_train, y_train)
+        assert_greater_equal(np.sum(clf.coef_ ** 2),
+                             np.sum(clf_under.coef_ ** 2))
+
+        # l1 regularization
+        clf_l1 = AdamRegressor(transform, max_iter=100, warm_start=True,
+                               verbose=False, fit_intercept=True,
+                               loss=loss, alpha=1000, l1_ratio=0.9,
+                               random_state=0, normalize=normalize)
+        clf_l1.fit(X_train, y_train)
+        assert_almost_equal(np.sum(np.abs(clf_l1.coef_)), 0)
+
+        # comparison with sgd
+        sgd = SGDRegressor(alpha=0.01, max_iter=100, eta0=1,
+                           learning_rate='constant', fit_intercept=True,
+                           random_state=0)
+        sgd.fit(X_trans[:n_train], y_train)
+        test_l2_sgd = np.mean((y_test - sgd.predict(X_trans[n_train:])) ** 2)
+        clf = AdamRegressor(transform, max_iter=100, warm_start=True,
+                            verbose=False, fit_intercept=True, loss=loss,
+                            alpha=0.01, random_state=0, normalize=normalize)
+        clf.fit(X_train, y_train)
+        test_l2 = np.mean((y_test - clf.predict(X_test)) ** 2)
+        assert_less_equal(test_l2, test_l2_sgd)
+
+
+def _test_classifier(transform, y_train, y_test, X_trans, normalize=False):
+    for loss in ['squared_hinge', 'hinge', 'log']:
+        # overfitting
+        clf = AdamClassifier(transform, max_iter=1000, warm_start=True,
+                             verbose=False, fit_intercept=True, loss=loss,
+                             alpha=0.0001, random_state=0,
+                             normalize=normalize)
+        clf.fit(X_train[:100], y_train[:100])
+        train_acc = clf.score(X_train[:100], y_train[:100])
+        assert_almost_equal(train_acc, 1)
+
+        # underfitting
+        clf_under = AdamClassifier(transform, max_iter=100, warm_start=True,
+                                   verbose=False, fit_intercept=True,
+                                   loss=loss, alpha=10000000000,
+                                   random_state=0, normalize=normalize)
+        clf_under.fit(X_train, y_train)
+        assert_greater_equal(np.sum(clf.coef_ ** 2),
+                             np.sum(clf_under.coef_ ** 2))
+
+        # l1 regularization
+        clf_l1 = AdamClassifier(transform, max_iter=100, warm_start=True,
+                                verbose=False, fit_intercept=True,
+                                loss=loss, alpha=10000000000, l1_ratio=.99,
+                                random_state=0, normalize=normalize)
+        clf_l1.fit(X_train, y_train)
+        assert_almost_equal(np.sum(np.abs(clf_l1.coef_)), 0)
+
+        # comparison with sgd
+        sgd = SGDClassifier(alpha=0.01, max_iter=100, eta0=1,
+                            learning_rate='constant', fit_intercept=True,
+                            loss=loss, random_state=0)
+        sgd.fit(X_trans[:n_train], y_train)
+        test_acc_sgd = sgd.score(X_trans[n_train:], y_test)
+        clf = AdamClassifier(transform, max_iter=100, warm_start=True,
+                             verbose=False, fit_intercept=True, loss=loss,
+                             alpha=0.01, random_state=0, normalize=normalize)
+
+        clf.fit(X_train, y_train)
+        test_acc = clf.score(X_test, y_test)
+        assert_greater_equal(test_acc, np.maximum(0.8, test_acc_sgd))
+
+
+def test_adam_regressor_ts():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
-    transform = TensorSketch(n_components=100, random_state=rng)
+    transform = TensorSketch(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
-    y, coef = make_target(X_trans, rng, -1, 1)
+    y, coef = make_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
-
-    clf_sgd = SGDClassifier(loss='squared_hinge', penalty='l2',
-                            random_state=rng, l1_ratio=0,
-                            alpha=1, max_iter=100,
-                            fit_intercept=True)
-    clf_sgd.fit(X_trans[:n_train], y_train)
-    test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
-    train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
-                         verbose=False, fit_intercept=True,
-                         alpha=1 / X.shape[0], random_state=rng)
-    clf.fit(X_train, y_train)
-
-    test_acc = clf.score(X_test, y_test)
-    train_acc = clf.score(X_train, y_train)
-    assert_greater_equal(test_acc, test_acc_sgd)
-    assert_greater_equal(train_acc, train_acc_sgd)
+    _test_regressor(transform, y_train, y_test, X_trans)
 
 
-def test_adam_classifier_ts_normalize():
+def test_adam_regressor_ts_normalize():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
-    transform = TensorSketch(n_components=100, random_state=rng)
+    transform = TensorSketch(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
-    y, coef = make_target(X_trans, rng, -1, 1)
+    y, coef = make_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
-    clf_sgd = SGDClassifier(loss='squared_hinge', penalty='l2',
-                            random_state=rng, l1_ratio=0,
-                            alpha=1, max_iter=100,
-                            fit_intercept=True)
-    clf_sgd.fit(X_trans[:n_train], y_train)
-    test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
-    train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
-                         verbose=False, fit_intercept=True,
-                         alpha=1 / X.shape[0], random_state=rng)
-    clf.fit(X_train, y_train)
-
-    test_acc = clf.score(X_test, y_test)
-    train_acc = clf.score(X_train, y_train)
-    assert_greater_equal(test_acc, test_acc_sgd)
-    assert_greater_equal(train_acc, train_acc_sgd)
+    _test_regressor(transform, y_train, y_test, X_trans, True)
 
 
-def test_adam_classifier_rk():
+def test_adam_regressor_rk():
     rng = np.random.RandomState(0)
     for degree in range(2, 5):
         # approximate kernel mapping
-        transform = RandomKernel(n_components=100, random_state=rng,
+        transform = RandomKernel(n_components=100, random_state=0,
                                  degree=degree)
         X_trans = transform.fit_transform(X)
         y, coef = make_target(X_trans, rng, -0.1, 0.1)
         y_train = y[:n_train]
         y_test = y[n_train:]
 
-        clf_sgd = SGDClassifier(loss='squared_hinge', penalty='l2',
-                                random_state=rng, l1_ratio=0,
-                                alpha=1, max_iter=100,
-                                fit_intercept=True)
-        clf_sgd.fit(X_trans[:n_train], y_train)
-        test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
-        train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-        clf = AdamClassifier(transform, max_iter=100, warm_start=True,
-                             verbose=False, fit_intercept=True,
-                             alpha=1 / X.shape[0], random_state=rng)
-        clf.fit(X_train, y_train)
-
-        test_acc = clf.score(X_test, y_test)
-        train_acc = clf.score(X_train, y_train)
-        assert_greater_equal(test_acc, test_acc_sgd)
-        assert_greater_equal(train_acc, train_acc_sgd)
+        _test_regressor(transform, y_train, y_test, X_trans)
 
 
-def test_adam_classifier_rk_normalize():
+def test_adam_regressor_rk_normalize():
     rng = np.random.RandomState(0)
     for degree in range(2, 5):
         # approximate kernel mapping
-        transform = RandomKernel(n_components=100, random_state=rng,
+        transform = RandomKernel(n_components=100, random_state=0,
                                  degree=degree)
         X_trans = transform.fit_transform(X)
         X_trans = StandardScaler().fit_transform(X_trans)
@@ -118,56 +160,180 @@ def test_adam_classifier_rk_normalize():
         y_train = y[:n_train]
         y_test = y[n_train:]
 
-        clf_sgd = SGDClassifier(loss='squared_hinge', penalty='l2',
-                                random_state=rng, l1_ratio=0,
-                                alpha=1, max_iter=100,
-                                fit_intercept=True)
-        clf_sgd.fit(X_trans[:n_train], y_train)
-        test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
-        train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-        clf = AdamClassifier(transform, max_iter=100, warm_start=True,
-                             verbose=False, fit_intercept=True,
-                             alpha=1 / X.shape[0], random_state=rng)
-        clf.fit(X_train, y_train)
+        _test_regressor(transform, y_train, y_test, X_trans, True)
 
-        test_acc = clf.score(X_test, y_test)
-        train_acc = clf.score(X_train, y_train)
-        assert_greater_equal(test_acc, test_acc_sgd)
-        assert_greater_equal(train_acc, train_acc_sgd)
+
+def test_adam_regressor_rk_as():
+    rng = np.random.RandomState(0)
+    # approximate kernel mapping
+    transform = RandomKernel(n_components=100, random_state=0,
+                             kernel='all_subsets')
+    X_trans = transform.fit_transform(X)
+    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y_train = y[:n_train]
+    y_test = y[n_train:]
+
+    _test_regressor(transform, y_train, y_test, X_trans)
+
+
+def test_adam_regressor_rk_as_normalize():
+    rng = np.random.RandomState(0)
+    # approximate kernel mapping
+    transform = RandomKernel(n_components=100, random_state=0,
+                             kernel='all_subsets')
+    X_trans = transform.fit_transform(X)
+    X_trans = StandardScaler().fit_transform(X_trans)
+    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y_train = y[:n_train]
+    y_test = y[n_train:]
+
+    _test_regressor(transform, y_train, y_test, X_trans, True)
+
+
+def test_adam_regressor_rm():
+    rng = np.random.RandomState(0)
+    # approximate kernel mapping
+    transform = RandomMaclaurin(n_components=100, random_state=0)
+    X_trans = transform.fit_transform(X)
+    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y_train = y[:n_train]
+    y_test = y[n_train:]
+
+    _test_regressor(transform, y_train, y_test, X_trans)
+
+
+def test_adam_regressor_rm_normalize():
+    rng = np.random.RandomState(0)
+    # approximate kernel mapping
+    transform = RandomMaclaurin(n_components=100, random_state=0)
+    X_trans = transform.fit_transform(X)
+    X_trans = StandardScaler().fit_transform(X_trans)
+    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y_train = y[:n_train]
+    y_test = y[n_train:]
+
+    _test_regressor(transform, y_train, y_test, X_trans, True)
+
+
+def test_adam_regressor_rf():
+    rng = np.random.RandomState(0)
+    # approximate kernel mapping
+    transform = RandomFourier(n_components=100, random_state=0, gamma=10)
+    X_trans = transform.fit_transform(X)
+    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y_train = y[:n_train]
+    y_test = y[n_train:]
+
+    _test_regressor(transform, y_train, y_test, X_trans, False)
+
+
+def test_adam_regressor_rf_normalize():
+    rng = np.random.RandomState(0)
+    # approximate kernel mapping
+    transform = RandomFourier(n_components=100, random_state=0, gamma=10)
+    X_trans = transform.fit_transform(X)
+    X_trans = StandardScaler().fit_transform(X_trans)
+    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y_train = y[:n_train]
+    y_test = y[n_train:]
+
+    _test_regressor(transform, y_train, y_test, X_trans, True)
+
+
+def test_adam_regressor_warm_start():
+    rng = np.random.RandomState(0)
+    transform = TensorSketch(n_components=100, random_state=0)
+    X_trans = transform.fit_transform(X)
+    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y_train = y[:n_train]
+
+    clf = AdamRegressor(transform, max_iter=10, warm_start=True,
+                        verbose=False, fit_intercept=False, alpha=0.0001,
+                        random_state=0, shuffle=False)
+    clf.fit(X_train, y_train)
+
+    clf_warm = AdamRegressor(transform, max_iter=2, warm_start=True,
+                             verbose=False, fit_intercept=False,
+                             alpha=0.0001, random_state=0,
+                             shuffle=False)
+    for i in range(5):
+        clf_warm.fit(X_train, y_train)
+    assert_almost_equal(clf_warm.coef_, clf.coef_, decimal=3)
+
+
+def test_adam_classifier_ts():
+    rng = np.random.RandomState(0)
+    # approximate kernel mapping
+    transform = TensorSketch(n_components=100, random_state=0)
+    X_trans = transform.fit_transform(X)
+    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y_train = y[:n_train]
+    y_test = y[n_train:]
+    _test_classifier(transform, np.sign(y_train), np.sign(y_test), X_trans)
+
+
+def test_adam_classifier_ts_normalize():
+    rng = np.random.RandomState(0)
+    # approximate kernel mapping
+    transform = TensorSketch(n_components=100, random_state=0)
+    X_trans = transform.fit_transform(X)
+    X_trans = StandardScaler().fit_transform(X_trans)
+    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y_train = y[:n_train]
+    y_test = y[n_train:]
+
+    _test_classifier(transform, np.sign(y_train), np.sign(y_test), X_trans,
+                     True)
+
+
+def test_adam_classifier_rk():
+    rng = np.random.RandomState(0)
+    for degree in range(2, 5):
+        # approximate kernel mapping
+        transform = RandomKernel(n_components=100, random_state=0,
+                                 degree=degree)
+        X_trans = transform.fit_transform(X)
+        y, coef = make_target(X_trans, rng, -0.1, 0.1)
+        y_train = y[:n_train]
+        y_test = y[n_train:]
+
+        _test_classifier(transform, np.sign(y_train), np.sign(y_test), X_trans)
+
+
+def test_adam_classifier_rk_normalize():
+    rng = np.random.RandomState(0)
+    for degree in range(2, 5):
+        # approximate kernel mapping
+        transform = RandomKernel(n_components=100, random_state=0,
+                                 degree=degree)
+        X_trans = transform.fit_transform(X)
+        X_trans = StandardScaler().fit_transform(X_trans)
+
+        y, coef = make_target(X_trans, rng, -0.1, 0.1)
+        y_train = y[:n_train]
+        y_test = y[n_train:]
+
+        _test_classifier(transform, np.sign(y_train), np.sign(y_test), X_trans,
+                         True)
 
 
 def test_adam_classifier_rk_as():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
-    transform = RandomKernel(n_components=100, random_state=rng,
+    transform = RandomKernel(n_components=100, random_state=0,
                              kernel='all_subsets')
     X_trans = transform.fit_transform(X)
     y, coef = make_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
-    clf_sgd = SGDClassifier(loss='squared_hinge', penalty='l2',
-                            random_state=rng, l1_ratio=0,
-                            alpha=1, max_iter=100,
-                            fit_intercept=True)
-    clf_sgd.fit(X_trans[:n_train], y_train)
-    test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
-    train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
-                         verbose=False, fit_intercept=True,
-                         alpha=1 / X.shape[0], random_state=rng)
-    clf.fit(X_train, y_train)
-
-    test_acc = clf.score(X_test, y_test)
-    train_acc = clf.score(X_train, y_train)
-    assert_greater_equal(test_acc, test_acc_sgd)
-    assert_greater_equal(train_acc, train_acc_sgd)
+    _test_classifier(transform, np.sign(y_train), np.sign(y_test), X_trans)
 
 
 def test_adam_classifier_rk_as_normalize():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
-    transform = RandomKernel(n_components=100, random_state=rng,
+    transform = RandomKernel(n_components=100, random_state=0,
                              kernel='all_subsets')
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
@@ -175,150 +341,77 @@ def test_adam_classifier_rk_as_normalize():
     y_train = y[:n_train]
     y_test = y[n_train:]
 
-    clf_sgd = SGDClassifier(loss='squared_hinge', penalty='l2',
-                            random_state=rng, l1_ratio=0,
-                            alpha=1, max_iter=100,
-                            fit_intercept=True)
-    clf_sgd.fit(X_trans[:n_train], y_train)
-    test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
-    train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
-                         verbose=False, fit_intercept=True,
-                         alpha=1 / X.shape[0], random_state=rng)
-    clf.fit(X_train, y_train)
-
-    test_acc = clf.score(X_test, y_test)
-    train_acc = clf.score(X_train, y_train)
-    assert_greater_equal(test_acc, test_acc_sgd)
-    assert_greater_equal(train_acc, train_acc_sgd)
+    _test_classifier(transform, np.sign(y_train), np.sign(y_test), X_trans,
+                     True)
 
 
 def test_adam_classifier_rm():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
-    transform = RandomMaclaurin(n_components=100, random_state=rng)
+    transform = RandomMaclaurin(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
     y, coef = make_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
-    clf_sgd = SGDClassifier(loss='squared_hinge', penalty='l2',
-                            random_state=rng, l1_ratio=0,
-                            alpha=1, max_iter=100,
-                            fit_intercept=True)
-    clf_sgd.fit(X_trans[:n_train], y_train)
-    test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
-    train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
-                         verbose=False, fit_intercept=True,
-                         alpha=1 / X.shape[0], random_state=rng)
-    clf.fit(X_train, y_train)
-
-    test_acc = clf.score(X_test, y_test)
-    train_acc = clf.score(X_train, y_train)
-    assert_greater_equal(test_acc, test_acc_sgd)
-    assert_greater_equal(train_acc, train_acc_sgd)
+    _test_classifier(transform, np.sign(y_train), np.sign(y_test), X_trans)
 
 
 def test_adam_classifier_rm_normalize():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
-    transform = RandomMaclaurin(n_components=100, random_state=rng)
+    transform = RandomMaclaurin(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
     y, coef = make_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
-    clf_sgd = SGDClassifier(loss='squared_hinge', penalty='l2',
-                            random_state=rng, l1_ratio=0,
-                            alpha=1, max_iter=100,
-                            fit_intercept=True)
-    clf_sgd.fit(X_trans[:n_train], y_train)
-    test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
-    train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
-                         verbose=False, fit_intercept=True,
-                         alpha=1 / X.shape[0], random_state=rng)
-    clf.fit(X_train, y_train)
-
-    test_acc = clf.score(X_test, y_test)
-    train_acc = clf.score(X_train, y_train)
-    assert_greater_equal(test_acc, test_acc_sgd)
-    assert_greater_equal(train_acc, train_acc_sgd)
+    _test_classifier(transform, np.sign(y_train), np.sign(y_test), X_trans,
+                     True)
 
 
 def test_adam_classifier_rf():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
-    transform = RandomFourier(n_components=100, random_state=rng, gamma=10)
+    transform = RandomFourier(n_components=100, random_state=0, gamma=10)
     X_trans = transform.fit_transform(X)
     y, coef = make_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
-    clf_sgd = SGDClassifier(loss='squared_hinge', penalty='l2',
-                            random_state=rng, l1_ratio=0,
-                            alpha=1, max_iter=100,
-                            fit_intercept=True)
-    clf_sgd.fit(X_trans[:n_train], y_train)
-    test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
-    train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
-                         verbose=False, fit_intercept=True,
-                         alpha=1 / X.shape[0], random_state=rng)
-    clf.fit(X_train, y_train)
-
-    test_acc = clf.score(X_test, y_test)
-    train_acc = clf.score(X_train, y_train)
-    assert_greater_equal(test_acc, test_acc_sgd)
-    assert_greater_equal(train_acc, train_acc_sgd)
+    _test_classifier(transform, np.sign(y_train), np.sign(y_test), X_trans)
 
 
 def test_adam_classifier_rf_normalize():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
-    transform = RandomFourier(n_components=100, random_state=rng, gamma=10)
+    transform = RandomFourier(n_components=100, random_state=0, gamma=10)
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
     y, coef = make_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
-    clf_sgd = SGDClassifier(loss='squared_hinge', penalty='l2',
-                            random_state=rng, l1_ratio=0,
-                            alpha=1, max_iter=100,
-                            fit_intercept=True)
-    clf_sgd.fit(X_trans[:n_train], y_train)
-    test_acc_sgd = clf_sgd.score(X_trans[n_train:], y_test)
-    train_acc_sgd = clf_sgd.score(X_trans[:n_train], y_train)
-    clf = AdamClassifier(transform, max_iter=100, warm_start=True,
-                         verbose=False, fit_intercept=True,
-                         alpha=1 / X.shape[0], random_state=rng)
-    clf.fit(X_train, y_train)
-
-    test_acc = clf.score(X_test, y_test)
-    train_acc = clf.score(X_train, y_train)
-    assert_greater_equal(test_acc, test_acc_sgd)
-    assert_greater_equal(train_acc, train_acc_sgd)
+    _test_classifier(transform, np.sign(y_train), np.sign(y_test), X_trans,
+                     True)
 
 
 def test_adam_classifier_warm_start():
     rng = np.random.RandomState(0)
-    transform = TensorSketch(n_components=100, random_state=rng)
+    transform = TensorSketch(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
     y, coef = make_target(X_trans, rng, -0.1, 0.1)
-    y_train = y[:n_train]
+    y_train = np.sign(y[:n_train])
 
     clf = AdamClassifier(transform, max_iter=10, warm_start=True,
-                         verbose=False, fit_intercept=False, alpha=1,
-                         random_state=rng,
-                         shuffle=False)
+                         verbose=False, fit_intercept=False, alpha=0.0001,
+                         random_state=0, shuffle=False)
     clf.fit(X_train, y_train)
 
     clf_warm = AdamClassifier(transform, max_iter=2, warm_start=True,
-                              verbose=False, fit_intercept=False, alpha=1,
-                              random_state=rng,
+                              verbose=False, fit_intercept=False,
+                              alpha=0.0001, random_state=0,
                               shuffle=False)
     for i in range(5):
         clf_warm.fit(X_train, y_train)
