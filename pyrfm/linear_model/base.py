@@ -107,7 +107,7 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
         params['degree'] = getattr(self.transformer, 'degree', -1)
         kernel = -1
 
-        if id_transformer == 2:
+        if id_transformer == 2 or id_transformer == -1:
             params['random_weights'] = None
         if id_transformer == 3:
             if self.transformer.kernel == 'anova':
