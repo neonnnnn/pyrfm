@@ -113,6 +113,9 @@ class BaseAdamEstimator(BaseLinear):
         The running mean and variances of random feature vectors.
         They are used if normalize=True (they are None if False).
 
+    self.t_ : int
+        The number of iteration.
+
     References
     ---------
     [1] Adam: A Method for Stochastic Optimization.
@@ -123,14 +126,15 @@ class BaseAdamEstimator(BaseLinear):
         'squared': Squared(),
         'squared_hinge': SquaredHinge(),
         'logistic': Logistic(),
-        'hinge': Hinge()
+        'hinge': Hinge(),
+        'log': Logistic()
     }
 
     stochastic = True
 
     def __init__(self, transformer=RBFSampler(), eta=0.001, beta1=0.9,
                  beta2=0.999, loss='squared_hinge', C=1.0, alpha=1.0,
-                 l1_ratio=0, normalize=False,fit_intercept=True, max_iter=100,
+                 l1_ratio=0, normalize=False, fit_intercept=True, max_iter=100,
                  tol=1e-6,  eps=1e-8, warm_start=False, random_state=None,
                  verbose=True, fast_solver=True, shuffle=True):
         self.transformer = transformer
@@ -163,9 +167,8 @@ class BaseAdamEstimator(BaseLinear):
             n_components = self.transformer.n_components
         else:
             n_components = self.transformer.n_components_actual_
-
-        if not (self.warm_start and hasattr(self, 'coef_')):
-            self.coef_ = np.zeros(n_components)
+        # init primal parameters, mean/var vectors and t_
+        self._init_params(n_components)
 
         if not (self.warm_start and hasattr(self, 'intercept_')):
             self.intercept_ = np.zeros((1,))
@@ -183,21 +186,6 @@ class BaseAdamEstimator(BaseLinear):
                 and hasattr(self, 'var_grad_intercept_')):
             self.var_grad_intercept_ = np.zeros(self.intercept_.shape)
 
-        if not (self.warm_start and hasattr(self, 't_')):
-            self.t_ = 1
-
-        if self.loss not in self.LOSSES:
-            raise ValueError("loss {} is not supported.".format(self.loss))
-
-        if self.normalize:
-            if not (self.warm_start and hasattr(self, 'mean_')):
-                self.mean_ = np.zeros((n_components, ))
-
-            if not (self.warm_start and hasattr(self, 'var_')):
-                self.var_ = np.zeros((n_components,))
-        else:
-            self.mean_ = None
-            self.var_ = None
         loss = self.LOSSES[self.loss]
         alpha = self.alpha / self.C
         random_state = check_random_state(self.random_state)
@@ -227,7 +215,8 @@ class AdamClassifier(BaseAdamEstimator, LinearClassifierMixin):
     LOSSES = {
         'squared_hinge': SquaredHinge(),
         'logistic': Logistic(),
-        'hinge': Hinge()
+        'hinge': Hinge(),
+        'log': Logistic()
     }
 
     def __init__(self, transformer=RBFSampler(), eta=0.001, beta1=0.9,
