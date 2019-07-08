@@ -133,7 +133,7 @@ cdef class Hinge(LossFunction):
     cdef double dloss(self, double p, double y):
         cdef double z = 1 - p * y
         if z > 0:
-            return -1
+            return -y
         else:
             return 0.0
 
