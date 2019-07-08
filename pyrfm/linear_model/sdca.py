@@ -1,13 +1,11 @@
 import numpy as np
 from scipy import sparse
-from sklearn.utils.extmath import safe_sparse_dot
-from sklearn.utils import check_X_y, check_random_state
+from sklearn.utils import check_random_state
 
 from .loss_fast import Squared, SquaredHinge, Logistic, Hinge
 from .base import BaseLinear, LinearClassifierMixin, LinearRegressorMixin
 from sklearn.kernel_approximation import RBFSampler
 from .sdca_fast import _sdca_fast
-from sklearn.utils.validation import check_is_fitted
 from lightning.impl.dataset_fast import get_dataset
 
 
@@ -78,6 +76,10 @@ class BaseSDCAEstimator(BaseLinear):
         Use cython fast solver or not. This argument is valid when transformer
         is in {RandomFourier|RandomMaclaurin|TensorSketch|RandomKernel}.
 
+    shuffle : bool, default=True
+        Whether shuffle data before each epoch or not.
+        If shuffle=False, the SDCA becomes (Cyclic) DCA.
+
     Attributes
     ----------
     self.coef_ : array, shape (n_components, )
@@ -91,6 +93,9 @@ class BaseSDCAEstimator(BaseLinear):
     self.mean_, self.var_ : array or None, shape (n_components, )
         The running mean and variances of random feature vectors.
         They are used if normalize=True (they are None if False).
+
+    self.t_ : int
+        The number of iteration.
 
     References
     ---------
@@ -112,7 +117,7 @@ class BaseSDCAEstimator(BaseLinear):
                  C=1.0, alpha=1.0, l1_ratio=0, normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6,
                  warm_start=False, random_state=None, verbose=True,
-                 fast_solver=True):
+                 fast_solver=True, shuffle=True):
         self.transformer = transformer
         self.transformer_ = transformer
         self.loss = loss
@@ -126,7 +131,8 @@ class BaseSDCAEstimator(BaseLinear):
         self.warm_start = warm_start
         self.random_state = random_state
         self.verbose = verbose
-        self.fast_solver=fast_solver
+        self.fast_solver = fast_solver
+        self.shuffle = shuffle
 
     def fit(self, X, y):
         X, y = self._check_X_y(X, y, accept_sparse=['csr'])
@@ -134,33 +140,15 @@ class BaseSDCAEstimator(BaseLinear):
             self.transformer.fit(X)
 
         n_samples, n_features = X.shape
-        self.dual_coef_ = np.zeros(n_samples)
         if not (hasattr(self.transformer, 'n_components_actual_')):
             n_components = self.transformer.n_components
         else:
             n_components = self.transformer.n_components_actual_
+        # init primal parameters, mean/var vectors and t_
+        self._init_params(n_components)
 
-        if not (self.warm_start and hasattr(self, 'coef_')):
-            self.coef_ = np.zeros(n_components)
+        self.dual_coef_ = np.zeros(n_samples)
 
-        if not (self.warm_start and hasattr(self, 'intercept_')):
-            self.intercept_ = np.zeros((1,) )
-
-        if not (self.warm_start and hasattr(self, 't_')):
-            self.t_ = 1
-
-        if self.loss not in self.LOSSES:
-            raise ValueError("loss {} is not supported.".format(self.loss))
-
-        if self.normalize:
-            if not (self.warm_start and hasattr(self, 'mean_')):
-                self.mean_ = np.zeros((n_components, ))
-
-            if not (self.warm_start and hasattr(self, 'var_')):
-                self.var_ = np.zeros((n_components,))
-        else:
-            self.mean_ = None
-            self.var_ = None
         loss = self.LOSSES[self.loss]
         alpha = self.alpha / self.C
         random_state = check_random_state(self.random_state)
@@ -175,8 +163,8 @@ class BaseSDCAEstimator(BaseLinear):
                         self.mean_, self.var_, loss, alpha/n_samples,
                         self.l1_ratio, self.t_, self.max_iter, self.tol,
                         is_sparse, self.verbose, self.fit_intercept,
-                        random_state, self.transformer, id_transformer,
-                        **params)
+                        self.shuffle, random_state, self.transformer,
+                        id_transformer, **params)
         self.t_ += n_samples*(it+1)
 
         return self
@@ -186,18 +174,19 @@ class SDCAClassifier(BaseSDCAEstimator, LinearClassifierMixin):
     LOSSES = {
         'squared_hinge': SquaredHinge(),
         'logistic': Logistic(),
-        'hinge': Hinge()
+        'hinge': Hinge(),
+        'log': Logistic()
     }
 
     def __init__(self, transformer=RBFSampler(), loss='squared_hinge',
                  C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6,
                  warm_start=False, random_state=None, verbose=True,
-                 fast_solver=True):
+                 fast_solver=True, shuffle=True):
         super(SDCAClassifier, self).__init__(
             transformer, loss, C, alpha, l1_ratio, normalize,
             fit_intercept, max_iter, tol, warm_start, random_state, verbose,
-            fast_solver
+            fast_solver, shuffle
         )
 
 
@@ -210,9 +199,9 @@ class SDCARegressor(BaseSDCAEstimator, LinearRegressorMixin):
                  C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6,
                  warm_start=False, random_state=None, verbose=True,
-                 fast_solver=True):
+                 fast_solver=True, shuffle=True):
         super(SDCARegressor, self).__init__(
             transformer, loss, C, alpha, l1_ratio, normalize,
             fit_intercept, max_iter, tol, warm_start, random_state, verbose,
-            fast_solver
+            fast_solver, shuffle
         )
