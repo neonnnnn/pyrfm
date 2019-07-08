@@ -30,7 +30,7 @@ cdef void random_fourier(double[:] z,
                 j = indices[jj]
                 z[i] += data[jj]*random_weights[i, j]
             z[i] += offset[i]
-            z[i] = cos(z[i])*sqrt(2/n_components)
+            z[i] = cos(z[i])*sqrt(2./n_components)
     # z = (cos, ..., cos, sin, ..., sin)
     else:
         for i in range(index_offset):
@@ -39,8 +39,8 @@ cdef void random_fourier(double[:] z,
             for jj in range(n_nz):
                 j = indices[jj]
                 z[i] += data[jj]*random_weights[i, j]
-            z[i+index_offset] = sin(z[i])/sqrt(n_components)
-            z[i] = cos(z[i])/sqrt(n_components)
+            z[i+index_offset] = sin(z[i])*sqrt(2./n_components)
+            z[i] = cos(z[i])*sqrt(2./n_components)
 
 
 cdef void random_maclaurin(double[:] z,
