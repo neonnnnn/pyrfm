@@ -21,6 +21,30 @@ def sigmoid(pred):
 class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
     TRANSFORMERS = (RandomFourier, RandomMaclaurin, TensorSketch, RandomKernel)
 
+    # for stochastic solver
+    def _init_params(self, n_components):
+        if not (self.warm_start and hasattr(self, 'coef_')):
+            self.coef_ = np.zeros(n_components)
+
+        if not (self.warm_start and hasattr(self, 'intercept_')):
+            self.intercept_ = np.zeros((1,))
+
+        if not (self.warm_start and hasattr(self, 't_')):
+            self.t_ = 1
+
+        if self.loss not in self.LOSSES:
+            raise ValueError("loss {} is not supported.".format(self.loss))
+
+        if self.normalize:
+            if not (self.warm_start and hasattr(self, 'mean_')):
+                self.mean_ = np.zeros((n_components, ))
+
+            if not (self.warm_start and hasattr(self, 'var_')):
+                self.var_ = np.zeros((n_components,))
+        else:
+            self.mean_ = None
+            self.var_ = None
+
     def _predict(self, X):
         check_is_fitted(self, 'coef_')
         if getattr(self, 'stochastic', False):
