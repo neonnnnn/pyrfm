@@ -87,7 +87,8 @@ def _cd_primal(double[:] coef,
                double tol,
                bint fit_intercept,
                rng,
-               bint verbose):
+               bint verbose,
+               bint shuffle):
 
     cdef Py_ssize_t it, i, n_features, n_samples
     cdef double viol, update
@@ -99,7 +100,8 @@ def _cd_primal(double[:] coef,
     cdef int[:] indices = np.arange(n_features, dtype=np.int32)
     for it in range(max_iter):
         viol = 0
-        rng.shuffle(indices)
+        if shuffle:
+            rng.shuffle(indices)
 
         viol = _cd_primal_epoch(coef, X, y, X_col_norms, y_pred, H, alpha,
                                 loss, indices)
