@@ -37,8 +37,7 @@ def _test_regressor(transform, y_train, y_test, X_trans, normalize=False):
         # underfitting
         clf_under = AdamRegressor(transform, max_iter=100, warm_start=True,
                                   verbose=False, fit_intercept=True,
-                                  loss=loss,
-                                  alpha=100000, random_state=0,
+                                  loss=loss, alpha=100000, random_state=0,
                                   normalize=normalize)
         clf_under.fit(X_train, y_train)
         assert_greater_equal(np.sum(clf.coef_ ** 2),
@@ -64,6 +63,20 @@ def _test_regressor(transform, y_train, y_test, X_trans, normalize=False):
         clf.fit(X_train, y_train)
         test_l2 = np.mean((y_test - clf.predict(X_test)) ** 2)
         assert_less_equal(test_l2, test_l2_sgd)
+
+        # fast solver and slow solver
+        clf_slow = AdamRegressor(transform, max_iter=10, warm_start=True,
+                                 verbose=False, fit_intercept=True, loss=loss,
+                                 alpha=0.0001, random_state=0,
+                                 normalize=normalize, fast_solver=False)
+        clf_slow.fit(X_train, y_train)
+
+        clf_fast = AdamRegressor(transform, max_iter=10, warm_start=True,
+                                 verbose=False, fit_intercept=True, loss=loss,
+                                 alpha=0.0001, random_state=0,
+                                 normalize=normalize, fast_solver=True)
+        clf_fast.fit(X_train, y_train)
+        assert_almost_equal(clf_fast.coef_, clf_slow.coef_, decimal=6)
 
 
 def _test_classifier(transform, y_train, y_test, X_trans, normalize=False):
@@ -107,6 +120,20 @@ def _test_classifier(transform, y_train, y_test, X_trans, normalize=False):
         clf.fit(X_train, y_train)
         test_acc = clf.score(X_test, y_test)
         assert_greater_equal(test_acc, np.maximum(0.8, test_acc_sgd))
+
+        # fast solver and slow solver
+        clf_slow = AdamClassifier(transform, max_iter=10, warm_start=True,
+                                  verbose=False, fit_intercept=True, loss=loss,
+                                  alpha=0.0001, random_state=0,
+                                  normalize=normalize, fast_solver=False)
+        clf_slow.fit(X_train[:20], y_train[:20])
+
+        clf_fast = AdamClassifier(transform, max_iter=10, warm_start=True,
+                                  verbose=False, fit_intercept=True, loss=loss,
+                                  alpha=0.0001, random_state=0,
+                                  normalize=normalize, fast_solver=True)
+        clf_fast.fit(X_train[:20], y_train[:20])
+        assert_almost_equal(clf_fast.coef_, clf_slow.coef_, decimal=6)
 
 
 def test_adam_regressor_ts():

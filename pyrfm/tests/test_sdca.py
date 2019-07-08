@@ -33,7 +33,7 @@ def _test_regressor(transform, y_train, y_test, X_trans, normalize=False):
         clf.fit(X_train, y_train)
         l2 = np.mean((y_train - clf.predict(X_train))**2)
         assert_less_equal(l2, 0.01)
-
+        
         # underfitting
         clf_under = SDCARegressor(transform, max_iter=100, warm_start=True,
                                   verbose=False, fit_intercept=True, loss=loss,
@@ -56,13 +56,27 @@ def _test_regressor(transform, y_train, y_test, X_trans, normalize=False):
                            learning_rate='constant', fit_intercept=True,
                            random_state=0)
         sgd.fit(X_trans[:n_train], y_train)
-        test_l2_sgd =  np.mean((y_test - sgd.predict(X_trans[n_train:]))**2)
+        test_l2_sgd = np.mean((y_test - sgd.predict(X_trans[n_train:]))**2)
         clf = SDCARegressor(transform, max_iter=100, warm_start=True,
                             verbose=False, fit_intercept=True, loss=loss,
                             alpha=0.01, random_state=0, normalize=normalize)
         clf.fit(X_train, y_train)
         test_l2 = np.mean((y_test - clf.predict(X_test))**2)
         assert_less_equal(test_l2, test_l2_sgd)
+
+        # fast solver and slow solver
+        clf_slow = SDCARegressor(transform, max_iter=10, warm_start=True,
+                                 verbose=False, fit_intercept=True, loss=loss,
+                                 alpha=0.0001, random_state=0,
+                                 normalize=normalize, fast_solver=False)
+        clf_slow.fit(X_train, y_train)
+
+        clf_fast = SDCARegressor(transform, max_iter=10, warm_start=True,
+                                 verbose=False, fit_intercept=True, loss=loss,
+                                 alpha=0.0001, random_state=0,
+                                 normalize=normalize, fast_solver=True)
+        clf_fast.fit(X_train, y_train)
+        assert_almost_equal(clf_fast.coef_, clf_slow.coef_, decimal=6)
 
 
 def _test_classifier(transform, y_train, y_test, X_trans, normalize=False):
@@ -106,6 +120,20 @@ def _test_classifier(transform, y_train, y_test, X_trans, normalize=False):
         clf.fit(X_train, y_train)
         test_acc = clf.score(X_test, y_test)
         assert_greater_equal(test_acc, np.maximum(0.8, test_acc_sgd))
+
+        # fast solver and slow solver
+        clf_slow = SDCAClassifier(transform, max_iter=10, warm_start=True,
+                                  verbose=False, fit_intercept=True, loss=loss,
+                                  alpha=0.0001, random_state=0,
+                                  normalize=normalize, fast_solver=False)
+        clf_slow.fit(X_train[:20], y_train[:20])
+
+        clf_fast = SDCAClassifier(transform, max_iter=10, warm_start=True,
+                                  verbose=False, fit_intercept=True, loss=loss,
+                                  alpha=0.0001, random_state=0,
+                                  normalize=normalize, fast_solver=True)
+        clf_fast.fit(X_train[:20], y_train[:20])
+        assert_almost_equal(clf_fast.coef_, clf_slow.coef_, decimal=6)
 
 
 def test_sdca_classifier_ts():
