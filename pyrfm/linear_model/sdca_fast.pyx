@@ -174,7 +174,7 @@ cdef double _sgd_initialization(double[:] coef,
             coef[j] /= lam2*t[0]
             # proximal
             coef[j] = proximal(coef[j], lam1)
-            y_pred +=  coef[j]*z[j]
+            y_pred += coef[j]*z[j]
             gap += lam2*coef[j]**2 + 2*lam1*fabs(coef[j])
 
         if fit_intercept:
