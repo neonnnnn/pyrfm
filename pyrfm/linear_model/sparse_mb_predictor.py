@@ -49,7 +49,7 @@ class BaseSparseMBEstimator(BaseLinear):
         the AdaGrad solver stops learning.
 
     eps : double
-        A small double to avoid zero-division.
+        A small double to ensure objective function convex.
 
     warm_start : bool
         Whether to activate warm-start or not.
@@ -62,6 +62,9 @@ class BaseSparseMBEstimator(BaseLinear):
 
     verbose : bool, default=True
         Verbose mode or not.
+
+    shuffle : boole, default=True
+        Whether shuffle the order of parameters for optimization or not.
 
     Attributes
     ----------
@@ -90,9 +93,9 @@ class BaseSparseMBEstimator(BaseLinear):
     }
 
     def __init__(self, n_components=1000, loss='squared_hinge', solver='cd',
-                 C=1.0, alpha=1.0, fit_intercept=True,
-                 max_iter=100, tol=1e-6, eps=1e-2, warm_start=False,
-                 random_state=None, verbose=True):
+                 C=1.0, alpha=1.0, fit_intercept=True, max_iter=100, tol=1e-6,
+                 eps=1e-2, warm_start=False, random_state=None, verbose=True,
+                 shuffle=True):
         self.n_components = n_components
         self.loss = loss
         # TODO Implement Group Lasso
@@ -106,6 +109,7 @@ class BaseSparseMBEstimator(BaseLinear):
         self.warm_start = warm_start
         self.random_state = random_state
         self.verbose = verbose
+        self.shuffle = shuffle
 
     def fit(self, X, y):
         X, y = self._check_X_y(X, y)
@@ -139,7 +143,7 @@ class BaseSparseMBEstimator(BaseLinear):
         _cd_primal(self.coef_, self.intercept_, X_trans_dataset, y,
                    X_col_norms, y_pred, H_dataset, alpha, loss,
                    self.max_iter, self.tol, self.fit_intercept,
-                   random_state, self.verbose)
+                   random_state, self.verbose, self.shuffle)
 
 
 class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):
@@ -152,10 +156,10 @@ class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):
     def __init__(self, n_components=1000, loss='squared_hinge',
                  solver='cd', C=1.0, alpha=1.0, fit_intercept=True,
                  max_iter=100, tol=1e-6, eps=1e-4, warm_start=False,
-                 random_state=None, verbose=True):
+                 random_state=None, verbose=True, shuffle=True):
         super(SparseMBClassifier, self).__init__(
             n_components, loss, solver, C, alpha, fit_intercept,
-            max_iter, tol, eps, warm_start, random_state, verbose
+            max_iter, tol, eps, warm_start, random_state, verbose, shuffle
         )
 
 
@@ -167,8 +171,8 @@ class SparseMBRegressor(BaseSparseMBEstimator, LinearRegressorMixin):
     def __init__(self, n_components=1000, loss='squared',
                  solver='cd', C=1.0, alpha=1.0, fit_intercept=True,
                  max_iter=100, tol=1e-6, eps=1e-4, warm_start=False,
-                 random_state=None, verbose=True):
+                 random_state=None, verbose=True, shuffle=True):
         super(SparseMBRegressor, self).__init__(
             n_components, loss, solver, C, alpha, fit_intercept,
-            max_iter, tol, eps, warm_start, random_state, verbose
+            max_iter, tol, eps, warm_start, random_state, verbose, shuffle
         )
