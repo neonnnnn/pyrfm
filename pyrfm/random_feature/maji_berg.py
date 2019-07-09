@@ -7,7 +7,8 @@ from scipy.sparse import csc_matrix
 from math import sqrt
 import warnings
 from lightning.impl.dataset_fast import get_dataset
-from .unarize import unarize
+from .unarize import unarize, make_sparse_mb
+from scipy.sparse import issparse
 
 
 class MB(BaseEstimator, TransformerMixin):
@@ -92,7 +93,7 @@ class SparseMB(BaseEstimator, TransformerMixin):
             raise ValueError("self.n_components is lower than n_features "
                              "(X.shape[1]).")
         if self.n_components % n_features != 0:
-            warnings.warn("self.n_components is indivisible by n_features."
+            warnings.warn("n_components is indivisible by n_features."
                           "Output.shape[1] is "
                           "{}".format(self.n_components_actual_))
         return self
@@ -110,14 +111,11 @@ class SparseMB(BaseEstimator, TransformerMixin):
 
         if self.n_components_actual_ != self.n_grids_*n_features:
             raise ValueError("X.shape[1] is different from X_train.shape[1].")
-        row = np.repeat(np.arange(n_samples), 2*n_features)
-        col_pre = np.ceil(X*self.n_grids_)
-        col_pre += np.arange(n_features)*self.n_grids_
-        col_suf = np.ceil(X*self.n_grids_)+1
-        col_suf += np.arange(n_features)*self.n_grids_
-        col = np.array([col_pre.ravel(), col_suf.ravel()]).T.ravel()
-        val = X * self.n_grids_ - np.ceil(X)
-        data = np.array([(1.-val).ravel(), val.ravel()]).T.ravel()
-        data /= sqrt(self.n_grids_)
+        dataset = get_dataset(X, order='c')
+        data = np.zeros(X.size*2)
+        row = np.zeros(X.size*2, dtype=np.int32)
+        col = np.zeros(X.size*2, dtype=np.int32)
+
+        make_sparse_mb(data, row, col, dataset, self.n_grids_)
         return csc_matrix((data, (row, col)),
                           shape=(n_samples, self.n_components_actual_))

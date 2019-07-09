@@ -29,5 +29,42 @@ cdef void _cunarize(double[:, ::1] output,
                 output[i, j*n_grids+k] /= sqrt(n_grids)
 
 
+cdef void _make_sparse_mb(double[:] data,
+                          int[:] row,
+                          int[:] col,
+                          RowDataset X,
+                          int n_grids):
+    cdef double *x
+    cdef int *indices
+    cdef int n_nz
+    cdef Py_ssize_t n_samples, i, jj, j, offset, ind
+    cdef double val
+
+    n_samples = X.get_n_samples()
+    n_features = X.get_n_features()
+    offset = 0
+    for i in range(n_samples):
+        X.get_row_ptr(i, &indices, &x, &n_nz)
+        jj = 0
+        for jj in range(n_nz):
+            row[offset] = i
+            row[offset+1] = i
+            j = indices[jj]
+            ind = int((n_grids-1)*x[jj])
+            val = n_grids*x[jj] - ind
+            col[offset] = j*n_grids+ind
+            col[offset+1] = j*n_grids+ind+1
+            if ind == 0:
+                data[offset] = 0
+            else:
+                data[offset] = 1-val
+
+            data[offset+1] = val
+            offset += 2
+
 def unarize(output, X, n_grids):
     _cunarize(output, X, n_grids)
+
+
+def make_sparse_mb(data, row, col, X, n_grids):
+    _make_sparse_mb(data, row, col, X, n_grids)
