@@ -172,7 +172,7 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
         self.kernel = kernel
         self.distribution = distribution
         self.random_state = random_state
-        self.dense_output=dense_output
+        self.dense_output = dense_output
 
     def fit(self, X, y=None):
         if self.kernel not in ['anova', 'anova_cython']:
