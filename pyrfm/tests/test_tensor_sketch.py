@@ -5,6 +5,7 @@ from scipy.sparse import csr_matrix
 from sklearn.utils.testing import assert_less_equal, assert_almost_equal
 from sklearn.utils.extmath import safe_sparse_dot
 from pyrfm import TensorSketch
+from scipy.fftpack._fftpack import drfft
 
 
 def polynomial(X, Y, degree):
@@ -33,3 +34,37 @@ def test_tensor_sketching():
         assert_less_equal(np.abs(np.mean(error)), 0.001)
         assert_less_equal(np.max(error), 0.01)  # nothing too far off
         assert_less_equal(np.mean(error), 0.005)  # mean is fairly close
+
+
+def test_tensor_sketching_cython():
+    degree = 2
+    ts = TensorSketch(n_components=1000, degree=degree,
+                      random_state=rng)
+    X_trans = ts.fit_transform(X)
+    z = np.zeros(ts.n_components)
+    z_cache = np.zeros(ts.n_components)
+    X_trans_cython = np.zeros((X.shape[0], ts.n_components))
+    hash_indices = ts.hash_indices_
+    hash_signs = ts.hash_signs_
+    n_features = X.shape[1]
+    for i, x in enumerate(X):
+        for j in range(ts.n_components):
+            z[j] = 0
+            z_cache[j] = 0
+
+        for j in range(n_features):
+            z[hash_indices[j]] += x[j]*hash_signs[j]
+
+        drfft(z, direction=1, overwrite_x=True)
+
+        for offset in range(n_features, n_features*degree, n_features):
+            for j in range(n_features):
+                z_cache[hash_indices[j+offset]] += x[j]*hash_signs[j+offset]
+
+            drfft(z_cache, direction=1, overwrite_x=True)
+
+            for j in range(ts.n_components):
+                z[j] *= z_cache[j]
+        drfft(z, direction=-1, overwrite_x=True)
+        X_trans_cython[i] = np.array(z)
+    assert_almost_equal(X_trans, X_trans_cython)

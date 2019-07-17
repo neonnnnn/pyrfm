@@ -7,20 +7,15 @@ from pyrfm import (MB, TensorSketch, RandomKernel, RandomMaclaurin,
                    AdaGradClassifier, AdaGradRegressor)
 from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.preprocessing import StandardScaler
+from .utils_linear_model import generate_target, generate_samples
 
 # generate data
-X = np.random.RandomState(0).random_sample(size=(600, 10)) * 2 - 1
+n_samples = 600
 n_train = 500
-n_test = X.shape[0] - n_train
+n_features = 10
+X = generate_samples(n_samples, n_features, 0)
 X_train = X[:n_train]
 X_test = X[n_train:]
-
-
-def make_target(X_trans, rng, low=-1., high=1.0):
-    coef = rng.uniform(low, high, size=X_trans.shape[1])
-    y = np.dot(X_trans, coef)
-    y -= np.mean(y)
-    return y, coef
 
 
 def _test_regressor(transform, y_train, y_test, X_trans, normalize=False):
@@ -66,13 +61,15 @@ def _test_regressor(transform, y_train, y_test, X_trans, normalize=False):
 
         # fast solver and slow solver
         clf_slow = AdaGradRegressor(transform, max_iter=10, warm_start=True,
-                                    verbose=False, fit_intercept=True, loss=loss,
+                                    verbose=False, fit_intercept=True,
+                                    loss=loss,
                                     alpha=0.0001, random_state=0,
                                     normalize=normalize, fast_solver=False)
         clf_slow.fit(X_train[:20], y_train[:20])
 
         clf_fast = AdaGradRegressor(transform, max_iter=10, warm_start=True,
-                                    verbose=False, fit_intercept=True, loss=loss,
+                                    verbose=False, fit_intercept=True,
+                                    loss=loss,
                                     alpha=0.0001, random_state=0,
                                     normalize=normalize, fast_solver=True)
         clf_fast.fit(X_train[:20], y_train[:20])
@@ -123,13 +120,15 @@ def _test_classifier(transform, y_train, y_test, X_trans, normalize=False):
 
         # fast solver and slow solver
         clf_slow = AdaGradClassifier(transform, max_iter=10, warm_start=True,
-                                     verbose=False, fit_intercept=True, loss=loss,
+                                     verbose=False, fit_intercept=True,
+                                     loss=loss,
                                      alpha=0.0001, random_state=0,
                                      normalize=normalize, fast_solver=False)
         clf_slow.fit(X_train[:20], y_train[:20])
 
         clf_fast = AdaGradClassifier(transform, max_iter=10, warm_start=True,
-                                     verbose=False, fit_intercept=True, loss=loss,
+                                     verbose=False, fit_intercept=True,
+                                     loss=loss,
                                      alpha=0.0001, random_state=0,
                                      normalize=normalize, fast_solver=True)
         clf_fast.fit(X_train[:20], y_train[:20])
@@ -141,7 +140,7 @@ def test_adagrad_regressor_ts():
     # approximate kernel mapping
     transform = TensorSketch(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
     _test_regressor(transform, y_train, y_test, X_trans)
@@ -153,7 +152,7 @@ def test_adagrad_regressor_ts_normalize():
     transform = TensorSketch(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -167,7 +166,7 @@ def test_adagrad_regressor_rk():
         transform = RandomKernel(n_components=100, random_state=0,
                                  degree=degree)
         X_trans = transform.fit_transform(X)
-        y, coef = make_target(X_trans, rng, -0.1, 0.1)
+        y, coef = generate_target(X_trans, rng, -0.1, 0.1)
         y_train = y[:n_train]
         y_test = y[n_train:]
 
@@ -183,7 +182,7 @@ def test_adagrad_regressor_rk_normalize():
         X_trans = transform.fit_transform(X)
         X_trans = StandardScaler().fit_transform(X_trans)
 
-        y, coef = make_target(X_trans, rng, -0.1, 0.1)
+        y, coef = generate_target(X_trans, rng, -0.1, 0.1)
         y_train = y[:n_train]
         y_test = y[n_train:]
 
@@ -196,7 +195,7 @@ def test_adagrad_regressor_rk_as():
     transform = RandomKernel(n_components=100, random_state=0,
                              kernel='all_subsets')
     X_trans = transform.fit_transform(X)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -210,7 +209,7 @@ def test_adagrad_regressor_rk_as_normalize():
                              kernel='all_subsets')
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -222,7 +221,7 @@ def test_adagrad_regressor_rm():
     # approximate kernel mapping
     transform = RandomMaclaurin(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -235,7 +234,7 @@ def test_adagrad_regressor_rm_normalize():
     transform = RandomMaclaurin(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -247,7 +246,7 @@ def test_adagrad_regressor_rf():
     # approximate kernel mapping
     transform = RandomFourier(n_components=100, random_state=0, gamma=10)
     X_trans = transform.fit_transform(X)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -260,7 +259,7 @@ def test_adagrad_regressor_rf_normalize():
     transform = RandomFourier(n_components=100, random_state=0, gamma=10)
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -271,7 +270,7 @@ def test_adagrad_regressor_warm_start():
     rng = np.random.RandomState(0)
     transform = TensorSketch(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
 
     clf = AdaGradRegressor(transform, max_iter=10, warm_start=True,
@@ -293,7 +292,7 @@ def test_adagrad_classifier_ts():
     # approximate kernel mapping
     transform = TensorSketch(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
     _test_classifier(transform, np.sign(y_train), np.sign(y_test), X_trans)
@@ -305,7 +304,7 @@ def test_adagrad_classifier_ts_normalize():
     transform = TensorSketch(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -320,7 +319,7 @@ def test_adagrad_classifier_rk():
         transform = RandomKernel(n_components=100, random_state=0,
                                  degree=degree)
         X_trans = transform.fit_transform(X)
-        y, coef = make_target(X_trans, rng, -0.1, 0.1)
+        y, coef = generate_target(X_trans, rng, -0.1, 0.1)
         y_train = y[:n_train]
         y_test = y[n_train:]
 
@@ -336,7 +335,7 @@ def test_adagrad_classifier_rk_normalize():
         X_trans = transform.fit_transform(X)
         X_trans = StandardScaler().fit_transform(X_trans)
 
-        y, coef = make_target(X_trans, rng, -0.1, 0.1)
+        y, coef = generate_target(X_trans, rng, -0.1, 0.1)
         y_train = y[:n_train]
         y_test = y[n_train:]
 
@@ -350,7 +349,7 @@ def test_adagrad_classifier_rk_as():
     transform = RandomKernel(n_components=100, random_state=0,
                              kernel='all_subsets')
     X_trans = transform.fit_transform(X)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -364,7 +363,7 @@ def test_adagrad_classifier_rk_as_normalize():
                              kernel='all_subsets')
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -377,7 +376,7 @@ def test_adagrad_classifier_rm():
     # approximate kernel mapping
     transform = RandomMaclaurin(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -390,7 +389,7 @@ def test_adagrad_classifier_rm_normalize():
     transform = RandomMaclaurin(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -403,7 +402,7 @@ def test_adagrad_classifier_rf():
     # approximate kernel mapping
     transform = RandomFourier(n_components=100, random_state=0, gamma=10)
     X_trans = transform.fit_transform(X)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -416,7 +415,7 @@ def test_adagrad_classifier_rf_normalize():
     transform = RandomFourier(n_components=100, random_state=0, gamma=10)
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
 
@@ -428,7 +427,7 @@ def test_adagrad_classifier_warm_start():
     rng = np.random.RandomState(0)
     transform = TensorSketch(n_components=100, random_state=0)
     X_trans = transform.fit_transform(X)
-    y, coef = make_target(X_trans, rng, -0.1, 0.1)
+    y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = np.sign(y[:n_train])
 
     clf = AdaGradClassifier(transform, max_iter=10, warm_start=True,
