@@ -155,7 +155,6 @@ cdef void _cintersection(double[:, ::1] output,
 cdef void _cchi_square(double[:, ::1] output,
                        RowDataset X,
                        ColumnDataset P):
-
     # chi square kernel: k(x,y)=\sum_{i=1}^{n}2x_iy_i/(x_i + y_i).
     cdef double *x
     cdef double *p

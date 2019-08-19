@@ -73,6 +73,23 @@ def anova(X, P, degree, dense_output=True):
     return A
 
 
+def pairwise(X, P, dense_output=True, symmetric=False):
+    if X.shape[1] % 2 != 0:
+        raise ValueError('X.shape[1] is not even.')
+
+    n_features = X.shape[1]//2
+
+    K1 = safe_sparse_dot(X[:, :n_features], P[:, :n_features], dense_output)
+    K2 = safe_sparse_dot(X[:, n_features:], P[:, n_features:], dense_output)
+    K = safe_np_elem_prod(K1, K2, dense_output)
+    if symmetric:
+        K1 = safe_sparse_dot(X[:, :n_features], P[:, n_features:], dense_output)
+        K2 = safe_sparse_dot(X[:, n_features:], P[:, :n_features], dense_output)
+        K += safe_np_elem_prod(K1, K2, dense_output)
+        K *= 0.5
+    return K
+
+
 def hellinger(X, P):
     X = check_array(X, True)
     P = check_array(P, True)
@@ -101,3 +118,4 @@ def chi_square(X, P):
     X = check_array(X, True)
     P = check_array(P, True)
     return _chi_square(X, P)
+
