@@ -7,7 +7,7 @@ from sklearn.utils import check_random_state
 from lightning.impl.dataset_fast import get_dataset
 
 from .loss_fast import Squared, SquaredHinge, Logistic, Hinge
-from ..maji_berg import SparseMB
+from ..random_feature.maji_berg import SparseMB
 from .cd_primal_sparse_mb import _cd_primal
 from .base import BaseLinear, LinearClassifierMixin, LinearRegressorMixin
 
