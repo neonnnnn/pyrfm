@@ -6,6 +6,7 @@ from scipy.fftpack import fft, ifft
 from ..kernels import safe_power
 import warnings
 from math import sqrt
+from scipy.sparse import issparse
 
 
 class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
@@ -61,15 +62,22 @@ class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         output = []
-        fft_X = fft(X)
+        if issparse(X):
+            fft_X = fft(X.toarray())
+        else:
+            fft_X = fft(X)
         fft_X_pow_3 = None
-        D2 = np.sum(safe_power(X, 2), axis=1, keepdims=True)
+        if issparse(X):
+            D2 = np.array(np.sum(safe_power(X, 2), axis=1))
+        else:
+            D2 = np.sum(safe_power(X, 2), axis=1, keepdims=True)
+
         t = self.n_components//n_features
         if self.n_components % n_features != 0:
             warnings.warn("self.n_components is indivisible by n_features."
                           "Output.shape[1] is {}".format(t*n_features))
         if self.degree == 3:
-            fft_X_pow_3 = fft(safe_power(X, 3))
+            fft_X_pow_3 = fft(safe_power(X, 3, dense_output=True))
 
         for random_weight, sign in zip(self.random_weights_, self.signs_):
             random_weight_x = ifft(fft_X*random_weight).real*sign
