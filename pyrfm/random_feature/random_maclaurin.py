@@ -4,6 +4,7 @@ from sklearn.utils import check_random_state, check_array
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
 from scipy.special import factorial, binom
+from scipy.sparse import issparse
 
 
 class RandomMaclaurin(BaseEstimator, TransformerMixin):
@@ -152,7 +153,10 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         output /= np.sqrt(self.p_choice[self.orders_])
         if self.h01 and self.bias != 0:
             linear = X * np.sqrt(self.degree*self.bias**(self.degree-1))
-            output = np.hstack([linear.toarray(), output])
+            if issparse(linear):
+                output = np.hstack([linear.toarray(), output])
+            else:
+                output = np.hstack([linear, output])
             dummy = np.sqrt(self.bias**self.degree)*np.ones((n_samples, 1))
             output = np.hstack((dummy, output))
         return output
