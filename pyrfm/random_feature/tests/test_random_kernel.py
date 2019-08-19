@@ -1,7 +1,9 @@
 import numpy as np
 from scipy.sparse import csr_matrix
 
-from sklearn.utils.testing import assert_less_equal
+from sklearn.utils.testing import (assert_less_equal,
+                                   assert_allclose_dense_sparse,
+                                   assert_almost_equal)
 from pyrfm import anova, all_subsets, RandomKernel
 
 
@@ -11,6 +13,7 @@ X = rng.random_sample(size=(300, 50))
 Y = rng.random_sample(size=(300, 50))
 X /= np.sum(X, axis=1, keepdims=True)
 Y /= np.sum(Y, axis=1, keepdims=True)
+X_sp = csr_matrix(X)
 
 
 def test_anova_kernel():
@@ -33,6 +36,9 @@ def test_anova_kernel():
             assert_less_equal(np.max(error), 0.001)  # nothing too far off
             assert_less_equal(np.mean(error), 0.0005)  # mean is fairly close
 
+            X_trans_sp = rk_transform.transform(X_sp)
+            assert_allclose_dense_sparse(X_trans, X_trans_sp)
+
 
 def test_all_subsets_kernel():
     # compute exact kernel
@@ -41,7 +47,7 @@ def test_all_subsets_kernel():
     kernel = all_subsets(X, Y)
     for dist in distributions:
         # approximate kernel mapping
-        rk_transform = RandomKernel(n_components=2000, random_state=rng,
+        rk_transform = RandomKernel(n_components=3000, random_state=rng,
                                     kernel='all_subsets',
                                     distribution=dist, p_sparse=0.5)
         X_trans = rk_transform.fit_transform(X)
@@ -52,3 +58,6 @@ def test_all_subsets_kernel():
         assert_less_equal(np.abs(np.mean(error)), 0.01)
         assert_less_equal(np.max(error), 0.1)  # nothing too far off
         assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
+
+        X_trans_sp = rk_transform.transform(X_sp)
+        assert_allclose_dense_sparse(X_trans, X_trans_sp)
