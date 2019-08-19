@@ -2,7 +2,8 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 
-from sklearn.utils.testing import assert_less_equal, assert_almost_equal
+from sklearn.utils.testing import assert_less_equal
+from sklearn.utils.testing import assert_allclose_dense_sparse
 from sklearn.utils.extmath import safe_sparse_dot
 from pyrfm import RandomMaclaurin
 
@@ -21,6 +22,7 @@ X = rng.random_sample(size=(300, 50))
 Y = rng.random_sample(size=(300, 50))
 X /= np.sum(X, axis=1, keepdims=True)
 Y /= np.sum(Y, axis=1, keepdims=True)
+X_sp = csr_matrix(X)
 
 
 def test_random_maclaurin_polynomial():
@@ -37,6 +39,9 @@ def test_random_maclaurin_polynomial():
         assert_less_equal(np.abs(np.mean(error)), 0.001)
         assert_less_equal(np.max(error), 0.01)  # nothing too far off
         assert_less_equal(np.mean(error), 0.005)  # mean is fairly close
+
+        X_trans_sp = rm_transform.transform(X_sp)
+        assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
 
 def test_random_maclaurin_polynomial_bias():
@@ -56,6 +61,9 @@ def test_random_maclaurin_polynomial_bias():
             assert_less_equal(np.abs(np.mean(error)), 0.01)
             assert_less_equal(np.max(error), 0.1)  # nothing too far off
             assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
+
+            X_trans_sp = rm_transform.transform(X_sp)
+            assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
 
 def test_random_maclaurin_polynomial_bias_h01():
@@ -77,6 +85,9 @@ def test_random_maclaurin_polynomial_bias_h01():
             assert_less_equal(np.max(error), 0.1)  # nothing too far off
             assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
 
+            X_trans_sp = rm_transform.transform(X_sp)
+            assert_allclose_dense_sparse(X_trans, X_trans_sp)
+
 
 def test_random_maclaurin_exp():
     # compute exact kernel
@@ -94,3 +105,6 @@ def test_random_maclaurin_exp():
     assert_less_equal(np.abs(np.mean(error)), 0.01)
     assert_less_equal(np.max(error), 0.1)  # nothing too far off
     assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
+
+    X_trans_sp = rm_transform.transform(X_sp)
+    assert_allclose_dense_sparse(X_trans, X_trans_sp)

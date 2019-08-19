@@ -2,6 +2,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 from sklearn.utils.testing import assert_less_equal, assert_almost_equal
+from sklearn.utils.testing import assert_allclose_dense_sparse
 from pyrfm import MB, SparseMB
 from pyrfm import intersection
 
@@ -26,7 +27,7 @@ def test_mb():
 
     # for sparse matrix
     X_trans_sp = mb_transform.fit_transform(csr_matrix(X))
-    assert_almost_equal(X_trans_sp, X_trans)
+    assert_allclose_dense_sparse(X_trans_sp, X_trans)
 
 
 def test_sparse_mb():
