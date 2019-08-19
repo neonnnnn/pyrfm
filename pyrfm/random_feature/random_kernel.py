@@ -5,7 +5,8 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
 from scipy.sparse import csc_matrix, issparse
 from math import sqrt
-from ..kernels import anova, all_subsets, anova_fast
+from ..kernels import anova, all_subsets, anova_fast, pairwise
+from .sparse_rademacher import sparse_rademacher
 
 
 def _anova(degree=2, dense_output=True):
@@ -28,7 +29,13 @@ def dot():
     return _dot
 
 
-def get_random_matrix(rng, distribution, size, p=0.):
+def _pairwise(dense_output=True, symmetric=False):
+    def __pairwise(X, Y):
+        return pairwise(X, Y, dense_output, symmetric)
+    return __pairwise
+
+
+def get_random_matrix(rng, distribution, size, p_sparse=0.):
     # size = (n_components, n_features)
     if distribution == 'rademacher':
         return (rng.randint(2, size=size)*2 - 1).astype(np.float64)
@@ -41,12 +48,17 @@ def get_random_matrix(rng, distribution, size, p=0.):
     elif distribution == 'sparse_rademacher':
         # n_nzs : (n_features, )
         # n_nzs[j] is n_nz of random_weights[:, j]
-        n_nzs = rng.binomial(size[0], 1-p, size[1])
+        """
+        n_nzs = rng.binomial(size[0], 1-p_sparse, size[1])
         indptr = np.append(0, np.cumsum(n_nzs))
         arange = np.arange(size[0])
         indices = [rng.choice(arange, size=nnz, replace=False) for nnz in n_nzs]
-        data = (rng.randint(2, size=np.sum(n_nzs))*2-1) / np.sqrt(1-p)
+        data = (rng.randint(2, size=np.sum(n_nzs))*2-1) / np.sqrt(1-p_sparse)
         return csc_matrix((data, np.concatenate(indices), indptr), shape=size)
+        """
+        return sparse_rademacher(rng,
+                                 np.array(size, dtype=np.int32),
+                                 p_sparse)
 
     else:
         raise ValueError('{} distribution is not implemented. Please use'
@@ -75,7 +87,8 @@ class RandomKernel(BaseEstimator, TransformerMixin):
 
     kernel : str
         Kernel to be approximated.
-        "anova", "dot", or "all-subsets" can be used.
+        "anova", "anova_cython", "all-subsets", "dot", or "pairwise"
+        can be used.
 
     degree : int
         Parameter of the ANOVA kernel.
@@ -97,6 +110,9 @@ class RandomKernel(BaseEstimator, TransformerMixin):
         Sparsity parameter for "sparse_rademacher" distribution.
         If p_sparse = 0, "sparse_rademacher" is equivalent to "rademacher".
 
+    symmetric : bool
+        Whether symmetrize or not for pairwise kernel.
+
     random_state : int, RandomState instance or None, optional (default=None)
         If int, random_state is the seed used by the random number generator;
         If RandomState instance, random_state is the random number generator;
@@ -117,13 +133,14 @@ class RandomKernel(BaseEstimator, TransformerMixin):
     """
     def __init__(self, n_components=100, kernel='anova', degree=2,
                  distribution='rademacher', dense_output=True, p_sparse=0.,
-                 random_state=None):
+                 symmetric=False, random_state=None):
         self.n_components = n_components
         self.kernel = kernel
         self.degree = degree
         self.distribution = distribution
         self.dense_output = dense_output
         self.p_sparse = p_sparse
+        self.symmetric = symmetric
         self.random_state = random_state
 
     def fit(self, X, y=None):
@@ -150,9 +167,12 @@ class RandomKernel(BaseEstimator, TransformerMixin):
                 kernel_ = all_subsets
             elif self.kernel == 'dot':
                 kernel_ = dot()
+            elif self.kernel == "pariwise":
+                kernel_ = _pairwise(self.dense_output, self.symmetric)
             else:
                 raise ValueError('Kernel {} is not supported. '
-                                 'Use "anova", "all_subsets" or "dot"'
+                                 'Use "anova", "anova_cython", "all_subsets", '
+                                 '"dot", or "pairwise".'
                                  .format(self.kernel))
         else:
             kernel_ = self.kernel
@@ -164,15 +184,16 @@ class RandomKernel(BaseEstimator, TransformerMixin):
 
 class RandomSubsetKernel(BaseEstimator, TransformerMixin):
     def __init__(self, n_components=100, n_sub_features=5, kernel='anova',
-                 degree=2, distribution='rademacher', dense_output=False,
-                 random_state=None):
+                 degree=2, distribution='rademacher', symmetric=False,
+                 dense_output=False, random_state=None):
         self.n_components = n_components
         self.n_sub_features = n_sub_features
         self.degree = degree
         self.kernel = kernel
         self.distribution = distribution
-        self.random_state = random_state
+        self.symmetric = symmetric
         self.dense_output = dense_output
+        self.random_state = random_state
 
     def fit(self, X, y=None):
         if self.kernel not in ['anova', 'anova_cython']:
@@ -209,6 +230,8 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
                 kernel_ = _anova(self.degree, self.dense_output)
             elif self.kernel == 'anova_cython':
                 kernel_ = _anova_fast(self.degree, self.dense_output)
+            elif self.kernel == "pairwise":
+                kernel_ = _pairwise(self.dense_output, self.symmetric)
             else:
                 raise ValueError('Kernel {} is not supported. '
                                  'Use "anova" or "dot"'

@@ -16,6 +16,19 @@ Y /= np.sum(Y, axis=1, keepdims=True)
 X_sp = csr_matrix(X)
 
 
+def test_sparse_rademacher():
+    # approximate kernel mapping
+    for p_sparse in [0.9, 0.8, 0.7, 0.6, 0.5]:
+        rk_transform = RandomKernel(n_components=1000, random_state=rng,
+                                    kernel='anova',
+                                    distribution='sparse_rademacher',
+                                    p_sparse=p_sparse)
+        X_trans = rk_transform.fit_transform(X)
+        nnz_actual = rk_transform.random_weights_.nnz
+        nnz_expected = X.shape[1]*rk_transform.n_components*(1-p_sparse)
+        assert_almost_equal(np.abs(1-nnz_actual/nnz_expected), 0, 0.1)
+
+
 def test_anova_kernel():
     # compute exact kernel
     distributions = ['rademacher', 'gaussian', 'laplace', 'uniform',
