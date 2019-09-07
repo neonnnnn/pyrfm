@@ -9,6 +9,7 @@ from sklearn.externals import six
 from sklearn.utils.multiclass import type_of_target
 from ..random_feature import (RandomFourier, RandomMaclaurin, TensorSketch,
                               RandomKernel)
+from sklearn.kernel_approximation import RBFSampler
 from lightning.impl.dataset_fast import get_dataset
 from .stochastic_predict import _predict_fast
 from scipy import sparse
@@ -84,12 +85,17 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
         return y_pred
 
     def _get_id_transformer(self):
+        # 0: RandomFourier 1: RandomMaclaurin 2: TensorSketch 3:RandomKernel
         if isinstance(self.transformer, self.TRANSFORMERS):
             id_transformer = self.TRANSFORMERS.index(type(self.transformer))
         else:
-            id_transformer = -1
+            if isinstance(self.transformer, RBFSampler):
+                id_transformer = 0
+            else:
+                id_transformer = -1
         if isinstance(self.transformer, RandomKernel):
-            if self.transformer.kernel not in ['anova', 'all_subsets']:
+            if self.transformer.kernel not in ['anova', 'anova_cython',
+                                               'all_subsets']:
                 id_transformer = -1
         return id_transformer
 
@@ -109,8 +115,9 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
 
         if id_transformer == 2 or id_transformer == -1:
             params['random_weights'] = None
+        # for Random Kernel
         if id_transformer == 3:
-            if self.transformer.kernel == 'anova':
+            if self.transformer.kernel in ['anova', 'anova_cython']:
                 kernel = 0
             elif self.transformer.kernel == 'all_subsets':
                 kernel = 1
