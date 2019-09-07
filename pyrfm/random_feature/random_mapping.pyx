@@ -11,6 +11,39 @@ from lightning.impl.dataset_fast import get_dataset
 from lightning.impl.dataset_fast cimport RowDataset
 
 
+cdef void random_mapping(double[:] z,
+                         double* data,
+                         int* indices,
+                         int n_nz,
+                         int id_transformer,
+                         double[:, ::1] random_weights,
+                         double[:] offset,
+                         int[:] orders,
+                         double[:] p_choice,
+                         double[:] coefs_maclaurin,
+                         double[:] z_cache,
+                         int[:] hash_indices,
+                         int[:] hash_signs,
+                         int degree,
+                         int kernel,
+                         double[:] anova,
+                         ):
+        if id_transformer == 0:
+            random_fourier(z, data, indices, n_nz, random_weights, offset)
+        elif id_transformer == 1:
+            random_maclaurin(z, data, indices, n_nz, random_weights,
+                             orders, p_choice, coefs_maclaurin)
+        elif id_transformer == 2:
+            tensor_sketch(z, z_cache, data, indices, n_nz, degree,
+                          hash_indices, hash_signs)
+        elif id_transformer == 3:
+            random_kernel(z, data, indices, n_nz, random_weights, kernel,
+                          degree, anova)
+        else:
+            raise ValueError("Random feature mapping must be RandomFourier,"
+                             "RandomMaclaurin, TensorSketch, or "
+                             "RandomKernel.")
+
 cdef void random_fourier(double[:] z,
                          double* data,
                          int* indices,

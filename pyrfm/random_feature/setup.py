@@ -17,6 +17,10 @@ def configuration(parent_package='', top_path=None):
                          language='c++',
                          include_dirs=[numpy.get_include()])
 
+    config.add_extension("random_mapping", sources=['random_mapping.pyx'],
+                         language='c++',
+                         include_dirs=[numpy.get_include()])
+
     maybe_cythonize_extensions(top_path, config)
     return config
 
