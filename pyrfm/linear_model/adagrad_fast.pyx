@@ -9,113 +9,50 @@ from .loss_fast cimport LossFunction
 import numpy as np
 cimport numpy as np
 from lightning.impl.dataset_fast cimport RowDataset
-from .random_mapping cimport (random_fourier, random_maclaurin, tensor_sketch,
-                              random_kernel)
+from .utils cimport transform, normalize
 from cython.view cimport array
 
 
-cdef inline void normalize(double[:] z,
-                           double[:] mean,
-                           double[:] var,
-                           int t,
-                           Py_ssize_t n_components):
-    cdef double mean_new
-    cdef Py_ssize_t j
-    for j in range(n_components):
-        mean_new = mean[j] + (z[j] - mean[j]) / (t+1)
-        var[j] = var[j] * (1-1./t)
-        var[j] += (z[j] - mean[j])*(z[j] - mean_new) / t
-        mean[j] = mean_new
-        z[j] = (z[j] - mean[j]) / (1e-6 + sqrt(var[j]))
+cdef double adagrad_epoch(double[:] coef,
+                          double[:] intercept,
+                          RowDataset X,
+                          X_array,
+                          double[:] y,
+                          double[:] acc_grad,
+                          double[:] acc_grad_norm,
+                          double[:] acc_grad_intercept,
+                          double[:] acc_grad_norm_intercept,
+                          double[:] mean,
+                          double[:] var,
+                          LossFunction loss,
+                          double lam1,
+                          double lam2,
+                          double eta,
+                          unsigned int* t,
+                          double eps,
+                          bint is_sparse,
+                          bint fit_intercept,
+                          bint shuffle,
+                          random_state,
+                          double* acc_loss,
+                          transformer,
+                          int id_transformer,
+                          np.ndarray[int, ndim=1] indices_samples,
+                          double[:] z,
+                          double[:, ::1] random_weights,
+                          double[:] offset,
+                          int[:] orders,
+                          double[:] p_choice,
+                          double[:] coefs_maclaurin,
+                          double[:] z_cache,
+                          int[:] hash_indices,
+                          int[:] hash_signs,
+                          int degree,
+                          int kernel,
+                          double[:] anova):
 
-
-cdef inline void transform(RowDataset X,
-                           X_array,
-                           double[:] z,
-                           Py_ssize_t i,
-                           double* data,
-                           int* indices,
-                           int n_nz,
-                           bint is_sparse,
-                           transformer,
-                           int id_transformer,
-                           double[:, ::1] random_weights,
-                           double[:] offset,
-                           int[:] orders,
-                           double[:] p_choice,
-                           double[:] coefs_maclaurin,
-                           double[:] z_cache,
-                           int[:] hash_indices,
-                           int[:] hash_signs,
-                           int degree,
-                           int kernel,
-                           double[:] anova,
-                           ):
-    cdef Py_ssize_t j
-    if id_transformer == -1:
-        if is_sparse:
-            _z = transformer.transform(X_array[i])[0]
-        else:
-            _z = transformer.transform(np.atleast_2d(X_array[i]))[0]
-        for j in range(z.shape[0]):
-            z[j] = _z[j]
-    else:
-        if id_transformer == 0:
-            random_fourier(z, data, indices, n_nz, random_weights, offset)
-        elif id_transformer == 1:
-            random_maclaurin(z, data, indices, n_nz, random_weights,
-                             orders, p_choice, coefs_maclaurin)
-        elif id_transformer == 2:
-            tensor_sketch(z, z_cache, data, indices, n_nz, degree,
-                          hash_indices, hash_signs)
-        elif id_transformer == 3:
-            random_kernel(z, data, indices, n_nz, random_weights, kernel,
-                          degree, anova)
-        else:
-            raise ValueError("Random feature mapping must be RandomFourier,"
-                             "RandomMaclaurin, TensorSketch, or "
-                             "RandomKernel.")
-
-
-cdef inline double adagrad_epoch(double[:] coef,
-                                 double[:] intercept,
-                                 RowDataset X,
-                                 X_array,
-                                 double[:] y,
-                                 double[:] acc_grad,
-                                 double[:] acc_grad_norm,
-                                 double[:] acc_grad_intercept,
-                                 double[:] acc_grad_norm_intercept,
-                                 double[:] mean,
-                                 double[:] var,
-                                 LossFunction loss,
-                                 double lam1,
-                                 double lam2,
-                                 double eta,
-                                 unsigned int* t,
-                                 double eps,
-                                 bint is_sparse,
-                                 bint fit_intercept,
-                                 bint shuffle,
-                                 random_state,
-                                 double* acc_loss,
-                                 transformer,
-                                 int id_transformer,
-                                 int[:] indices_samples,
-                                 double[:] z,
-                                 double[:, ::1] random_weights,
-                                 double[:] offset,
-                                 int[:] orders,
-                                 double[:] p_choice,
-                                 double[:] coefs_maclaurin,
-                                 double[:] z_cache,
-                                 int[:] hash_indices,
-                                 int[:] hash_signs,
-                                 int degree,
-                                 int kernel,
-                                 double[:] anova):
-
-    cdef Py_ssize_t i, n_samples, n_components, j
+    cdef Py_ssize_t i, ii, j
+    cdef int n_samples, n_components
     cdef double dloss, eta_t, viol, y_pred, denom, intercept_new, coef_new_j,
     # data pointers
     cdef int* indices
@@ -131,16 +68,17 @@ cdef inline double adagrad_epoch(double[:] coef,
         i = random_state.randint(n_samples-1)+1
         i = indices_samples[i]
         X.get_row_ptr(i, &indices, &data, &n_nz)
-        transform(X, X_array, z, i, data, indices, n_nz, is_sparse, transformer,
+        transform(X_array, z, i, data, indices, n_nz, is_sparse, transformer,
                   id_transformer, random_weights, offset, orders, p_choice,
                   coefs_maclaurin, z_cache, hash_indices, hash_signs,
                   degree, kernel, anova)
         for j in range(n_components):
             mean[j] = z[j]
 
-    for i in indices_samples:
+    for ii in range(n_samples):
+        i = indices_samples[ii]
         X.get_row_ptr(i, &indices, &data, &n_nz)
-        transform(X, X_array, z, i, data, indices, n_nz, is_sparse,
+        transform(X_array, z, i, data, indices, n_nz, is_sparse,
                   transformer, id_transformer, random_weights, offset,
                   orders, p_choice, coefs_maclaurin, z_cache, hash_indices,
                   hash_signs, degree, kernel, anova)
@@ -238,7 +176,8 @@ def _adagrad_fast(double[:] coef,
     n_samples = X.get_n_samples()
     n_components = coef.shape[0]
 
-    cdef int[:] indices_samples = np.arange(n_samples, dtype=np.int32)
+    cdef np.ndarray[int, ndim=1] indices_samples = np.arange(n_samples,
+                                                             dtype=np.int32)
     cdef double[:] z = array((n_components, ), sizeof(double), format='d')
     for j in range(n_components):
         z[j] = 0
