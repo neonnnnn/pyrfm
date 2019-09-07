@@ -14,29 +14,37 @@ from scipy.sparse import csc_matrix
 def sparse_rademacher(rng, int[:] size, double p_sparse):
     # size = (n_components, n_features)
     # Preprocess for walker alias method: O(n_components)
-    cdef Binomial binom = Binomial(p=1-p_sparse, n=size[0], random_state=rng)
-    # n_nzs[i]: number of nonzero elements in i-th column of random matrix
-    cdef int[:] n_nzs = np.zeros(size[1], dtype=np.int32)
-    cdef int[:] indptr = np.zeros(size[1]+1, dtype=np.int32)
-    cdef int[:] arange = np.arange(size[0], dtype=np.int32)
     cdef Py_ssize_t i, j, n_nz
+    cdef Py_ssize_t n_components, n_features
     cdef Py_ssize_t offset = 0
+    n_components = size[0]
+    n_features = size[1]
+    cdef Binomial binom = Binomial(p=1-p_sparse, n=n_features,
+                                   random_state=rng)
+    # n_nzs[i]: number of nonzero elements in i-th column of random matrix
+    cdef int[:] n_nzs = np.zeros(n_components, dtype=np.int32)
+    cdef int[:] arange = np.arange(n_features, dtype=np.int32)
 
     # sampling number of nonzero elements in each column : O(n_features)
-    for i in range(size[1]):
+    n_nz = 0
+    for i in range(n_components):
         n_nzs[i] = binom.get_sample()
-        indptr[i+1] = indptr[i] + n_nzs[i]
-    n_nz = indptr[size[1]]
-    cdef int[:] indices = np.zeros((n_nz, ), dtype=np.int32)
+        n_nz += n_nzs[i]
+    cdef int[:] row_ind = np.zeros(n_nz, dtype=np.int32)
+    cdef int[:] col_ind = np.zeros(n_nz, dtype=np.int32)
+
     # sampling nonzero row indices : O(\sum_{j=1}^{n_features} nnz_j=nnz)
-    for i in range(size[1]):
-        offset = indptr[i]
+    offset = 0
+    for i in range(n_components):
         fisher_yates_shuffle(arange, n_nzs[i], rng)
         for j in range(n_nzs[i]):
-            indices[offset+j] = arange[j]
+            col_ind[offset+j] = arange[j]
+            row_ind[offset+j] = i
+        offset += n_nzs[i]
+
     # sampling nonzero elements: O(nnz)
     data = (rng.randint(2, size=n_nz)*2-1) / np.sqrt(1-p_sparse)
-    return csc_matrix((data, indices, indptr), shape=size)
+    return csc_matrix((data, (row_ind, col_ind)), shape=size)
 
 
 cdef inline void fisher_yates_shuffle(int[:] permutation, int n, rng):
@@ -104,18 +112,24 @@ cdef class Categorical:
             ii += 1
 
     def get_samples(self, size):
-        cdef int i
+        cdef int i, j
         cdef int _size
+        cdef double u
         if isinstance(size, int):
             _size = size
         else:
             _size = np.prod(size)
         ret = np.zeros(_size, dtype=np.int32)
         for i in range(_size):
-            ret[i] = self.get_sample()
+            u = self.random_state.uniform(0, self.sum)
+            j = self.random_state.randint(0, self.n_categories)
+            if u <= self.frequent[j]:
+                ret[i] = j
+            else:
+                ret[i] = self.indices_another[j]
         return ret.reshape(size)
 
-    cdef int get_sample(self):
+    cdef inline int get_sample(self):
         cdef int i  = self.random_state.randint(0, self.n_categories)
         cdef double u = self.random_state.uniform(0, self.sum)
         if u <= self.frequent[i]:
@@ -138,15 +152,19 @@ cdef class Binomial:
     def __cinit__(self, p, n, random_state=None):
         cdef double[:] frequent = array((n+1, ), sizeof(double), format='d')
         cdef int i
-        frequent[0] = (1-p)**n
-        for i in range(1, n+1):
+        cdef int mode= int((n+1) * p)
+        frequent[mode] = 1000.
+        for i in range(mode+1, n+1):
             frequent[i] = frequent[i-1] * p / (1-p)
             frequent[i] *= (n-i+1) / i
+        for i in range(mode-1, -1, -1):
+            frequent[i] = (i+1)*frequent[i+1] * (1-p) / p
+            frequent[i] /= (n-i)
 
         self.cat = Categorical(frequent, random_state)
 
     def get_samples(self, size):
         return self.cat.get_samples(size)
 
-    cdef int get_sample(self):
+    cdef inline int get_sample(self):
         return self.cat.get_sample()
