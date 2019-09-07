@@ -160,7 +160,7 @@ class BaseSDCAEstimator(BaseLinear):
         params = self._get_transformer_params(id_transformer)
         it = _sdca_fast(self.coef_, self.dual_coef_, self.intercept_,
                         get_dataset(X, order='c'), X, y,
-                        self.mean_, self.var_, loss, alpha/n_samples,
+                        self.mean_, self.var_, loss, alpha,
                         self.l1_ratio, self.t_, self.max_iter, self.tol,
                         is_sparse, self.verbose, self.fit_intercept,
                         self.shuffle, random_state, self.transformer,
