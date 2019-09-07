@@ -2,9 +2,8 @@ import numpy as np
 
 from sklearn.utils.testing import (assert_greater_equal, assert_almost_equal,
                                    assert_less_equal)
-from pyrfm import (MB, TensorSketch, RandomKernel, RandomMaclaurin,
-                   SignedCirculantRandomKernel, RandomFourier, SDCAClassifier,
-                   SDCARegressor)
+from pyrfm import (TensorSketch, RandomKernel, RandomMaclaurin, RandomFourier,
+                   SDCAClassifier, SDCARegressor)
 from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.preprocessing import StandardScaler
 from .utils_linear_model import generate_target, generate_samples
@@ -20,6 +19,21 @@ X_test = X[n_train:]
 
 def _test_regressor(transform, y_train, y_test, X_trans, normalize=False):
     for loss in ['squared']:
+        # fast solver and slow solver
+        clf_slow = SDCARegressor(transform, max_iter=10, warm_start=True,
+                                 verbose=False, fit_intercept=True, loss=loss,
+                                 alpha=0.0001, random_state=0,
+                                 normalize=normalize, fast_solver=False)
+        clf_slow.fit(X_train, y_train)
+
+        clf_fast = SDCARegressor(transform, max_iter=10, warm_start=True,
+                                 verbose=False, fit_intercept=True, loss=loss,
+                                 alpha=0.0001, random_state=0,
+                                 normalize=normalize, fast_solver=True)
+        clf_fast.fit(X_train, y_train)
+        assert_almost_equal(clf_fast.coef_, clf_slow.coef_, decimal=6)
+
+
         # overfitting
         clf = SDCARegressor(transform, max_iter=100, warm_start=True,
                             verbose=False, fit_intercept=True, loss=loss,
@@ -58,20 +72,6 @@ def _test_regressor(transform, y_train, y_test, X_trans, normalize=False):
         clf.fit(X_train, y_train)
         test_l2 = np.mean((y_test - clf.predict(X_test))**2)
         assert_less_equal(test_l2, test_l2_sgd)
-
-        # fast solver and slow solver
-        clf_slow = SDCARegressor(transform, max_iter=10, warm_start=True,
-                                 verbose=False, fit_intercept=True, loss=loss,
-                                 alpha=0.0001, random_state=0,
-                                 normalize=normalize, fast_solver=False)
-        clf_slow.fit(X_train, y_train)
-
-        clf_fast = SDCARegressor(transform, max_iter=10, warm_start=True,
-                                 verbose=False, fit_intercept=True, loss=loss,
-                                 alpha=0.0001, random_state=0,
-                                 normalize=normalize, fast_solver=True)
-        clf_fast.fit(X_train, y_train)
-        assert_almost_equal(clf_fast.coef_, clf_slow.coef_, decimal=6)
 
 
 def _test_classifier(transform, y_train, y_test, X_trans, normalize=False):
@@ -392,6 +392,7 @@ def test_sdca_regressor_rf_normalize():
     transform = RandomFourier(n_components=100, random_state=0, gamma=10)
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
+    print(X_trans)
     y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
