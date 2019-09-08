@@ -58,7 +58,7 @@ cdef class CRBFSampler(BaseCRandomFeature):
                         int* indices,
                         int n_nz):
         cdef Py_ssize_t i, j, jj
-        # z = (cos, cos, ..., cos)      
+        # z = (cos, cos, ..., cos)
         for i in range(self.n_components):
             z[i] = self.random_offset[i]
         for jj in range(n_nz):
