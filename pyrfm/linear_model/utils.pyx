@@ -34,13 +34,14 @@ cdef void transform(X_array,
                     transformer,
                     BaseCRandomFeature transformer_fast
                     ):
-    cdef Py_ssize_t j
+    cdef Py_ssize_t j, n_components
     if transformer_fast is None:
         if is_sparse:
             _z = transformer.transform(X_array[i])[0]
         else:
             _z = transformer.transform(np.atleast_2d(X_array[i]))[0]
-        for j in range(z.shape[0]):
+        n_components = z.shape[0]
+        for j in range(n_components):
             z[j] = _z[j]
     else:
         transformer_fast.transform(z, data, indices, n_nz)

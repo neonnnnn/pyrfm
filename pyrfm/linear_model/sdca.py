@@ -154,6 +154,10 @@ class BaseSDCAEstimator(BaseLinear):
         alpha = self.alpha / self.C
         random_state = check_random_state(self.random_state)
 
+        if alpha*(1-self.l1_ratio) == 0:
+            raise ValueError("alpha*(1-l1_ratio)/C = 0. SDCA needs a strongly"
+                             "convex regularizer (alpha*(1-l1_ration)/C must"
+                             "be bigger than 0).")
         is_sparse = sparse.issparse(X)
         it = _sdca_fast(self.coef_, self.dual_coef_, self.intercept_,
                         get_dataset(X, order='c'), X, y,
