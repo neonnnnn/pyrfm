@@ -1,54 +1,34 @@
-cdef void random_mapping(double[:] z,
-                         double* data,
-                         int* indices,
-                         int n_nz,
-                         int id_transformer,
-                         double[:, ::1] random_weights,
-                         double[:] offset,
-                         int[:] orders,
-                         double[:] p_choice,
-                         double[:] coefs_maclaurin,
-                         double[:] z_cache,
-                         int[:] hash_indices,
-                         int[:] hash_signs,
-                         int degree,
-                         int kernel,
-                         double[:] anova,
-                         )
-
-cdef void random_fourier(double[:] z,
-                         double* data,
-                         int* indices,
-                         int n_nz,
-                         double[:, ::1] random_weights,
-                         double[:] bias
-                         )
-
-cdef void random_kernel(double[:] z,
+cdef class BaseCRandomFeature(object):
+    cdef Py_ssize_t n_components
+    cdef Py_ssize_t n_features
+    cdef void transform(self,
+                        double[:] z,
                         double* data,
                         int* indices,
-                        int n_nz,
-                        double[:, ::1] random_weights,
-                        int kernel,
-                        int degree,
-                        double[:] a)
+                        int n_nz)
+    
+cdef class CRandomFourier(BaseCRandomFeature):
+    cdef double[:, ::1] random_weights
+    cdef double[:] offset
+    cdef bint use_offset
+
+cdef class CRandomMaclaurin(BaseCRandomFeature):
+    cdef double[:, ::1] random_weights
+    cdef int[:] orders
+    cdef double[:] p_choice
+    cdef double[:] coefs
 
 
-cdef void random_maclaurin(double[:] z,
-                           double* data,
-                           int* indices,
-                           int n_nz,
-                           double[:, ::1] random_weights,
-                           int[:] orders,
-                           double[:] p_choice,
-                           double[:] coefs,
-                           )
+cdef class CTensorSketch(BaseCRandomFeature):
+    cdef int degree
+    cdef int[:] hash_indices
+    cdef int[:] hash_signs
+    cdef double[:] z_cache
 
-cdef void tensor_sketch(double[:] z,
-                        double[:] z_cache,
-                        double* data,
-                        int* indices,
-                        int n_nz,
-                        int degree,
-                        int[:] hash_indices,
-                        int[:] hash_signs)
+
+cdef class CRandomKernel(BaseCRandomFeature):
+    cdef double[:, ::1] random_weights
+    cdef int degree
+    cdef int kernel
+    cdef double[:] anova
+
