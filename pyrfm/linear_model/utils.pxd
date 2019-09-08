@@ -1,4 +1,4 @@
-from ..random_feature.random_mapping cimport BaseCRandomFeature
+from ..random_feature.random_features_fast cimport BaseCRandomFeature
 
 
 cdef void normalize(double[:] z,

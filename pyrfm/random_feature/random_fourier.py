@@ -41,7 +41,7 @@ class RandomFourier(BaseEstimator, TransformerMixin):
                                    or (n_components/2, n_features) (otherwise)
         The sampled basis.
 
-    offset_ : array or None, shape (n_components, )
+    random_offset_ : array or None, shape (n_components, )
         The sampled offset vector. If use_offset=False, offset_=None.
 
     References
@@ -83,10 +83,10 @@ class RandomFourier(BaseEstimator, TransformerMixin):
             raise ValueError('Kernel {} is not supported.'
                              'Use "rbf" or "Gaussian"'.format(self.kernel))
         if self.use_offset:
-            self.offset_ = random_state.uniform(0, 2*np.pi,
-                                                size=self.n_components)
+            self.random_offset_ = random_state.uniform(0, 2*np.pi,
+                                                       size=self.n_components)
         else:
-            self.offset_ = None
+            self.random_offset_ = None
 
         return self
 
@@ -95,7 +95,7 @@ class RandomFourier(BaseEstimator, TransformerMixin):
         X = check_array(X, accept_sparse=True)
         output = safe_sparse_dot(X, self.random_weights_.T, True)
         if self.use_offset:
-            output += self.offset_
+            output += self.random_offset_
             output = np.cos(output)
         else:
             output = np.hstack((np.cos(output), np.sin(output)))

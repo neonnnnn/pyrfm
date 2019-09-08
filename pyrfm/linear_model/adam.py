@@ -9,7 +9,7 @@ from sklearn.kernel_approximation import RBFSampler
 from .adam_fast import _adam_fast
 from sklearn.utils.validation import check_is_fitted
 from lightning.impl.dataset_fast import get_dataset
-from ..random_feature.random_mapping import get_fast_random_feature
+from ..random_feature.random_features_fast import get_fast_random_feature
 
 
 class BaseAdamEstimator(BaseLinear):

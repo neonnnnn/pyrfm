@@ -8,9 +8,20 @@ from libc.math cimport cos, sin, sqrt
 from scipy.fftpack._fftpack import drfft
 import numpy as np
 cimport numpy as np
+from sklearn.kernel_approximation import RBFSampler
 from lightning.impl.dataset_fast import get_dataset
 from lightning.impl.dataset_fast cimport RowDataset
 from cython.view cimport array
+from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,)
+
+
+RANDOMFEATURES = {
+    RandomFourier: CRandomFourier,
+    RandomKernel: CRandomKernel,
+    RandomMaclaurin: CRandomMaclaurin,
+    TensorSketch: CTensorSketch,
+    RBFSampler: CRBFSampler
+}
 
 
 cdef inline double dot(double* x,
@@ -34,12 +45,36 @@ cdef class BaseCRandomFeature(object):
         raise NotImplementedError("This is an abstract method.")
 
 
+cdef class CRBFSampler(BaseCRandomFeature):
+    def __init__(self, transformer):
+        self.n_components = transformer.n_components
+        self.n_features = transformer.random_weights_.shape[0]
+        self.random_weights = transformer.random_weights_
+        self.random_offset = transformer.random_offset_
+
+    cdef void transform(self,
+                        double[:] z,
+                        double* data,
+                        int* indices,
+                        int n_nz):
+        cdef Py_ssize_t i, j, jj
+        # z = (cos, cos, ..., cos)      
+        for i in range(self.n_components):
+            z[i] = self.random_offset[i]
+        for jj in range(n_nz):
+            j = indices[jj]
+            for i in range(self.n_components):
+                z[i] += data[jj] * self.random_weights[i, j]
+        for i in range(self.n_components):
+            z[i] = cos(z[i])*sqrt(2./self.n_components)
+
+
 cdef class CRandomFourier(BaseCRandomFeature):
     def __init__(self, transformer):
         self.n_components = transformer.n_components
         self.n_features = transformer.random_weights_.shape[1]
         self.random_weights = transformer.random_weights_
-        self.offset = transformer.offset_
+        self.random_offset = transformer.random_offset_
         self.use_offset = transformer.use_offset
 
     cdef void transform(self,
@@ -54,7 +89,7 @@ cdef class CRandomFourier(BaseCRandomFeature):
         if self.use_offset:
             for i in range(self.n_components):
                 z[i] = dot(data, indices, n_nz, &self.random_weights[i, 0])
-                z[i] += self.offset[i]
+                z[i] += self.random_offset[i]
                 z[i] = cos(z[i])*sqrt(2./self.n_components)
         # z = (cos, ..., cos, sin, ..., sin)
         else:
@@ -221,8 +256,7 @@ def transform_all_fast(X, transformer):
 
 
 def get_fast_random_feature(transformer):
-    name = transformer.__class__.__name__
-    if "C" + name in globals():
-        return globals()["C" + name](transformer)
+    if transformer.__class__ in RANDOMFEATURES:
+        return RANDOMFEATURES[transformer.__class__](transformer)
     else:
         return None

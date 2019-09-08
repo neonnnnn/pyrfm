@@ -6,7 +6,7 @@
 from libc.math cimport cos, sin, sqrt
 import numpy as np
 cimport numpy as np
-from ..random_feature.random_mapping cimport BaseCRandomFeature
+from ..random_feature.random_features_fast cimport BaseCRandomFeature
 
 
 cdef void normalize(double[:] z,

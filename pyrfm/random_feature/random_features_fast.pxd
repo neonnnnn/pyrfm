@@ -6,11 +6,17 @@ cdef class BaseCRandomFeature(object):
                         double* data,
                         int* indices,
                         int n_nz)
-    
+
+cdef class CRBFSampler(BaseCRandomFeature):
+    cdef double[:, ::1] random_weights
+    cdef double[:] random_offset
+
+
 cdef class CRandomFourier(BaseCRandomFeature):
     cdef double[:, ::1] random_weights
-    cdef double[:] offset
+    cdef double[:] random_offset
     cdef bint use_offset
+
 
 cdef class CRandomMaclaurin(BaseCRandomFeature):
     cdef double[:, ::1] random_weights

@@ -9,7 +9,7 @@ from .loss_fast cimport LossFunction
 import numpy as np
 cimport numpy as np
 from lightning.impl.dataset_fast cimport RowDataset
-from ..random_feature.random_mapping cimport BaseCRandomFeature
+from ..random_feature.random_features_fast cimport BaseCRandomFeature
 from cython.view cimport array
 
 
@@ -26,8 +26,6 @@ def _predict_fast(double[:] coef,
     cdef double[:] z = array((n_components, ), sizeof(double), format='d')
     for j in range(n_components):
         z[j] = 0
-    cdef double[:] z_cache = None
-    cdef double[:] anova = None
     # data pointers
     cdef int* indices
     cdef double* data

@@ -10,7 +10,7 @@ cimport numpy as np
 from lightning.impl.dataset_fast cimport RowDataset
 from .utils cimport transform, normalize
 from cython.view cimport array
-from ..random_feature.random_mapping cimport BaseCRandomFeature
+from ..random_feature.random_features_fast cimport BaseCRandomFeature
 
 
 cdef double adagrad_epoch(double[:] coef,

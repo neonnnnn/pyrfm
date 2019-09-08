@@ -11,7 +11,7 @@ cimport numpy as np
 from lightning.impl.dataset_fast cimport RowDataset
 from cython.view cimport array
 from .utils cimport transform, normalize
-from ..random_feature.random_mapping cimport BaseCRandomFeature
+from ..random_feature.random_features_fast cimport BaseCRandomFeature
 
 
 cdef inline double proximal(double coef,
