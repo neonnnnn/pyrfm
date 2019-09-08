@@ -1,4 +1,5 @@
-from lightning.impl.dataset_fast cimport RowDataset
+from ..random_feature.random_mapping cimport BaseCRandomFeature
+
 
 cdef void normalize(double[:] z,
                     double[:] mean,
@@ -15,16 +16,5 @@ cdef void transform(X_array,
                     int n_nz,
                     bint is_sparse,
                     transformer,
-                    int id_transformer,
-                    double[:, ::1] random_weights,
-                    double[:] offset,
-                    int[:] orders,
-                    double[:] p_choice,
-                    double[:] coefs_maclaurin,
-                    double[:] z_cache,
-                    int[:] hash_indices,
-                    int[:] hash_signs,
-                    int degree,
-                    int kernel,
-                    double[:] anova,
+                    BaseCRandomFeature transformer_fast
                     )
