@@ -12,7 +12,7 @@ cdef void _cunarize(double[:, ::1] output,
                     int n_grids):
     cdef double *x
     cdef int *indices
-    cdef int n_nz
+    cdef int n_nz, n_nz_z
     cdef Py_ssize_t n_samples, i, jj, j, k
 
     n_samples = X.get_n_samples()
@@ -21,12 +21,13 @@ cdef void _cunarize(double[:, ::1] output,
         X.get_row_ptr(i, &indices, &x, &n_nz)
         for jj in range(n_nz):
             j = indices[jj]
-            for k in range(int(x[jj]*n_grids)):
+            n_nz_z = int(x[jj]*n_grids)
+            for k in range(n_nz_z):
                 output[i, j*n_grids+k] = 1. / sqrt(n_grids)
 
             if x[jj] < 1:
-                output[i, j*n_grids+k] = (n_grids*x[jj] - int(n_grids*x[jj]))
-                output[i, j*n_grids+k] /= sqrt(n_grids)
+                output[i, j*n_grids+n_nz_z] = n_grids*x[jj] - int(n_grids*x[jj])
+                output[i, j*n_grids+n_nz_z] /= sqrt(n_grids)
 
 
 cdef void _make_sparse_mb(double[:] data,
@@ -61,6 +62,7 @@ cdef void _make_sparse_mb(double[:] data,
 
             data[offset+1] = val
             offset += 2
+
 
 def unarize(output, X, n_grids):
     _cunarize(output, X, n_grids)

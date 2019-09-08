@@ -12,12 +12,12 @@ def configuration(parent_package='', top_path=None):
                          language='c++',
                          include_dirs=[numpy.get_include()])
 
-    config.add_extension('cd_primal_sparse_mb',
-                         sources=['cd_primal_sparse_mb.pyx'],
+    config.add_extension("utils", sources=['utils.pyx'],
                          language='c++',
                          include_dirs=[numpy.get_include()])
 
-    config.add_extension("random_mapping", sources=['random_mapping.pyx'],
+    config.add_extension('cd_primal_sparse_mb',
+                         sources=['cd_primal_sparse_mb.pyx'],
                          language='c++',
                          include_dirs=[numpy.get_include()])
 

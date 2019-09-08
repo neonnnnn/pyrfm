@@ -1,6 +1,7 @@
 # pyrfm
-A library for random feature maps in Python.
+A library for random feature maps and linear models with random feature maps in Python.
 
+## What are random feature maps?
 Random feature maps are promising methods for large-scale kernel methods.
 They are maps from a original feature space to a randomized feature space 
 approximating a kernel-induced feature space.
@@ -10,7 +11,8 @@ When the dimension of the random feature map D is not so high and the number of
 training example N is large, this approach is very efficient compared to 
 canonical kernel methods.
 
-pyrfm follows the scikit-learn API and now **supports following random features**:
+## Random Feature Maps Implemented
+pyrfm follows the scikit-learn API and now **supports following random features**.
 
  - random Fourier feature (for the RBF kernel) [1]
  - signed circulant random Fourier feature (for the RBF kernel) [2]
@@ -22,7 +24,7 @@ pyrfm follows the scikit-learn API and now **supports following random features*
  - S.Maji and A.Berg feature (for the intersection (min) kernel) (this feature 
  is not random) [6]
  
-In other words, pyrfm now **provides approximaters for following kernels**:
+In other words, pyrfm now **provides approximaters for following kernels**.
  - RBF kernel (random Fourier, signed circulant random Fourier)
  - polynomial kernel (random Maclaurin, tensor sketching)
  - exponential kernel (random Maclaurin)
@@ -35,7 +37,8 @@ In other words, pyrfm now **provides approximaters for following kernels**:
 The random Fourier feature is also implemented in scikit-learn 
 (kernel_approximation.RBFSampler).
 
-Moreover, pyrfm **supports following solvers for linear models with random features**:
+## Linear Models Implemented
+Moreover, pyrfm **supports following solvers for linear models with random features**.
  - primal coordinate descent for sparse S.Maji and A.Berg feature [6,7]
  - AdaGrad for very-large-scale dataset: does not compute the random feature map
   of all examples at the same time (space efficient but slow) [8]
@@ -43,8 +46,25 @@ Moreover, pyrfm **supports following solvers for linear models with random featu
   of all examples at the same time (space efficient but slow) [9]
  - Adam for very-large-scale dataset: does not compute the random feature map
   of all examples at the same time (space efficient but slow) [10]
+  
+ All methods support squared loss for regression and hinge loss, squared hinge loss, and logistic loss for classification.
  
- # Installation
+ AdaGrad, SDCA, and Adam in pyrfm are for a very-large-scale dataset such that computing its random feature matrix (i.e., computing random features for all instances at the same time)
+ causes MemoryError.
+ If you can allocate memory for random feature matrix of your training data, you should use the other implementations of linear models (linear_model in scikit-learn, sklearn-contrib-lightning, etc). 
+ Now, these stochastic solvers run efficiently for following random features.
+  - RBFSampler (in sklearn.kernel_approximation)
+  - RandomFourier
+  - RandomMaclaurin
+  - TensorSketch
+  - RandomKernel
+ 
+ For improving efficiency, implement cdef class and cdef transform method for your desired transformer.
+ Please see random_feature/random_features_fast.pyx/pxd.
+ Although these stochastic solvers **support any transformers, they might run unbelievable slow** when there is no cdef class and cdef transform method for your desired transformer in random_features_fast.pyx/pxd.
+
+ 
+ ## Installation
  1. Download the source codes by
  
  
@@ -64,7 +84,7 @@ Moreover, pyrfm **supports following solvers for linear models with random featu
  
     python setup.py install
     
- # References
+ ## References
     [1] Ali Rahmini and Ben Recht. Random Feature Maps for Large-Scale Kernel Machines. 
         In Proc. NIPS, pp. 1177--1184, 2007.
     [2] Chang Feng, Qinghua Hu, and Shizhog Liao. Random Feature Mapping with Signed Circulant Matrix Projection. 

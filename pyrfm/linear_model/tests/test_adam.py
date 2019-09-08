@@ -2,8 +2,7 @@ import numpy as np
 
 from sklearn.utils.testing import (assert_greater_equal, assert_almost_equal,
                                    assert_less_equal)
-from pyrfm import (MB, TensorSketch, RandomKernel, RandomMaclaurin,
-                   SignedCirculantRandomKernel, RandomFourier,
+from pyrfm import (TensorSketch, RandomKernel, RandomMaclaurin, RandomFourier,
                    AdamClassifier, AdamRegressor)
 from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.preprocessing import StandardScaler

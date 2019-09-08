@@ -117,6 +117,7 @@ cdef class SquaredHinge(LossFunction):
         else:
             return update
 
+
 cdef class Hinge(LossFunction):
     """hinge loss: L(p, y) = max(1 - y*p, 0)"""
 
@@ -144,4 +145,3 @@ cdef class Hinge(LossFunction):
                             double scale):
         cdef double z = (1-y*p) / scale + alpha*y
         return y*fmax(0, fmin(1, z)) - alpha
-
