@@ -9,6 +9,7 @@ from sklearn.externals import six
 from sklearn.utils.multiclass import type_of_target
 from ..random_feature import (RandomFourier, RandomMaclaurin, TensorSketch,
                               RandomKernel)
+from ..random_feature.random_mapping import get_fast_random_feature
 from sklearn.kernel_approximation import RBFSampler
 from lightning.impl.dataset_fast import get_dataset
 from .stochastic_predict import _predict_fast
@@ -50,10 +51,9 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
         check_is_fitted(self, 'coef_')
         if getattr(self, 'stochastic', False):
             y_pred = np.zeros(X.shape[0])
-            id_transform = self._get_id_transformer()
             is_sparse = sparse.issparse(X)
-
-            if id_transform == -1 or not self.fast_solver:
+            transformer_fast = get_fast_random_feature(self.transformer)
+            if transformer_fast is None or not self.fast_solver:
                 for i, xi in enumerate(X):
                     if is_sparse:
                         xi_trans = self.transformer.transform(xi).ravel()
@@ -68,10 +68,8 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
                     y_pred[i] = safe_sparse_dot(xi_trans, self.coef_)
 
             else:
-                params = self._get_transformer_params(id_transform)
                 _predict_fast(self.coef_, get_dataset(X, order='c'), y_pred,
-                              self.mean_, self.var_, self.transformer,
-                              id_transform, **params)
+                              self.mean_, self.var_, transformer_fast)
         else:
             X_trans = self.transformer_.transform(X)
             y_pred = safe_sparse_dot(X_trans, self.coef_.T)
@@ -83,46 +81,6 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
             y_pred = y_pred.ravel()
 
         return y_pred
-
-    def _get_id_transformer(self):
-        # 0: RandomFourier 1: RandomMaclaurin 2: TensorSketch 3:RandomKernel
-        if isinstance(self.transformer, self.TRANSFORMERS):
-            id_transformer = self.TRANSFORMERS.index(type(self.transformer))
-        else:
-            if isinstance(self.transformer, RBFSampler):
-                id_transformer = 0
-            else:
-                id_transformer = -1
-        if isinstance(self.transformer, RandomKernel):
-            if self.transformer.kernel not in ['anova', 'anova_cython',
-                                               'all_subsets']:
-                id_transformer = -1
-        return id_transformer
-
-    def _get_transformer_params(self, id_transformer):
-        params = {}
-        params['random_weights'] = getattr(self.transformer, 'random_weights_',
-                                           None)
-        params['offset'] = getattr(self.transformer, 'offset_', None)
-        params['orders'] = getattr(self.transformer, 'orders_', None)
-        params['p_choice'] = getattr(self.transformer, 'p_choice', None)
-        params['coefs_maclaurin'] = getattr(self.transformer, 'coefs', None)
-        params['hash_indices'] = getattr(self.transformer, 'hash_indices_',
-                                         None)
-        params['hash_signs'] = getattr(self.transformer, 'hash_signs_', None)
-        params['degree'] = getattr(self.transformer, 'degree', -1)
-        kernel = -1
-
-        if id_transformer == 2 or id_transformer == -1:
-            params['random_weights'] = None
-        # for Random Kernel
-        if id_transformer == 3:
-            if self.transformer.kernel in ['anova', 'anova_cython']:
-                kernel = 0
-            elif self.transformer.kernel == 'all_subsets':
-                kernel = 1
-        params['kernel'] = kernel
-        return params
 
 
 class LinearClassifierMixin(BaseLinear, ClassifierMixin):

@@ -9,6 +9,7 @@ from sklearn.kernel_approximation import RBFSampler
 from .adam_fast import _adam_fast
 from sklearn.utils.validation import check_is_fitted
 from lightning.impl.dataset_fast import get_dataset
+from ..random_feature.random_mapping import get_fast_random_feature
 
 
 class BaseAdamEstimator(BaseLinear):
@@ -189,12 +190,6 @@ class BaseAdamEstimator(BaseLinear):
         loss = self.LOSSES[self.loss]
         alpha = self.alpha / self.C
         random_state = check_random_state(self.random_state)
-
-        id_transformer = self._get_id_transformer()
-        if not self.fast_solver:
-            id_transformer = -1
-        params = self._get_transformer_params(id_transformer)
-
         is_sparse = sparse.issparse(X)
         it = _adam_fast(self.coef_, self.intercept_,
                         get_dataset(X, order='c'), X, y, self.mean_grad_,
@@ -204,8 +199,8 @@ class BaseAdamEstimator(BaseLinear):
                         self.eta, self.beta1, self.beta2, self.t_,
                         self.max_iter, self.tol, self.eps, is_sparse,
                         self.verbose, self.fit_intercept, self.shuffle,
-                        random_state, self.transformer, id_transformer,
-                        **params)
+                        random_state, self.transformer,
+                        get_fast_random_feature(self.transformer))
         self.t_ += n_samples*(it+1)
 
         return self

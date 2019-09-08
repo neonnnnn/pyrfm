@@ -9,6 +9,7 @@ from sklearn.kernel_approximation import RBFSampler
 from .adagrad_fast import _adagrad_fast
 from sklearn.utils.validation import check_is_fitted
 from lightning.impl.dataset_fast import get_dataset
+from ..random_feature.random_mapping import get_fast_random_feature
 
 
 class BaseAdaGradEstimator(BaseLinear):
@@ -180,11 +181,6 @@ class BaseAdaGradEstimator(BaseLinear):
         alpha = self.alpha / self.C
         random_state = check_random_state(self.random_state)
 
-        id_transformer = self._get_id_transformer()
-        if not self.fast_solver:
-            id_transformer = -1
-        params = self._get_transformer_params(id_transformer)
-
         is_sparse = sparse.issparse(X)
         it = _adagrad_fast(self.coef_, self.intercept_,
                            get_dataset(X, order='c'), X, y, self.acc_grad_,
@@ -193,8 +189,8 @@ class BaseAdaGradEstimator(BaseLinear):
                            loss, alpha, self.l1_ratio, self.eta, self.t_,
                            self.max_iter, self.tol, self.eps, is_sparse,
                            self.verbose, self.fit_intercept, self.shuffle,
-                           random_state, self.transformer, id_transformer,
-                           **params)
+                           random_state, self.transformer,
+                           get_fast_random_feature(self.transformer))
         self.t_ += n_samples*(it+1)
 
         return self

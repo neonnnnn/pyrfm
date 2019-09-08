@@ -11,6 +11,7 @@ cimport numpy as np
 from lightning.impl.dataset_fast cimport RowDataset
 from cython.view cimport array
 from .utils cimport transform, normalize
+from ..random_feature.random_mapping cimport BaseCRandomFeature
 
 
 cdef inline double proximal(double coef,
@@ -39,20 +40,9 @@ cdef double _sgd_initialization(double[:] coef,
                                 bint is_sparse,
                                 bint fit_intercept,
                                 transformer,
-                                int id_transformer,
+                                BaseCRandomFeature transformer_fast,
                                 np.ndarray[int, ndim=1] indices_samples,
                                 double[:] z,
-                                double[:, ::1] random_weights,
-                                double[:] offset,
-                                int[:] orders,
-                                double[:] p_choice,
-                                double[:] coefs_maclaurin,
-                                double[:] z_cache,
-                                int[:] hash_indices,
-                                int[:] hash_signs,
-                                int degree,
-                                int kernel,
-                                double[:] anova,
                                 random_state):
     cdef Py_ssize_t i, ii, j
     cdef int n_samples, n_components
@@ -68,9 +58,7 @@ cdef double _sgd_initialization(double[:] coef,
         i = indices_samples[i]
         X.get_row_ptr(i, &indices, &data, &n_nz)
         transform(X_array, z, i, data, indices, n_nz, is_sparse, transformer,
-                  id_transformer, random_weights, offset, orders, p_choice,
-                  coefs_maclaurin, z_cache, hash_indices, hash_signs,
-                  degree, kernel, anova)
+                  transformer_fast)
 
         for j in range(n_components):
             mean[j] = z[j]
@@ -81,9 +69,7 @@ cdef double _sgd_initialization(double[:] coef,
         X.get_row_ptr(i, &indices, &data, &n_nz)
         # compute random feature
         transform(X_array, z, i, data, indices, n_nz, is_sparse, transformer,
-                  id_transformer, random_weights, offset, orders, p_choice,
-                  coefs_maclaurin, z_cache, hash_indices, hash_signs,
-                  degree, kernel, anova)
+                  transformer_fast)
         # if normalize
         if mean is not None:
             normalize(z, mean, var, t[0], n_components)
@@ -141,20 +127,9 @@ cdef double _sdca_epoch(double[:] coef,
                         bint is_sparse,
                         bint fit_intercept,
                         transformer,
-                        int id_transformer,
+                        BaseCRandomFeature transformer_fast,
                         np.ndarray[int, ndim=1] indices_samples,
                         double[:] z,
-                        double[:, ::1] random_weights,
-                        double[:] offset,
-                        int[:] orders,
-                        double[:] p_choice,
-                        double[:] coefs_maclaurin,
-                        double[:] z_cache,
-                        int[:] hash_indices,
-                        int[:] hash_signs,
-                        int degree,
-                        int kernel,
-                        double[:] anova
                         ):
     cdef Py_ssize_t i, ii, j
     cdef int n_samples, n_components
@@ -172,9 +147,7 @@ cdef double _sdca_epoch(double[:] coef,
         i = indices_samples[ii]
         X.get_row_ptr(i, &indices, &data, &n_nz)
         transform(X_array, z, i, data, indices, n_nz, is_sparse, transformer,
-                  id_transformer, random_weights, offset, orders, p_choice,
-                  coefs_maclaurin, z_cache, hash_indices, hash_signs,
-                  degree, kernel, anova)
+                  transformer_fast)
 
         # if normalize
         if mean is not None:
@@ -237,16 +210,7 @@ def _sdca_fast(double[:] coef,
                bint shuffle,
                random_state,
                transformer,
-               int id_transformer,
-               double[:, ::1] random_weights,
-               double[:] offset,
-               int[:] orders,
-               double[:] p_choice,
-               double[:] coefs_maclaurin,
-               int[:] hash_indices,
-               int[:] hash_signs,
-               int degree,
-               int kernel,
+               BaseCRandomFeature transformer_fast
                ):
     cdef Py_ssize_t it, i, j
     cdef int n_samples, n_components
@@ -261,17 +225,7 @@ def _sdca_fast(double[:] coef,
     cdef double[:] z = array((n_components, ), sizeof(double), format='d')
     for i in range(n_components):
         z[i] = 0
-    cdef double[:] z_cache = None
-    cdef double[:] anova = None
-    if id_transformer == 2:
-        z_cache = array((n_components, ), sizeof(double), format='d')
-        for i in range(n_components):
-            z_cache[i] = 0
-    if id_transformer == 3 and kernel == 0:
-        anova = array((degree+1, ), sizeof(double), format='d')
-        for i in range(degree+1):
-            anova[i] = 0
-        anova[0] = 1
+
 
     it = 0
 
@@ -282,11 +236,8 @@ def _sdca_fast(double[:] coef,
         gap = _sgd_initialization(coef, dual_coef, intercept, X, X_array, y,
                                   mean, var, loss, lam1, lam2, &t, tol,
                                   is_sparse, fit_intercept, transformer,
-                                  id_transformer, indices_samples, z,
-                                  random_weights, offset, orders, p_choice,
-                                  coefs_maclaurin,
-                                  z_cache, hash_indices, hash_signs, degree,
-                                  kernel, anova, random_state)
+                                  transformer_fast, indices_samples, z,
+                                  random_state)
         if verbose:
             print("SGD Initialization Done. Duality Gap {}".format(gap))
 
@@ -296,10 +247,7 @@ def _sdca_fast(double[:] coef,
             random_state.shuffle(indices_samples)
         gap = _sdca_epoch(coef, dual_coef, intercept, X, X_array, y, mean, var,
                           loss, lam1, lam2, &t, is_sparse, fit_intercept,
-                          transformer, id_transformer, indices_samples, z,
-                          random_weights, offset, orders, p_choice,
-                          coefs_maclaurin, z_cache, hash_indices,
-                          hash_signs, degree, kernel, anova)
+                          transformer, transformer_fast, indices_samples, z)
         if verbose:
             print("Iteration {} Duality Gap {}".format(it+1, gap))
         if gap < tol:

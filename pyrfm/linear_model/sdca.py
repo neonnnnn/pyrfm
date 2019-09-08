@@ -7,6 +7,7 @@ from .base import BaseLinear, LinearClassifierMixin, LinearRegressorMixin
 from sklearn.kernel_approximation import RBFSampler
 from .sdca_fast import _sdca_fast
 from lightning.impl.dataset_fast import get_dataset
+from ..random_feature.random_mapping import get_fast_random_feature
 
 
 class BaseSDCAEstimator(BaseLinear):
@@ -154,17 +155,13 @@ class BaseSDCAEstimator(BaseLinear):
         random_state = check_random_state(self.random_state)
 
         is_sparse = sparse.issparse(X)
-        id_transformer = self._get_id_transformer()
-        if not self.fast_solver:
-            id_transformer = -1
-        params = self._get_transformer_params(id_transformer)
         it = _sdca_fast(self.coef_, self.dual_coef_, self.intercept_,
                         get_dataset(X, order='c'), X, y,
                         self.mean_, self.var_, loss, alpha,
                         self.l1_ratio, self.t_, self.max_iter, self.tol,
                         is_sparse, self.verbose, self.fit_intercept,
                         self.shuffle, random_state, self.transformer,
-                        id_transformer, **params)
+                        get_fast_random_feature(self.transformer))
         self.t_ += n_samples*(it+1)
 
         return self

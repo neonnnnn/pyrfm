@@ -3,7 +3,6 @@
 # cython: cdivision=True
 # cython: boundscheck=False
 # cython: wraparound=False
-
 from libc.math cimport fabs, sqrt
 from .loss_fast cimport LossFunction
 import numpy as np
@@ -11,6 +10,7 @@ cimport numpy as np
 from lightning.impl.dataset_fast cimport RowDataset
 from .utils cimport transform, normalize
 from cython.view cimport array
+from ..random_feature.random_mapping cimport BaseCRandomFeature
 
 
 cdef double adagrad_epoch(double[:] coef,
@@ -36,20 +36,9 @@ cdef double adagrad_epoch(double[:] coef,
                           random_state,
                           double* acc_loss,
                           transformer,
-                          int id_transformer,
+                          BaseCRandomFeature transformer_fast,
                           np.ndarray[int, ndim=1] indices_samples,
-                          double[:] z,
-                          double[:, ::1] random_weights,
-                          double[:] offset,
-                          int[:] orders,
-                          double[:] p_choice,
-                          double[:] coefs_maclaurin,
-                          double[:] z_cache,
-                          int[:] hash_indices,
-                          int[:] hash_signs,
-                          int degree,
-                          int kernel,
-                          double[:] anova):
+                          double[:] z):
 
     cdef Py_ssize_t i, ii, j
     cdef int n_samples, n_components
@@ -69,19 +58,15 @@ cdef double adagrad_epoch(double[:] coef,
         i = indices_samples[i]
         X.get_row_ptr(i, &indices, &data, &n_nz)
         transform(X_array, z, i, data, indices, n_nz, is_sparse, transformer,
-                  id_transformer, random_weights, offset, orders, p_choice,
-                  coefs_maclaurin, z_cache, hash_indices, hash_signs,
-                  degree, kernel, anova)
+                  transformer_fast)
         for j in range(n_components):
             mean[j] = z[j]
 
     for ii in range(n_samples):
         i = indices_samples[ii]
         X.get_row_ptr(i, &indices, &data, &n_nz)
-        transform(X_array, z, i, data, indices, n_nz, is_sparse,
-                  transformer, id_transformer, random_weights, offset,
-                  orders, p_choice, coefs_maclaurin, z_cache, hash_indices,
-                  hash_signs, degree, kernel, anova)
+        transform(X_array, z, i, data, indices, n_nz, is_sparse, transformer,
+                  transformer_fast)
 
         # if normalize
         if mean is not None:
@@ -158,17 +143,7 @@ def _adagrad_fast(double[:] coef,
                   bint shuffle,
                   random_state,
                   transformer,
-                  int id_transformer,
-                  double[:, ::1] random_weights,
-                  double[:] offset,
-                  int[:] orders,
-                  double[:] p_choice,
-                  double[:] coefs_maclaurin,
-                  int[:] hash_indices,
-                  int[:] hash_signs,
-                  int degree,
-                  int kernel
-                  ):
+                  BaseCRandomFeature transformer_fast):
     cdef Py_ssize_t it, n_samples, n_components, j
     cdef double viol, lam1, lam2, acc_loss
     lam1 = alpha * l1_ratio
@@ -181,17 +156,6 @@ def _adagrad_fast(double[:] coef,
     cdef double[:] z = array((n_components, ), sizeof(double), format='d')
     for j in range(n_components):
         z[j] = 0
-    cdef double[:] z_cache = None
-    cdef double[:] anova = None
-    if id_transformer == 2:
-        z_cache = array((n_components, ), sizeof(double), format='d')
-        for j in range(n_components):
-            z_cache[j] = 0
-    if id_transformer == 3 and kernel == 0:
-        anova = array((degree+1, ), sizeof(double), format='d')
-        for j in range(degree+1):
-            anova[j] = 0
-        anova[0] = 1
 
     it = 0
     for it in range(max_iter):
@@ -201,10 +165,8 @@ def _adagrad_fast(double[:] coef,
                              acc_grad_norm_intercept, mean, var, loss, lam1,
                              lam2, eta, &t, eps, is_sparse,
                              fit_intercept, shuffle, random_state, &acc_loss,
-                             transformer, id_transformer, indices_samples, z,
-                             random_weights, offset, orders, p_choice,
-                             coefs_maclaurin, z_cache,
-                             hash_indices, hash_signs, degree, kernel, anova)
+                             transformer, transformer_fast, indices_samples, z,
+                             )
         if verbose:
             print("Iteration {} Violation {} Loss {}".format(it+1, viol,
                                                              acc_loss))
