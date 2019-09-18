@@ -6,64 +6,23 @@ from sklearn.utils.extmath import safe_sparse_dot
 from scipy.sparse import csc_matrix, issparse
 from math import sqrt
 from ..kernels import anova, all_subsets, anova_fast, pairwise
-from .sparse_rademacher import sparse_rademacher
+from .utils import get_random_matrix
 
 
 def _anova(degree=2, dense_output=True):
-    def __anova(X, P):
-        return anova(X, P, degree, dense_output)
-
-    return __anova
+    return lambda X, Y: anova(X, Y, degree, dense_output=dense_output)
 
 
 def _anova_fast(degree=2, dense_output=True):
-    def __anova_fast(X, P):
-        return anova_fast(X, P, degree, dense_output=dense_output)
-    return __anova_fast
+    return lambda X, Y: anova_fast(X, Y, degree, dense_output=dense_output)
 
 
-def dot():
-    def _dot(X, Y, dense_output=True):
-        return safe_sparse_dot(X, Y.T, dense_output)
-
-    return _dot
+def dot(dense_output=True):
+    return lambda X, Y: safe_sparse_dot(X, Y.T, dense_output)
 
 
 def _pairwise(dense_output=True, symmetric=False):
-    def __pairwise(X, Y):
-        return pairwise(X, Y, dense_output, symmetric)
-    return __pairwise
-
-
-def get_random_matrix(rng, distribution, size, p_sparse=0.):
-    # size = (n_components, n_features)
-    if distribution == 'rademacher':
-        return (rng.randint(2, size=size)*2 - 1).astype(np.float64)
-    elif distribution in ['gaussian', 'normal']:
-        return rng.normal(0, 1, size)
-    elif distribution == 'uniform':
-        return rng.uniform(-np.sqrt(3), np.sqrt(3), size)
-    elif distribution == 'laplace':
-        return rng.laplace(0, 1./np.sqrt(2), size)
-    elif distribution == 'sparse_rademacher':
-        # n_nzs : (n_features, )
-        # n_nzs[j] is n_nz of random_weights[:, j]
-        """
-        n_nzs = rng.binomial(size[0], 1-p_sparse, size[1])
-        indptr = np.append(0, np.cumsum(n_nzs))
-        arange = np.arange(size[0])
-        indices = [rng.choice(arange, size=nnz, replace=False) for nnz in n_nzs]
-        data = (rng.randint(2, size=np.sum(n_nzs))*2-1) / np.sqrt(1-p_sparse)
-        return csc_matrix((data, np.concatenate(indices), indptr), shape=size)
-        """
-        return sparse_rademacher(rng,
-                                 np.array(size, dtype=np.int32),
-                                 p_sparse)
-
-    else:
-        raise ValueError('{} distribution is not implemented. Please use'
-                         'rademacher, gaussian (normal), uniform or laplace.'
-                         .format(distribution))
+    return lambda X, Y: pairwise(X, Y, dense_output, symmetric)
 
 
 def get_feature_indices(rng, n_sub_features, n_features, n_components):
@@ -81,24 +40,24 @@ class RandomKernel(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    n_components : int
+    n_components : int (default=100)
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
 
-    kernel : str
+    kernel : str (default="anova")
         Kernel to be approximated.
         "anova", "anova_cython", "all-subsets", "dot", or "pairwise"
         can be used.
 
-    degree : int
+    degree : int (default=2)
         Parameter of the ANOVA kernel.
 
-    distribution : str
+    distribution : str, (default="rademacher")
         Distribution for random_weights_.
         "rademacher", "gaussian", "laplace", "uniform", or "sparse_rademacher"
         can be used.
 
-    dense_output : bool, default=True
+    dense_output : bool (default=True)
         Whether randomized feature matrix is dense or sparse.
         For kernel='anova', if dense_output = False,
         distribution='sparse_rademacher', and X is sparse matrix, output random
@@ -106,12 +65,9 @@ class RandomKernel(BaseEstimator, TransformerMixin):
         For kernel='anova_cython', if dense_output=False, output random feature
         matrix will become sparse matrix.
 
-    p_sparse : float
+    p_sparse : float (default=0.)
         Sparsity parameter for "sparse_rademacher" distribution.
         If p_sparse = 0, "sparse_rademacher" is equivalent to "rademacher".
-
-    symmetric : bool
-        Whether symmetrize or not for pairwise kernel.
 
     random_state : int, RandomState instance or None, optional (default=None)
         If int, random_state is the seed used by the random number generator;
@@ -129,18 +85,17 @@ class RandomKernel(BaseEstimator, TransformerMixin):
     [1] Random Feature Maps for the Itemset Kernel.
     Kyohei Atarashi, Subhransu Maji, and Satoshi Oyama
     In AAAI 2019.
-    (https://eprints.lib.hokudai.ac.jp/dspace/bitstream/2115/73469/1/aaai19_3875_camera_ready.pdf)
+    (https://www.aaai.org/ojs/index.php/AAAI/article/view/4188)
     """
     def __init__(self, n_components=100, kernel='anova', degree=2,
                  distribution='rademacher', dense_output=True, p_sparse=0.,
-                 symmetric=False, random_state=None):
+                 random_state=None):
         self.n_components = n_components
         self.kernel = kernel
         self.degree = degree
         self.distribution = distribution
         self.dense_output = dense_output
         self.p_sparse = p_sparse
-        self.symmetric = symmetric
         self.random_state = random_state
 
     def fit(self, X, y=None):

@@ -12,18 +12,18 @@ class RandomFourier(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    n_components : int
+    n_components : int (default=100)
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
-    
-    gamma : float or str
-        Parameter for the RBF kernel.
-        
-    kernel : str
-        Kernel to be approximated.
-        "anova", "dot", or "all-subsets" can be used.
 
-    use_offset : bool, default=False
+    kernel : str (default="rbf")
+        Kernel to be approximated.
+        Now only "rbf" can be used.
+
+    gamma : float or str (default="auto")
+        Parameter for the RBF kernel.
+
+    use_offset : bool (default=False)
         If True, Z(x) = (cos(w_1x+b_1), cos(w_2x+b_2), ... , cos(w_Dx+b_D),
         where w is random_weights and b is offset (D=n_components).
         If False, Z(x) = (cos(w1x), ..., cos(w_{D/2}x), sin(w_1x), ...,
@@ -77,8 +77,8 @@ class RandomFourier(BaseEstimator, TransformerMixin):
         size = (n_components, n_features)
         # TODO: Implement other shift-invariant kernels
         if self.kernel in ['rbf', 'gaussian']:
-            self.random_weights_ = random_state.normal(size=size,
-                                                       scale=np.sqrt(2*gamma))
+            self.random_weights_ = random_state.normal(size=size)
+            self.random_weights_ *= np.sqrt(2*gamma)
         else:
             raise ValueError('Kernel {} is not supported.'
                              'Use "rbf" or "Gaussian"'.format(self.kernel))

@@ -13,36 +13,36 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    n_components : int
+    n_components : int (default=100)
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
 
-    p : int
+    p : int (default=10)
         Parameter of the distribution that determines which components of the
         Maclaurin series are approximated.
 
-    kernel : str or callable
+    kernel : str or callable (default="poly")
         Type of kernel function. 'poly', 'exp', or callable are accepted.
         If callable, its arguments are two numpy-like objects, and return a
         numpy-like object.
         if str, only 'poly' or 'exp' is acceptable.
 
-    degree : int
+    degree : int (default=2)
         Parameter of the polynomial product kernel.
 
-    gamma : float or str
+    gamma : float or str (default="auto")
         Parameter of the exponential kernel.
 
-    bias : float
+    bias : float (default=0)
         Parameter of the polynomial kernel.
 
     coefs : list-like (default=None)
         list of coefficients of Maclaurin expansion.
 
-    max_expansion : int
+    max_expansion : int (default=50)
         Threshold of Maclaurin expansion.
 
-    h01 : bool
+    h01 : bool (default=False)
         Use h01 heuristic or not. See [1].
 
     random_state : int, RandomState instance or None, optional (default=None)

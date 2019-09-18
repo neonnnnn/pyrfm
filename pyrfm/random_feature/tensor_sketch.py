@@ -40,11 +40,11 @@ class TensorSketch(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    n_components : int
+    n_components : int (default=100)
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
 
-    degree : int
+    degree : int (default=2)
         Parameter of the polynomial product kernel.
 
     random_state : int, RandomState instance or None, optional (default=None)

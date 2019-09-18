@@ -4,11 +4,9 @@ from sklearn.utils import check_array
 from sklearn.utils.validation import check_is_fitted
 
 from scipy.sparse import csc_matrix
-from math import sqrt
 import warnings
 from lightning.impl.dataset_fast import get_dataset
 from .unarize import unarize, make_sparse_mb
-from scipy.sparse import issparse
 
 
 class MB(BaseEstimator, TransformerMixin):
@@ -17,7 +15,7 @@ class MB(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    n_components : int
+    n_components : int (default=1000)
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
 
@@ -35,16 +33,16 @@ class MB(BaseEstimator, TransformerMixin):
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         self.n_grids_ = self.n_components // n_features
-        self.n_components_actual_ = self.n_grids_ * n_features
+        n_components = self.n_grids_ * n_features
         if self.n_components % n_features != 0:
             warnings.warn("self.n_components is indivisible by n_features."
-                          "Output.shape[1] is "
-                          "{}".format(self.n_components_actual_))
-
+                          "n_components is changed from {} to {}"
+                          .format(self.n_components, n_components))
+            self.n_components = n_components
         return self
 
     def transform(self, X):
-        check_is_fitted(self, "n_components_actual_")
+        check_is_fitted(self, "n_grids_")
         X = check_array(X, accept_sparse=['csc'])
         n_samples, n_features = X.shape
         if np.max(X) > 1:
@@ -53,9 +51,9 @@ class MB(BaseEstimator, TransformerMixin):
         if np.min(X) < 0:
             raise ValueError("The minimum value of X is lower than 1.")
 
-        if self.n_components_actual_ != self.n_grids_*n_features:
+        if self.n_components != self.n_grids_*n_features:
             raise ValueError("X.shape[1] is different from X_train.shape[1].")
-        output = np.zeros((n_samples, self.n_components_actual_))
+        output = np.zeros((n_samples, self.n_components))
         unarize(output, get_dataset(X, order='c'), self.n_grids_)
 
         return output
@@ -70,7 +68,7 @@ class SparseMB(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    n_components : int
+    n_components : int (default=1000)
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
 
@@ -81,25 +79,27 @@ class SparseMB(BaseEstimator, TransformerMixin):
     In ICCV 2009.
     (http://acberg.com/papers/mb09iccv.pdf)
     """
-    def __init__(self, n_components=100):
+    def __init__(self, n_components=1000):
         self.n_components = n_components
 
     def fit(self, X, y=None):
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
-        self.n_grids_ = self.n_components // n_features
-        self.n_components_actual_ = self.n_grids_*n_features
         if self.n_components < n_features:
             raise ValueError("self.n_components is lower than n_features "
                              "(X.shape[1]).")
+        self.n_grids_ = self.n_components // n_features
+        n_components = self.n_grids_*n_features
+
         if self.n_components % n_features != 0:
-            warnings.warn("n_components is indivisible by n_features."
-                          "Output.shape[1] is "
-                          "{}".format(self.n_components_actual_))
+            warnings.warn("self.n_components is indivisible by n_features."
+                          "n_components is changed from {} to {}"
+                          .format(self.n_components, n_components))
+            self.n_components = n_components
         return self
 
     def transform(self, X):
-        check_is_fitted(self, "n_components_actual_")
+        check_is_fitted(self, "n_grids_")
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
 
@@ -109,7 +109,7 @@ class SparseMB(BaseEstimator, TransformerMixin):
         if np.min(X) < 0:
             raise ValueError("The minimum value of X is lower than 1.")
 
-        if self.n_components_actual_ != self.n_grids_*n_features:
+        if self.n_components != self.n_grids_*n_features:
             raise ValueError("X.shape[1] is different from X_train.shape[1].")
         dataset = get_dataset(X, order='c')
         data = np.zeros(X.size*2)
@@ -118,4 +118,4 @@ class SparseMB(BaseEstimator, TransformerMixin):
 
         make_sparse_mb(data, row, col, dataset, self.n_grids_)
         return csc_matrix((data, (row, col)),
-                          shape=(n_samples, self.n_components_actual_))
+                          shape=(n_samples, self.n_components))
