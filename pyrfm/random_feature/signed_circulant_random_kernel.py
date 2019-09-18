@@ -15,11 +15,11 @@ class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    n_components : int
+    n_components : int (default=100)
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
 
-    degree : int
+    degree : int (default=2)
         Parameter of the ANOVA kernel.
 
     random_state : int, RandomState instance or None, optional (default=None)
@@ -33,7 +33,7 @@ class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
     [1] Random Feature Maps for the Itemset Kernel.
     Kyohei Atarashi, Subhransu Maji, and Satoshi Oyama
     In AAAI 2019.
-    (https://eprints.lib.hokudai.ac.jp/dspace/bitstream/2115/73469/1/aaai19_3875_camera_ready.pdf)
+    (https://www.aaai.org/ojs/index.php/AAAI/article/view/4188)
     """
     def __init__(self, n_components, kernel='anova', degree=2,
                  random_state=None):
