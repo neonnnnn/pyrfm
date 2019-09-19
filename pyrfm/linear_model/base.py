@@ -7,10 +7,7 @@ from sklearn.utils import check_X_y
 from sklearn.utils.validation import check_is_fitted
 from sklearn.externals import six
 from sklearn.utils.multiclass import type_of_target
-from ..random_feature import (RandomFourier, RandomMaclaurin, TensorSketch,
-                              RandomKernel)
 from ..random_feature.random_features_fast import get_fast_random_feature
-from sklearn.kernel_approximation import RBFSampler
 from lightning.impl.dataset_fast import get_dataset
 from .stochastic_predict import _predict_fast
 from scipy import sparse
@@ -21,8 +18,6 @@ def sigmoid(pred):
 
 
 class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
-    TRANSFORMERS = (RandomFourier, RandomMaclaurin, TensorSketch, RandomKernel)
-
     # for stochastic solver
     def _init_params(self, n_components):
         if not (self.warm_start and hasattr(self, 'coef_')):
@@ -49,16 +44,20 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
 
     def _predict(self, X):
         check_is_fitted(self, 'coef_')
+        if hasattr(self, "transformer_"):
+            transformer = self.transformer_
+        else:
+            transformer = self.transformer
         if getattr(self, 'stochastic', False):
             y_pred = np.zeros(X.shape[0])
             is_sparse = sparse.issparse(X)
-            transformer_fast = get_fast_random_feature(self.transformer)
+            transformer_fast = get_fast_random_feature(transformer)
             if transformer_fast is None or not self.fast_solver:
                 for i, xi in enumerate(X):
                     if is_sparse:
-                        xi_trans = self.transformer.transform(xi).ravel()
+                        xi_trans = transformer.transform(xi).ravel()
                     else:
-                        xi_trans = self.transformer.transform(
+                        xi_trans = transformer.transform(
                             np.atleast_2d(xi)).ravel()
 
                     if self.normalize:
@@ -71,7 +70,7 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
                 _predict_fast(self.coef_, get_dataset(X, order='c'), y_pred,
                               self.mean_, self.var_, transformer_fast)
         else:
-            X_trans = self.transformer_.transform(X)
+            X_trans = transformer.transform(X)
             y_pred = safe_sparse_dot(X_trans, self.coef_.T)
 
         if self.fit_intercept and hasattr(self, 'intercept_'):

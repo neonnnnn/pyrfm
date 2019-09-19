@@ -12,9 +12,6 @@ import numpy as np
 cimport numpy as np
 
 
-# (block) coordinate descent
-# update W[1, j], \ldots, W[n_outputs, j] at the same time independently
-# Hence, does not compute (n_outputs \times n_outputs) Hessian.
 cdef double _cd_primal_epoch(double[:] coef,
                              ColumnDataset X,
                              double[:] y,
@@ -41,31 +38,26 @@ cdef double _cd_primal_epoch(double[:] coef,
     for jj in range(n_features):
         j = index_ptr[jj]
         X.get_column_ptr(j, &indices, &data, &n_nz)
-
         if n_nz == 0:
             continue
-
         H.get_row_ptr(j, &indices_H, &data_H, &n_nz_H)
         # inv_step size di
         inv_step_size = loss.mu * X_col_norms[j]
-
         update = 0
         for ii in range(n_nz):
             i = indices[ii]
             dloss = loss.dloss(y_pred[i], y[i])
             update += dloss * data[ii]
-
         for ii in range(n_nz_H):
             i = indices_H[ii]
             update += coef[i] * data_H[ii] * alpha
-
         inv_step_size += alpha*data_H[n_nz_H-2]
+
         # update w[j]
         coef_old = coef[j]
         update /= inv_step_size
         coef[j] -= update
         sum_viol += fabs(coef_old -  coef[j])
-
         # Synchronize
         for ii in range(n_nz):
             i = indices[ii]
@@ -89,7 +81,6 @@ def _cd_primal(double[:] coef,
                rng,
                bint verbose,
                bint shuffle):
-
     cdef Py_ssize_t it, i, n_features, n_samples
     cdef double viol, update
     cdef bint converged = False
@@ -122,6 +113,5 @@ def _cd_primal(double[:] coef,
         if viol < tol:
             print('Converged at iteration {}'.format(it+1))
             converged = True
-
 
     return converged, it+1

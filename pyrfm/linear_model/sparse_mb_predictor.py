@@ -21,37 +21,37 @@ class BaseSparseMBEstimator(BaseLinear):
 
     Parameters
     ----------
-    n_components : int
+    n_components : int (default=1000)
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
 
-    loss : str
+    loss : str (default="squared")
         Which loss function to use. Following losses can be used:
             'squared' (for regression)
             'squared_hinge' (for classification)
             'logistic' (for classification)
 
-    C : double, default=1.0
+    C : double (default=1.0)
         Weight of loss term.
 
-    alpha : double, default=1.0
+    alpha : double (default=1.0)
         Weight of the penalty term.
 
-    fit_intercept : bool, default=True
+    fit_intercept : bool (default=True)
         Whether to fit intercept (bias term) or not.
 
-    max_iter : int
+    max_iter : int (default=100)
         Maximum number of iterations.
 
-    tol : double
+    tol : double (default=1e-6)
         Tolerance of stopping criterion.
         If sum of absolute val of update in one epoch is lower than tol,
         the AdaGrad solver stops learning.
 
-    eps : double
+    eps : double (default=1e-2)
         A small double to ensure objective function convex.
 
-    warm_start : bool
+    warm_start : bool (default=False)
         Whether to activate warm-start or not.
 
     random_state : int, RandomState instance or None, optional (default=None)
@@ -60,10 +60,10 @@ class BaseSparseMBEstimator(BaseLinear):
         If None, the random number generator is the RandomState instance used
         by `np.random`.
 
-    verbose : bool, default=True
+    verbose : bool (default=True)
         Verbose mode or not.
 
-    shuffle : boole, default=True
+    shuffle : boole (default=True)
         Whether shuffle the order of parameters for optimization or not.
 
     Attributes
