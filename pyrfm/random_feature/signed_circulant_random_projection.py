@@ -46,11 +46,12 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
         If None, the random number generator is the RandomState instance used
         by `np.random`.
 
-    distribution : function (default=None)
+    distribution : str or function (default="gaussian")
         A function for sampling random basis whose arguments
         are random_state and size.
         Its arguments must be random_state and size.
-        If None, the standard Gaussian distribution is used.
+        For str, "gaussian" (or "normal"), "rademacher", "laplace", or
+        "uniform" can be used.
 
     Attributes
     ----------
@@ -73,7 +74,7 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
     (https://www.ijcai.org/Proceedings/15/Papers/491.pdf)
     """
 
-    def __init__(self, n_components=100,  gamma=0.5, distribution=None,
+    def __init__(self, n_components=100,  gamma=0.5, distribution="gaussian",
                  random_fourier=True, random_state=None):
         self.n_components = n_components
         self.distribution = distribution
@@ -87,6 +88,7 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
         n_samples, n_features = X.shape
         if isinstance(self.distribution, str):
             self.distribution = _get_random_matrix(self.distribution)
+
         n_stacks = int(np.ceil(self.n_components/n_features))
         n_components = n_stacks * n_features
         if n_components != self.n_components:
