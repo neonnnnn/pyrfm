@@ -3,7 +3,7 @@
 # cython: cdivision=True
 # cython: boundscheck=False
 # cython: wraparound=False
-from libc.math cimport cos, sin, sqrt
+from libc.math cimport  sqrt
 import numpy as np
 cimport numpy as np
 from ..random_feature.random_features_fast cimport BaseCRandomFeature
@@ -44,4 +44,4 @@ cdef void transform(X_array,
         for j in range(n_components):
             z[j] = _z[j]
     else:
-        transformer_fast.transform(z, data, indices, n_nz)
+        transformer_fast.transform(&z[0], data, indices, n_nz)

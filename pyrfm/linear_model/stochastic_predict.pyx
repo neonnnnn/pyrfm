@@ -33,7 +33,7 @@ def _predict_fast(double[:] coef,
 
     for i in range(n_samples):
         X.get_row_ptr(i, &indices, &data, &n_nz)
-        transformer_fast.transform(z, data, indices, n_nz)
+        transformer_fast.transform(&z[0], data, indices, n_nz)
         # if normalize
         if mean is not None:
             for j in range(n_components):
