@@ -36,7 +36,6 @@ canonical kernel methods.
 pyrfm follows the scikit-learn API and now **supports following random features**.
 
  - random Fourier feature (for the RBF kernel) [1]
- - signed circulant random Fourier feature (for the RBF kernel) [2]
  - random Maclaurin feature (for the polynomial kernel, exp kernel, and 
  user-specified dot product kernels) [3]
  - tensor sketching (for the polynomial kernel) [4]
@@ -45,7 +44,7 @@ pyrfm follows the scikit-learn API and now **supports following random features*
  is not random) [6]
  
 In other words, pyrfm now **provides approximaters for following kernels**.
- - RBF kernel (random Fourier, signed circulant random Fourier)
+ - RBF kernel (random Fourier)
  - polynomial kernel (random Maclaurin, tensor sketching)
  - exponential kernel (random Maclaurin)
  - user-specified dot product kernel (random Maclaurin, requiring Maclaurin 
@@ -57,7 +56,7 @@ In other words, pyrfm now **provides approximaters for following kernels**.
 The random Fourier feature is also implemented in scikit-learn 
 (kernel_approximation.RBFSampler).
 
-Moreover, pyrfm **supports following structured random features**.
+Furthermore, pyrfm **supports following structured random features**.
  - signed circulant random matrix (for the dot product / RBF kernel) [2]
  - signed circulant random kernel feature (for the ANOVA kernel) [5]
  - subsampled random Hadamard transform (for the dot product) [11]
@@ -65,6 +64,7 @@ Moreover, pyrfm **supports following structured random features**.
  - compact random features [13] (with subsampled ranadom Hadamard transform or random projection [14])
  - orthogonal random feature / structured orthogonal random feature (for the dot product / RBF kernel) [15]
 
+These methods are faster and more memory-efficient than canonical random features such as random Fourier, random kernel, etc.
 We believe that you can use these structured random features as a subroutine of your proposed random features.
 
 ## Linear Models Implemented
