@@ -1,6 +1,27 @@
 # pyrfm
 A library for random feature maps and linear models with random feature maps in Python.
 
+## Installation
+ 1. Download the source codes by
+ 
+ 
+    git clone https://github.com/neonnnnn/pyrfm.git
+ 
+  or download as a ZIP from GitHub.
+  
+ 2. Install the dependencies:
+ 
+ 
+    cd pyrfm
+    
+    pip install -r requirements.txt
+    
+ 3. Finally, build and install pyrfm by
+ 
+ 
+    python setup.py install
+
+
 ## What are random feature maps?
 Random feature maps are promising methods for large-scale kernel methods.
 They are maps from a original feature space to a randomized feature space 
@@ -37,6 +58,15 @@ In other words, pyrfm now **provides approximaters for following kernels**.
 The random Fourier feature is also implemented in scikit-learn 
 (kernel_approximation.RBFSampler).
 
+Moreover, pyrfm supports following structured random features.
+ - SignedCirculantRandomMatrix (for dot product / RBF kernel) [2]
+ - SubsampledRandomHadamardTransform (for dot product) [11]
+ - FastFood (for dot product / RBF kernel) [12]
+ - CompactRandomFeatures [13] (with SubsampledRanadomHadamardTransform or RandomProjection [14])
+ - OrthogonalRandomFeature / StructuredOrthogonalRandomFeature (for dot product / RBF kernel) [15]
+
+We believe that you can use these structured random features as a subroutine of your proposed random features.
+
 ## Linear Models Implemented
 Moreover, pyrfm **supports following solvers for linear models with random features**.
  - primal coordinate descent for sparse S.Maji and A.Berg feature [6,7]
@@ -58,32 +88,18 @@ Moreover, pyrfm **supports following solvers for linear models with random featu
   - RandomMaclaurin
   - TensorSketch
   - RandomKernel
+  - SignedCirculantRandomProjection
+  - FastFood
+  - SubsampledRandomHadamardTransform
+  - CompactRandomFeature
+  - OrthogonalRandomFeature / StructuredOrthogonalRandomFeature
+  
  
  For improving efficiency, implement cdef class and cdef transform method for your desired transformer.
  Please see random_feature/random_features_fast.pyx/pxd.
  Although these stochastic solvers **support any transformers, they might run unbelievable slow** when there is no cdef class and cdef transform method for your desired transformer in random_features_fast.pyx/pxd.
 
- 
- ## Installation
- 1. Download the source codes by
- 
- 
-    git clone https://github.com/neonnnnn/pyrfm.git
- 
-  or download as a ZIP from GitHub.
- 
- 2. Install the dependencies:
- 
- 
-    cd pyrfm
-    
-    pip install -r requirements.txt
-    
- 3. Finally, build and install pyrfm by
- 
- 
-    python setup.py install
-    
+     
  ## References
     [1] Ali Rahmini and Ben Recht. Random Feature Maps for Large-Scale Kernel Machines. 
         In Proc. NIPS, pp. 1177--1184, 2007.
@@ -101,9 +117,20 @@ Moreover, pyrfm **supports following solvers for linear models with random featu
         JMLR, vol. 9, pp 1369-1398, 2008.
     [8] John Duchi, Elad Hazan, and Yoram Singer. Adaptive Subgradient Methods for Online Learning and Stochastic Optimization.
         JMLR, vol. 12, pp. 2121--2159, 2012.
-    [9] Shai Shalev-Shwartz, Tong Zhang. Stochastic Dual Coordinate Ascent Methods for Regularized Loss Minimization.
+    [9] Shai Shalev-Shwartz and Tong Zhang. Stochastic Dual Coordinate Ascent Methods for Regularized Loss Minimization.
         JMLR, vol. 14, pp. 567--599, 2013.
     [10] Diederik P. Kingma and Jimmy Lei Ba. Adam: A Method for Stochastic Optimization.
-        In. Proc. ICLR, 2015.
+        In Proc. ICLR, 2015.
+    [11] Joel A. Tropp. Improved Analysis of the Subsampled Randomized Hadamard Transform.
+        Adv. Adapt. Data AnAl., vol. 3, num. 1-2, pp. 115--126, 2011.
+    [12] Quoc Le, Tamas Sarlos, and Alex Smola. Fastfood — Approximating Kernel Expansions in Loglinear Time.
+        In Proc. ICML, pp. 244--252, 2013.
+    [13] Raffay Hamid, Ying Xiao, Alex Gittens, and Dennis DeCoste. Compact Random Feature Maps.
+        In Proc. ICML, pp. 19--27, 2014.
+    [14] ping Li, Trevor J. Hastie, and Kenneth W. Church. Very Sparse Random Projections.
+        In Proc. KDD, pp. 287--296, 2006.
+    [15] Felix Xinnan Yu, Ananda Theertha Suresh, Krzysztof Choromanski, Daniel Holtmann-Rice, and Sanjiv Kumar. Orthogonal Random Features.
+        In Proc. NIPS, pp. 1975--1983, 2016.
+        
  # Authors
  - Kyohei Atarashi, 2018-present
