@@ -41,7 +41,6 @@ pyrfm follows the scikit-learn API and now **supports following random features*
  user-specified dot product kernels) [3]
  - tensor sketching (for the polynomial kernel) [4]
  - random kernel feature (for the ANOVA kernel and all-subsets kernel) [5]
- - signed circulant random kernel feature (for the ANOVA kernel) [5]
  - S.Maji and A.Berg feature (for the intersection (min) kernel) (this feature 
  is not random) [6]
  
@@ -58,12 +57,13 @@ In other words, pyrfm now **provides approximaters for following kernels**.
 The random Fourier feature is also implemented in scikit-learn 
 (kernel_approximation.RBFSampler).
 
-Moreover, pyrfm supports following structured random features.
- - SignedCirculantRandomMatrix (for dot product / RBF kernel) [2]
- - SubsampledRandomHadamardTransform (for dot product) [11]
- - FastFood (for dot product / RBF kernel) [12]
- - CompactRandomFeatures [13] (with SubsampledRanadomHadamardTransform or RandomProjection [14])
- - OrthogonalRandomFeature / StructuredOrthogonalRandomFeature (for dot product / RBF kernel) [15]
+Moreover, pyrfm **supports following structured random features**.
+ - signed circulant random matrix (for the dot product / RBF kernel) [2]
+ - signed circulant random kernel feature (for the ANOVA kernel) [5]
+ - subsampled random Hadamard transform (for the dot product) [11]
+ - fastfood (for the dot product / RBF kernel) [12]
+ - compact random features [13] (with subsampled ranadom Hadamard transform or random projection [14])
+ - orthogonal random feature / structured orthogonal random feature (for the dot product / RBF kernel) [15]
 
 We believe that you can use these structured random features as a subroutine of your proposed random features.
 
