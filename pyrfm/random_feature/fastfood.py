@@ -39,8 +39,9 @@ class FastFood(BaseEstimator, TransformerMixin):
         A function for sampling random basis whose arguments
         are random_state and size.
         Its arguments must be random_state and size.
-        If None, the standard gaussian distribution is used.
-
+        For str, "gaussian" (or "normal"), "rademacher", "laplace", or
+        "uniform" can be used.
+        
     random_fourier : boolean (default=True)
         Approximate RBF kernel or not.
         If True, Fastfood samples random_offset_ in the fit method and computes
@@ -95,12 +96,10 @@ class FastFood(BaseEstimator, TransformerMixin):
         random_state = check_random_state(self.random_state)
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
-        if isinstance(self.distribution, str):
-            self.distribution = _get_random_matrix(self.distribution)
-
         n_features_padded = next_pow_of_two(n_features)
         n_stacks = int(np.ceil(self.n_components/n_features_padded))
         n_components = n_stacks * n_features_padded
+
         if n_components != self.n_components:
             warnings.warn("n_components is changed from {0} to {1}."
                           "You should set n_components n-tuple of the next"
@@ -110,6 +109,8 @@ class FastFood(BaseEstimator, TransformerMixin):
 
         # n_stacks * n_features_padded = self.n_components
         size = (n_stacks, n_features_padded)
+        if isinstance(self.distribution, str):
+            self.distribution = _get_random_matrix(self.distribution)
         self.random_weights_ = self.distribution(random_state, size)
         self.random_sign_ = rademacher(random_state, (n_stacks, n_features))
 

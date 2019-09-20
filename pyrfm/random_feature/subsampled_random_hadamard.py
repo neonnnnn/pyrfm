@@ -33,7 +33,8 @@ class SubsampledRandomHadamard(BaseEstimator, TransformerMixin):
         A function for sampling random basis whose arguments
         are random_state and size.
         Its arguments must be random_state and size.
-        If None, the standard rademacher distribution is used.
+        For str, "gaussian" (or "normal"), "rademacher", "laplace", or
+        "uniform" can be used.
 
     Attributes
     ----------
