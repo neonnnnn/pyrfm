@@ -10,6 +10,8 @@ from .fastfood import FastFood
 from .subsampled_random_hadamard import SubsampledRandomHadamard
 from .signed_circulant_random_projection import SignedCirculantRandomMatrix
 from .random_projection import RandomProjection
+from .orthogonal_random_feature import (OrthogonalRandomFeature,
+                                        StructuredOrthogonalRandomFeature)
 
 
 DOWNSAMPLES = {'srht': SubsampledRandomHadamard,
