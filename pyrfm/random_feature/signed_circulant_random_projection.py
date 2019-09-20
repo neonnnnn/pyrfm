@@ -57,7 +57,8 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
     ----------
     random_weights_ : array, shape (n_stacks, n_features)
         The sampled basis, where n_stacks = np.ceil(n_components/n_features) and
-        n_feature_padded = 2**np.ceil(np.log2(n_features))
+        n_feature_padded = 2**np.ceil(np.log2(n_features)).
+        In fit function, random_weights are fast fourier transformed.
 
     random_sign_ : array, shape (n_stacks, n_features)
         The sampled signed matrix.
@@ -100,7 +101,7 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
 
         # n_stacks * n_features= self.n_components
         size = (n_stacks, n_features)
-        self.random_weights_ = self.distribution(random_state, size)
+        self.random_weights_ = fft(self.distribution(random_state, size))
         self.random_sign_ = rademacher(random_state, size)
 
         if self.random_fourier:
@@ -112,19 +113,22 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
+        X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         n_stacks = self.random_weights_.shape[0]
         Z = np.zeros((n_samples, self.n_components))
         if issparse(X):
-            X = X.toarray()
-        fft_X = fft(X)
-        fft_random_weights = fft(self.random_weights_)
-        for t, (fft_rw, sign) in enumerate(zip(fft_random_weights,
-                                               self.random_sign_)):
-            projection = sign * ifft(fft_X * fft_rw).real
-            Z[:, t * n_features:(t + 1) * n_features] = projection
+            from .random_features_fast import transform_all_fast
+            Z = transform_all_fast(X, self)
+            return Z
+        else:
+            fft_X = fft(X)
+            for t, (fft_rw, sign) in enumerate(zip(self.random_weights_,
+                                                   self.random_sign_)):
+                projection = sign * ifft(fft_X * fft_rw).real
+                Z[:, t * n_features:(t + 1) * n_features] = projection
 
-        if self.random_fourier:
-            Z = np.cos(Z*np.sqrt(2*self.gamma)+self.random_offset_)
-            Z *= np.sqrt(2)
-        return Z / np.sqrt(self.n_components)
+            if self.random_fourier:
+                Z = np.cos(Z*np.sqrt(2*self.gamma)+self.random_offset_)
+                Z *= np.sqrt(2)
+            return Z / np.sqrt(self.n_components)

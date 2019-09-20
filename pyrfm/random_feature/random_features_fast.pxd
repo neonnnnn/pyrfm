@@ -41,15 +41,15 @@ cdef class CRandomKernel(BaseCRandomFeature):
 
 
 cdef class CFastFood(BaseCRandomFeature):
-    cdef double gamma
-    cdef bint random_fourier
     cdef double[:, ::1] random_weights
     cdef int[:, ::1] random_sign
     cdef int[:, ::1] fy_vec
     cdef double[:, ::1] random_scaling
     cdef double[:] random_offset
-    cdef int degree_hadamard
     cdef double[:] cache
+    cdef double gamma
+    cdef bint random_fourier
+    cdef int degree_hadamard
 
 
 cdef class CSubsampledRandomHadamard(BaseCRandomFeature):
@@ -69,3 +69,24 @@ cdef class CCompactRandomFeature(BaseCRandomFeature):
     cdef BaseCRandomFeature transformer_down
     cdef double[:] z_cache
     cdef int[:] indices
+
+
+cdef class CSignedCirculantRandomMatrix(BaseCRandomFeature):
+    cdef complex[:, ::1] random_weights
+    cdef int[:, ::1] random_sign
+    cdef double[:] random_offset
+    cdef complex[:] cache
+    cdef double gamma
+    cdef bint random_fourier
+    cdef int n_stacks
+
+
+cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
+    cdef double[:, ::1] random_weights
+    cdef double[:] random_offset
+    cdef double[:] cache
+    cdef int degree_hadamard
+    cdef double gamma
+    cdef bint random_fourier
+    cdef int n_features_padded
+    cdef int n_stacks

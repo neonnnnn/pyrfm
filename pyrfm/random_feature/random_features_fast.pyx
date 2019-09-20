@@ -4,7 +4,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 from libc.math cimport cos, sin, sqrt
-from scipy.fftpack._fftpack import drfft
+from scipy.fftpack._fftpack import drfft, zrfft, zfft
 import numpy as np
 cimport numpy as np
 from sklearn.kernel_approximation import RBFSampler
@@ -13,7 +13,9 @@ from lightning.impl.dataset_fast cimport RowDataset
 from cython.view cimport array
 from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
                FastFood, SubsampledRandomHadamard, CompactRandomFeature,
-               RandomProjection)
+               RandomProjection, OrthogonalRandomFeature,
+               StructuredOrthogonalRandomFeature,
+               SignedCirculantRandomMatrix)
 from .utils_fast cimport _fwht1d
 
 
@@ -27,6 +29,9 @@ RANDOMFEATURES = {
     SubsampledRandomHadamard: CSubsampledRandomHadamard,
     RandomProjection: CRandomProjection,
     CompactRandomFeature: CCompactRandomFeature,
+    OrthogonalRandomFeature: CRandomFourier,
+    StructuredOrthogonalRandomFeature: CStructuredOrthogonalRandomFeature,
+    SignedCirculantRandomMatrix: CSignedCirculantRandomMatrix
 }
 
 
@@ -215,16 +220,16 @@ cdef class CFastFood(BaseCRandomFeature):
     def __init__(self, transformer):
         self.n_components = transformer.n_components
         self.n_features = transformer.random_sign_.shape[1]
-        self.gamma = transformer.gamma
-        self.random_fourier = transformer.random_fourier
         self.random_weights = transformer.random_weights_
         self.random_sign = transformer.random_sign_
         self.fy_vec = transformer._fy_vector_
         self.random_scaling = transformer.random_scaling_
         self.random_offset = transformer.random_offset_
-        self.degree_hadamard = (self.n_features-1).bit_length()
         self.cache = array((2**self.degree_hadamard, ), sizeof(double),
                            format='d')
+        self.gamma = transformer.gamma
+        self.random_fourier = transformer.random_fourier
+        self.degree_hadamard = (self.n_features-1).bit_length()
 
     cdef void transform(self,
                         double* z,
@@ -235,7 +240,6 @@ cdef class CFastFood(BaseCRandomFeature):
         cdef double tmp, factor
         n_features_padded = 2**self.degree_hadamard
         n_stacks = self.n_components // n_features_padded
-        factor = sqrt(2*self.gamma/n_features_padded)
         for t in range(n_stacks):
             for j in range(n_features_padded):
                 self.cache[j] = 0
@@ -263,13 +267,13 @@ cdef class CFastFood(BaseCRandomFeature):
             _fwht1d(&self.cache[0], self.degree_hadamard, False)
 
             for j in range(n_features_padded):
-                self.cache[j] *= factor
                 i = j + n_features_padded*t
-                z[i] = self.cache[j]
+                z[i] = self.cache[j] / sqrt(n_features_padded)
 
         for i in range(self.n_components):
             if self.random_fourier:
-                z[i] = sqrt(2)*cos(z[i]+self.random_offset[i])
+                z[i] = cos(sqrt(2*self.gamma)*z[i]+self.random_offset[i])
+                z[i] *= sqrt(2)
             z[i] /= sqrt(self.n_components)
 
 
@@ -354,6 +358,113 @@ cdef class CCompactRandomFeature(BaseCRandomFeature):
                                         &self.indices[0],
                                         self.n_components_up)
 
+
+cdef class CSignedCirculantRandomMatrix(BaseCRandomFeature):
+    def __init__(self, transformer):
+        self.n_components = transformer.n_components
+        self.n_features = transformer.random_weights_.shape[1]
+
+        self.random_weights = transformer.random_weights_
+        self.random_sign = transformer.random_sign_
+        self.random_offset = transformer.random_offset_
+        self.cache = np.zeros(self.n_features, dtype=np.complex)
+        self.gamma = transformer.gamma
+        self.random_fourier = transformer.random_fourier
+        self.n_stacks = self.random_weights.shape[0]
+
+
+    cdef void transform(self,
+                        double* z,
+                        double* data,
+                        int* indices,
+                        int n_nz):
+        cdef Py_ssize_t ii, j, jj, i
+        cdef double factor = sqrt(2*self.gamma)
+        for ii in range(self.n_stacks):
+            for j in range(self.n_features):
+                self.cache[j] = 0
+
+            for jj in range(n_nz):
+                j = indices[jj]
+                self.cache[j] = data[jj]
+
+            zfft(self.cache, direction=1, overwrite_x=True)
+            for j in range(self.n_features):
+                self.cache[j] *= self.random_weights[ii, j]
+
+            zfft(self.cache, direction=-1, overwrite_x=True)
+
+            for j in range(self.n_features):
+                i = ii*self.n_features + j
+                z[i] = self.cache[j].real * self.random_sign[ii, j]
+
+        if self.random_fourier:
+            for i in range(self.n_components):
+                z[i] = cos(factor*z[i]+self.random_offset[i])*sqrt(2)
+
+        #print(self.cache[0], z[0])
+        for i in range(self.n_components):
+            z[i] /= sqrt(self.n_components)
+        #print(self.cache[0].real, z[0])
+
+
+cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
+    def __init__(self, transformer):
+        self.n_stacks = transformer.random_weights_.shape[0]
+        self.n_features_padded = transformer.n_components //self.n_stacks
+        self.n_components = transformer.n_components
+        self.n_features = transformer.random_weights_.shape[1] - 2*self.n_features_padded
+
+        self.random_weights = transformer.random_weights_
+        self.random_offset = transformer.random_offset_
+        self.cache = array((self.n_features_padded, ), sizeof(double),
+                           format='d')
+        self.degree_hadamard = (self.n_features-1).bit_length()
+        self.gamma = transformer.gamma
+        self.random_fourier = transformer.random_fourier
+
+    cdef void transform(self,
+                        double* z,
+                        double* data,
+                        int* indices,
+                        int n_nz):
+        cdef Py_ssize_t i, ii, j, jj, offset
+        for ii in range(self.n_stacks):
+            for i in range(self.n_features_padded):
+                self.cache[i] = 0
+
+            # D1x, D is a random diagonal sign matrix
+            for jj in range(n_nz):
+                j = indices[jj]
+                self.cache[j] = data[jj] * self.random_weights[ii, j]
+
+            # HDx: H is the Walsh-Hadamard transform
+            _fwht1d(&self.cache[0], self.degree_hadamard, normalize=True)
+
+            # Dx, D is a random diagonal sign matrix
+            offset = self.n_features
+            for j in range(self.n_features_padded):
+                self.cache[j] *= self.random_weights[ii, j+offset]
+            _fwht1d(&self.cache[0], self.degree_hadamard, normalize=True)
+            offset += self.n_features_padded
+
+            for j in range(self.n_features_padded):
+                self.cache[j] *= self.random_weights[ii, j+offset]
+            _fwht1d(&self.cache[0], self.degree_hadamard, normalize=True)
+
+            for j in range(self.n_features_padded):
+                i = ii*self.n_features_padded + j
+                z[i] = self.cache[j]*sqrt(self.n_features_padded)
+
+        if self.random_fourier:
+            for i in range(self.n_components):
+                z[i] = cos(z[i]*sqrt(2*self.gamma)+self.random_offset[i])
+                z[i] *= sqrt(2)
+
+        for i in range(self.n_components):
+            z[i] /= sqrt(self.n_components)
+
+
 cdef inline void anova(double* z,
                        double* data,
                        int* indices,
@@ -417,7 +528,7 @@ def transform_all_fast(X, transformer):
                                      dtype=np.float64)
 
     _transform_all_fast(Z, dataset, transformer_fast)
-    return Z
+    return np.asarray(Z)
 
 
 def get_fast_random_feature(transformer):
