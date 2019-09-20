@@ -190,7 +190,7 @@ cdef class CRandomKernel(BaseCRandomFeature):
         self.degree = transformer.degree
         # Now, not support for sparse rademacher
         self.random_weights = transformer.random_weights_
-        if transformer.kernel in ["anova", "anova_cyhon"]:
+        if transformer.kernel in ["anova", "anova_cython"]:
             self.kernel = 0
         elif transformer.kernel == "all_subsets":
             self.kernel = 1
