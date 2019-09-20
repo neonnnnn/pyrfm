@@ -220,6 +220,10 @@ cdef class CFastFood(BaseCRandomFeature):
     def __init__(self, transformer):
         self.n_components = transformer.n_components
         self.n_features = transformer.random_sign_.shape[1]
+        self.gamma = transformer.gamma
+        self.random_fourier = transformer.random_fourier
+        self.degree_hadamard = (self.n_features-1).bit_length()
+
         self.random_weights = transformer.random_weights_
         self.random_sign = transformer.random_sign_
         self.fy_vec = transformer._fy_vector_
@@ -227,9 +231,6 @@ cdef class CFastFood(BaseCRandomFeature):
         self.random_offset = transformer.random_offset_
         self.cache = array((2**self.degree_hadamard, ), sizeof(double),
                            format='d')
-        self.gamma = transformer.gamma
-        self.random_fourier = transformer.random_fourier
-        self.degree_hadamard = (self.n_features-1).bit_length()
 
     cdef void transform(self,
                         double* z,
