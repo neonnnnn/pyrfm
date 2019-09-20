@@ -5,6 +5,8 @@ from sklearn.utils.testing import (assert_less_equal, assert_allclose,
 from pyrfm import SignedCirculantRandomMatrix
 from sklearn.metrics.pairwise import rbf_kernel
 from scipy.linalg import circulant
+from scipy.fftpack import ifft
+
 
 # generate data
 rng = np.random.RandomState(0)
@@ -16,9 +18,10 @@ X_sp = csr_matrix(X)
 
 
 def test_signed_circulant_matrix():
-    for gamma, n_components in zip([0.1, 1, 10], [10000, 5000, 2500]):
+    for gamma, n_components in zip([10, 100], [2500, 5000]):
         # compute exact kernel
         kernel = rbf_kernel(X, Y, gamma)
+
         # approximate kernel mapping
         transformer = SignedCirculantRandomMatrix(n_components=n_components, 
                                                   gamma=gamma,
@@ -34,6 +37,18 @@ def test_signed_circulant_matrix():
         # for sparse matrix
         X_trans_sp = transformer.transform(csr_matrix(X))
         assert_allclose_dense_sparse(X_trans, X_trans_sp)
+
+        # comparing naive computation
+        result = []
+        for random_weights, sign in zip(transformer.random_weights_,
+                                        transformer.random_sign_):
+            circ = circulant(ifft(random_weights).real)
+            circ *= sign.reshape(-1, 1)
+            result += [np.dot(X, circ.T)*np.sqrt(2*gamma)]
+        X_trans_naive = np.hstack(result)
+        X_trans_naive = np.cos(X_trans_naive+transformer.random_offset_)
+        X_trans_naive *= np.sqrt(2/n_components)
+        assert_allclose(X_trans, X_trans_naive)
 
 
 def test_signed_circulant_random_matrix_for_dot():
@@ -57,7 +72,7 @@ def test_signed_circulant_random_matrix_for_dot():
     assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
     # comparing naive computation
-    circ = circulant(transformer.random_weights_[0])
+    circ = circulant(ifft(transformer.random_weights_[0]).real)
     circ *= transformer.random_sign_.T
     X_trans_naive = np.dot(X, circ.T) / np.sqrt(n_components)
     assert_allclose(X_trans, X_trans_naive)

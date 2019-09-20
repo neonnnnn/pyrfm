@@ -15,7 +15,7 @@ X_sp = csr_matrix(X)
 
 
 def test_random_fourier():
-    for gamma, n_components in zip([0.1, 1, 10], [8192, 4096, 2048]):
+    for gamma, n_components in zip([10, 100], [2048, 4096]):
         # compute exact kernel
         kernel = rbf_kernel(X, Y, gamma)
         # approximate kernel mapping
@@ -35,7 +35,7 @@ def test_random_fourier():
 
 
 def test_random_fourier_offset():
-    for gamma, n_components in zip([0.1, 1, 10], [8192, 4096, 2048]):
+    for gamma, n_components in zip([10, 100], [2048, 4096]):
         # compute exact kernel
         kernel = rbf_kernel(X, Y, gamma)
         # use_offset=True
