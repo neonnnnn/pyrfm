@@ -3,7 +3,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
-from scipy.sparse import csc_matrix, issparse
+from scipy.sparse import csc_matrix, csr_matrix, issparse
 from math import sqrt
 from ..kernels import anova, all_subsets, anova_fast, pairwise
 from .utils import get_random_matrix
@@ -105,16 +105,12 @@ class RandomKernel(BaseEstimator, TransformerMixin):
         size = (n_features, self.n_components)
         distribution = self.distribution.lower()
         self.random_weights_ = get_random_matrix(random_state, distribution,
-                                                  size, self.p_sparse)
-
-
+                                                 size, self.p_sparse)
         return self
 
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=['csr'])
-        n_samples, n_features = X.shape
-
         if isinstance(self.kernel, str):
             if self.kernel == 'anova':
                 kernel_ = _anova(self.degree, self.dense_output)
@@ -137,7 +133,6 @@ class RandomKernel(BaseEstimator, TransformerMixin):
         except ValueError:
             output = kernel_(X, self.random_weights_.T)
             output /= sqrt(self.n_components)
-
         return output
 
 
@@ -168,12 +163,12 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
         size = (self.n_sub_features * self.n_components, )
         distribution = self.distribution.lower()
         data = get_random_matrix(random_state, distribution, size=size)
-        row = np.repeat(np.arange(self.n_components), self.n_sub_features)
+        row = np.repeat(np.arange(n_features), self.n_sub_features)
         col = get_feature_indices(random_state, self.n_sub_features,
-                                  n_features, self.n_components)
-        shape = (self.n_components, n_features)
-        self.random_weights_ = csc_matrix((data, (row, col)),
-                                          shape=shape).T
+                                  self.n_components, n_features)
+        shape = (n_features, self.n_components)
+        self.random_weights_ = csr_matrix((data, (row, col)),
+                                          shape=shape)
         return self
 
     def transform(self, X):
@@ -190,16 +185,22 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
                 kernel_ = _anova(self.degree, self.dense_output)
             elif self.kernel == 'anova_cython':
                 kernel_ = _anova_fast(self.degree, self.dense_output)
-            elif self.kernel == "pairwise":
-                kernel_ = _pairwise(self.dense_output, self.symmetric)
+            elif self.kernel == 'all_subsets':
+                kernel_ = all_subsets
+            elif self.kernel == 'dot':
+                kernel_ = dot()
             else:
                 raise ValueError('Kernel {} is not supported. '
-                                 'Use "anova" or "dot"'
+                                 'Use "anova", "anova_cython", "all_subsets", '
+                                 '"dot", or "pairwise".'
                                  .format(self.kernel))
         else:
             kernel_ = self.kernel
-        output = kernel_(X, self.random_weights_.T).astype(np.float64)
-
-        output /= sqrt(self.n_components)
+        try:
+            from .random_features_fast import transform_all_fast
+            output = transform_all_fast(X, self, self.dense_output)
+        except ValueError:
+            output = kernel_(X, self.random_weights_.T)
+            output /= sqrt(self.n_components)
         output *= const
         return output

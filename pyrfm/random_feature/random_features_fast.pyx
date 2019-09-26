@@ -16,7 +16,7 @@ from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
                FastFood, SubsampledRandomHadamard, CompactRandomFeature,
                RandomProjection, OrthogonalRandomFeature,
                StructuredOrthogonalRandomFeature,
-               SignedCirculantRandomMatrix)
+               SignedCirculantRandomMatrix, RandomSubsetKernel)
 from .utils_fast cimport _fwht1d
 from libcpp.vector cimport vector
 from scipy.sparse import csc_matrix, csr_matrix
@@ -34,7 +34,8 @@ RANDOMFEATURES = {
     CompactRandomFeature: CCompactRandomFeature,
     OrthogonalRandomFeature: CRandomFourier,
     StructuredOrthogonalRandomFeature: CStructuredOrthogonalRandomFeature,
-    SignedCirculantRandomMatrix: CSignedCirculantRandomMatrix
+    SignedCirculantRandomMatrix: CSignedCirculantRandomMatrix,
+    RandomSubsetKernel: CRandomSubsetKernel
 }
 
 
@@ -232,13 +233,52 @@ cdef class CRandomKernel(BaseCRandomFeature):
                         double* data,
                         int* indices,
                         int n_nz):
-        cdef Py_ssize_t j, jj, deg, i
+        cdef Py_ssize_t i
         if self.kernel == 0:
             anova(z, data, indices, n_nz, self.random_weights, self.degree,
                   self.anova, self.n_components)
         elif self.kernel == 1:
             all_subsets(z, data, indices, n_nz, self.random_weights,
                         self.n_components)
+        for i in range(self.n_components):
+            z[i] /= sqrt(self.n_components)
+
+
+cdef class CRandomSubsetKernel(BaseCRandomFeature):
+    def __init__(self, transformer):
+        self.n_components = transformer.n_components
+        self.n_sub_features = transformer.n_sub_features
+        self.n_features = transformer.random_weights_.shape[0]
+        self.degree = transformer.degree
+        # Now, not support for sparse rademacher
+        self.random_weights = get_dataset(transformer.random_weights_,
+                                          order='c')
+        if transformer.kernel not in ["anova", "anova_cython"]:
+            raise ValueError('kernel = {} is not defined.'
+                             .format(transformer.kernel))
+        self.anova = array((self.n_components, self.degree+1), sizeof(double),
+                           format='d')
+        cdef Py_ssize_t i, j
+        for i in range(self.n_components):
+            self.anova[i, 0] = 1
+            for j in range(self.degree):
+                self.anova[i, j+1] = 0
+        const = np.arange(self.n_features, self.n_features-self.degree, -1)
+        denominator = np.arange(self.n_sub_features,
+                                self.n_sub_features-self.degree,
+                                -1)
+        self.const = np.prod(np.sqrt(const / denominator))
+
+    cdef void transform(self,
+                        double* z,
+                        double* data,
+                        int* indices,
+                        int n_nz):
+        cdef Py_ssize_t i
+        anova(z, data, indices, n_nz, self.random_weights, self.degree,
+              self.anova, self.n_components)
+        for i in range(self.n_components):
+            z[i] *= self.const / sqrt(self.n_components)
 
 
 cdef class CFastFood(BaseCRandomFeature):
@@ -516,7 +556,7 @@ cdef inline void anova(double* z,
                 a[i, degree-deg] += weights[ii]*data[jj]*a[i, degree-deg-1]
 
     for i in range(n_components):
-        z[i] = a[i, degree] / sqrt(n_components)
+        z[i] = a[i, degree]
 
 
 cdef inline void all_subsets(double* z,
@@ -537,8 +577,6 @@ cdef inline void all_subsets(double* z,
         for ii in range(n_nz_w):
             i = indices_w[ii]
             z[i] *= (1+data[jj]*weights[ii])
-    for i in range(n_components):
-        z[i] /= sqrt(n_components)
 
 
 cdef _transform_all_fast_dense(RowDataset dataset,

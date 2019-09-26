@@ -44,6 +44,15 @@ cdef class CRandomKernel(BaseCRandomFeature):
     cdef double[:, ::1] anova
 
 
+cdef class CRandomSubsetKernel(BaseCRandomFeature):
+    cdef RowDataset random_weights
+    cdef int degree
+    cdef int kernel
+    cdef double[:, ::1] anova
+    cdef int n_sub_features
+    cdef double const
+
+
 cdef class CFastFood(BaseCRandomFeature):
     cdef double[:, ::1] random_weights
     cdef int[:, ::1] random_sign
