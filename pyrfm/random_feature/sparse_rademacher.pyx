@@ -7,21 +7,21 @@ from cython.view cimport array
 from sklearn.utils import check_random_state
 import numpy as np
 cimport numpy as np
-from scipy.sparse import csc_matrix
+from scipy.sparse import csr_matrix
 
 
 # efficient sampling algorithm for sparse rademacher matrix
 def sparse_rademacher(rng, int[:] size, double p_sparse):
-    # size = (n_components, n_features)
+    # size = (n_features, n_components)
     # Preprocess for walker alias method: O(n_components)
     cdef Py_ssize_t i, j, n_nz
     cdef Py_ssize_t n_components, n_features
     cdef Py_ssize_t offset = 0
-    n_components = size[0]
-    n_features = size[1]
+    n_features = size[0]
+    n_components = size[1]
     cdef Binomial binom = Binomial(p=1-p_sparse, n=n_features,
                                    random_state=rng)
-    # n_nzs[i]: number of nonzero elements in i-th column of random matrix
+    # n_nzs[i]: number of nonzero elements in i-th columns of random matrix
     cdef int[:] n_nzs = np.zeros(n_components, dtype=np.int32)
     cdef int[:] arange = np.arange(n_features, dtype=np.int32)
 
@@ -38,13 +38,13 @@ def sparse_rademacher(rng, int[:] size, double p_sparse):
     for i in range(n_components):
         fisher_yates_shuffle(arange, n_nzs[i], rng)
         for j in range(n_nzs[i]):
-            col_ind[offset+j] = arange[j]
-            row_ind[offset+j] = i
+            col_ind[offset+j] = i
+            row_ind[offset+j] = arange[j]
         offset += n_nzs[i]
 
     # sampling nonzero elements: O(nnz)
     data = (rng.randint(2, size=n_nz)*2-1) / np.sqrt(1-p_sparse)
-    return csc_matrix((data, (row_ind, col_ind)), shape=size)
+    return csr_matrix((data, (row_ind, col_ind)), shape=size)
 
 
 cdef inline void fisher_yates_shuffle(int[:] permutation, int n, rng):
