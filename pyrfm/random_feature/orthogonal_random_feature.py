@@ -57,7 +57,7 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    random_weights_ : array, shape (n_components, n_features) (use_offset=True)
+    random_weights_ : array, shape (n_features, n_components) (use_offset=True)
                                    or (n_components/2, n_features) (otherwise)
         The sampled basis.
 
@@ -92,6 +92,10 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
                           "power of two of n_features."
                           .format(self.n_components, n_components))
             self.n_components = n_components
+        if self.gamma == 'auto':
+            gamma = 1.0 / X.shape[1]
+        else:
+            gamma = self.gamma
 
         size = (n_features, n_features)
         if isinstance(self.distribution, str):
@@ -102,11 +106,13 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
             S = np.diag(chi.rvs(df=n_features, size=n_features))
             WS, _ = qr_multiply(W, S)
             random_weights_ += [WS]
-        self.random_weights_ = np.vstack(random_weights_)
+
+        self.random_weights_ = np.vstack(random_weights_).T
 
         if self.random_fourier:
             self.random_offset_ = random_state.uniform(0, 2*np.pi,
                                                        size=self.n_components)
+            self.random_weights_ *= sqrt(2*gamma)
         else:
             self.random_offset_ = None
 
@@ -115,13 +121,9 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=True)
-        output = safe_sparse_dot(X, self.random_weights_.T, True)
+        output = safe_sparse_dot(X, self.random_weights_, True)
         if self.random_fourier:
-            if self.gamma == 'auto':
-                gamma = 1.0 / X.shape[1]
-            else:
-                gamma = self.gamma
-            output = np.cos(np.sqrt(2*gamma)*output+self.random_offset_)
+            output = np.cos(output+self.random_offset_)
             output *= np.sqrt(2)
         return output / sqrt(self.n_components)
 

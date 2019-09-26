@@ -37,8 +37,8 @@ class RandomFourier(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    random_weights_ : array, shape (n_components, n_features) (use_offset=True)
-                                   or (n_components/2, n_features) (otherwise)
+    random_weights_ : array, shape (n_features, n_components) (use_offset=True)
+                                   or (n_features, n_components/2) (otherwise)
         The sampled basis.
 
     random_offset_ : array or None, shape (n_components, )
@@ -74,11 +74,11 @@ class RandomFourier(BaseEstimator, TransformerMixin):
         else:
             gamma = self.gamma
 
-        size = (n_components, n_features)
+        size = (n_features, n_components)
         # TODO: Implement other shift-invariant kernels
         if self.kernel in ['rbf', 'gaussian']:
             self.random_weights_ = random_state.normal(size=size)
-            self.random_weights_ *= np.sqrt(2*gamma)
+            self.random_weights_ *= sqrt(2*gamma)
         else:
             raise ValueError('Kernel {} is not supported.'
                              'Use "rbf" or "Gaussian"'.format(self.kernel))
@@ -93,7 +93,7 @@ class RandomFourier(BaseEstimator, TransformerMixin):
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=True)
-        output = safe_sparse_dot(X, self.random_weights_.T, True)
+        output = safe_sparse_dot(X, self.random_weights_, True)
         if self.use_offset:
             output += self.random_offset_
             output = np.cos(output)
