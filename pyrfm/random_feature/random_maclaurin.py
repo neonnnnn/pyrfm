@@ -134,23 +134,17 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
                                            self.n_components,
                                            p=self.p_choice).astype(np.int32)
 
-        size = (np.sum(self.orders_), n_features)
+        size = (n_features, np.sum(self.orders_))
         self.random_weights_ = 2*random_state.randint(2, size=size) - 1.
 
         return self
 
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
+        from .random_features_fast import transform_all_fast
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
-        output = np.zeros((n_samples, self.n_components))
-        s = 0
-        for j, order in enumerate(self.orders_):
-            tmp = safe_sparse_dot(X, self.random_weights_[s:s+order].T, True)
-            output[:, j] = np.prod(tmp, axis=1)
-            s += order
-        output *= np.sqrt(self.coefs[self.orders_]/self.n_components)
-        output /= np.sqrt(self.p_choice[self.orders_])
+        output = transform_all_fast(X, self)
         if self.h01 and self.bias != 0:
             linear = X * np.sqrt(self.degree*self.bias**(self.degree-1))
             if issparse(linear):
