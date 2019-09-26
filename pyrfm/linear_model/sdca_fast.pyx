@@ -3,7 +3,6 @@
 # cython: cdivision=True
 # cython: boundscheck=False
 # cython: wraparound=False
-
 from libc.math cimport fabs, sqrt
 from .loss_fast cimport LossFunction
 import numpy as np
@@ -35,6 +34,7 @@ cdef double _sgd_initialization(double[:] coef,
                                 LossFunction loss,
                                 double lam1,
                                 double lam2,
+                                double augmented,
                                 unsigned int* t,
                                 double tol,
                                 bint is_sparse,
@@ -80,8 +80,8 @@ cdef double _sgd_initialization(double[:] coef,
             y_pred += z[j] * coef[j]
             norm += z[j]**2
         if fit_intercept:
-            y_pred += intercept[0]
-            norm += 1
+            y_pred += augmented * intercept[0]
+            norm += augmented**2
 
         # update dual_coef
         update = loss.sdca_update(dual_coef[i], y[i], y_pred, norm/(lam2*t[0]))
@@ -99,8 +99,9 @@ cdef double _sgd_initialization(double[:] coef,
 
         if fit_intercept:
             intercept[0] *= lam2*(t[0]-1)
-            intercept[0] += update
+            intercept[0] += update * augmented
             intercept[0] /= lam2*t[0]
+            y_pred += intercept[0] * augmented
 
         # compute duality gap
         gap += loss.loss(y_pred, y[i]) + loss.conjugate(-dual_coef[i], y[i])
@@ -123,6 +124,7 @@ cdef double _sdca_epoch(double[:] coef,
                         LossFunction loss,
                         double lam1,
                         double lam2,
+                        double augmented,
                         unsigned int* t,
                         bint is_sparse,
                         bint fit_intercept,
@@ -159,9 +161,9 @@ cdef double _sdca_epoch(double[:] coef,
             y_pred += z[j] * coef[j]
             norm += z[j]**2
 
-        y_pred += intercept[0]
         if fit_intercept:
-            norm += 1
+            y_pred += augmented * intercept[0]
+            norm += augmented**2
 
         # update dual_coef
         update = loss.sdca_update(dual_coef[i], y[i], y_pred, norm * scale)
@@ -169,15 +171,16 @@ cdef double _sdca_epoch(double[:] coef,
         if update != 0:
             dual_coef[i] += update
             y_pred = 0
+            update *= scale
             for j in range(n_components):
-                coef[j] += update * z[j] * scale
+                coef[j] += update * z[j]
                 # proximal
                 coef[j] = proximal(coef[j], lam1)
                 y_pred += coef[j] * z[j]
 
             if fit_intercept:
-                intercept[0] += update * scale
-                y_pred += intercept[0]
+                intercept[0] += update * augmented
+                y_pred += intercept[0] * augmented
 
         # compute duality gap
         gap += loss.loss(y_pred, y[i]) + loss.conjugate(-dual_coef[i], y[i])
@@ -200,6 +203,7 @@ def _sdca_fast(double[:] coef,
                double[:] var,
                LossFunction loss,
                double alpha,
+               double alpha_intercept,
                double l1_ratio,
                unsigned int t,
                unsigned int max_iter,
@@ -214,9 +218,10 @@ def _sdca_fast(double[:] coef,
                ):
     cdef Py_ssize_t it, i, j
     cdef int n_samples, n_components
-    cdef double gap, lam1, lam2
+    cdef double gap, lam1, lam2, augmented
     lam1 = alpha*l1_ratio
     lam2 = alpha*(1-l1_ratio)
+    augmented = sqrt(alpha_intercept/alpha)
     n_samples = X.get_n_samples()
     n_components = coef.shape[0]
 
@@ -226,16 +231,15 @@ def _sdca_fast(double[:] coef,
     for i in range(n_components):
         z[i] = 0
 
-
     it = 0
-
+    intercept[0] /= augmented
     # initialize by SGD if t == 1
     if t == 1:
         if shuffle:
             random_state.shuffle(indices_samples)
         gap = _sgd_initialization(coef, dual_coef, intercept, X, X_array, y,
-                                  mean, var, loss, lam1, lam2, &t, tol,
-                                  is_sparse, fit_intercept, transformer,
+                                  mean, var, loss, lam1, lam2, augmented, &t,
+                                  tol, is_sparse, fit_intercept, transformer,
                                   transformer_fast, indices_samples, z,
                                   random_state)
         if verbose:
@@ -246,13 +250,14 @@ def _sdca_fast(double[:] coef,
         if shuffle:
             random_state.shuffle(indices_samples)
         gap = _sdca_epoch(coef, dual_coef, intercept, X, X_array, y, mean, var,
-                          loss, lam1, lam2, &t, is_sparse, fit_intercept,
-                          transformer, transformer_fast, indices_samples, z)
+                          loss, lam1, lam2, augmented, &t, is_sparse,
+                          fit_intercept, transformer, transformer_fast,
+                          indices_samples, z)
         if verbose:
             print("Iteration {} Duality Gap {}".format(it+1, gap))
         if gap < tol:
             if verbose:
                 print("Converged at iteration {}".format(it+1))
             break
-
+    intercept[0] *= augmented
     return it
