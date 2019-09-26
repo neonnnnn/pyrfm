@@ -98,7 +98,7 @@ Moreover, pyrfm **supports following solvers for linear models with random featu
  For improving efficiency, implement cdef class and cdef transform method for your desired transformer.
  Please see random_feature/random_features_fast.pyx/pxd.
  Although these stochastic solvers **support any transformers, they might run unbelievable slow** when there is no cdef class and cdef transform method for your desired transformer in random_features_fast.pyx/pxd.
-
+ We believe that these implementations can be used for researches.
      
  ## References
     [1] Ali Rahmini and Ben Recht. Random Feature Maps for Large-Scale Kernel Machines. 
