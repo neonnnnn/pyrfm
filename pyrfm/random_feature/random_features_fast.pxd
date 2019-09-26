@@ -1,3 +1,6 @@
+from lightning.impl.dataset_fast cimport RowDataset, ColumnDataset
+
+
 cdef class BaseCRandomFeature(object):
     cdef Py_ssize_t n_components
     cdef Py_ssize_t n_features
@@ -14,16 +17,17 @@ cdef class CRBFSampler(BaseCRandomFeature):
 
 
 cdef class CRandomFourier(BaseCRandomFeature):
-    cdef double[:, ::1] random_weights
+    cdef RowDataset random_weights
     cdef double[:] random_offset
     cdef bint use_offset
 
 
 cdef class CRandomMaclaurin(BaseCRandomFeature):
-    cdef double[:, ::1] random_weights
+    cdef RowDataset random_weights
     cdef int[:] orders
     cdef double[:] p_choice
     cdef double[:] coefs
+    cdef double[:] cache
 
 
 cdef class CTensorSketch(BaseCRandomFeature):
@@ -34,10 +38,10 @@ cdef class CTensorSketch(BaseCRandomFeature):
 
 
 cdef class CRandomKernel(BaseCRandomFeature):
-    cdef double[:, ::1] random_weights
+    cdef RowDataset random_weights
     cdef int degree
     cdef int kernel
-    cdef double[:] anova
+    cdef double[:, ::1] anova
 
 
 cdef class CFastFood(BaseCRandomFeature):
@@ -60,7 +64,7 @@ cdef class CSubsampledRandomHadamard(BaseCRandomFeature):
 
 
 cdef class CRandomProjection(BaseCRandomFeature):
-    cdef double[:, ::1] random_weights
+    cdef RowDataset random_weights
 
 
 cdef class CCompactRandomFeature(BaseCRandomFeature):

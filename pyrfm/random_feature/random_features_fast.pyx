@@ -3,13 +3,14 @@
 # cython: cdivision=True
 # cython: boundscheck=False
 # cython: wraparound=False
+
 from libc.math cimport cos, sin, sqrt
 from scipy.fftpack._fftpack import drfft, zrfft, zfft
 import numpy as np
 cimport numpy as np
 from sklearn.kernel_approximation import RBFSampler
 from lightning.impl.dataset_fast import get_dataset
-from lightning.impl.dataset_fast cimport RowDataset
+from lightning.impl.dataset_fast cimport RowDataset, ColumnDataset
 from cython.view cimport array
 from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
                FastFood, SubsampledRandomHadamard, CompactRandomFeature,
@@ -17,6 +18,8 @@ from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
                StructuredOrthogonalRandomFeature,
                SignedCirculantRandomMatrix)
 from .utils_fast cimport _fwht1d
+from libcpp.vector cimport vector
+from scipy.sparse import csc_matrix, csr_matrix
 
 
 RANDOMFEATURES = {
@@ -35,16 +38,26 @@ RANDOMFEATURES = {
 }
 
 
-cdef inline double dot(double* x,
-                       int* indices,
-                       int n_nz,
-                       double* y):
-    cdef Py_ssize_t j, jj
-    cdef double result = 0
+cdef inline double dot_all(double* z,
+                           double* x,
+                           int* indices,
+                           int n_nz,
+                           RowDataset W,
+                           Py_ssize_t n_components
+                           ):
+    cdef Py_ssize_t j, jj, i, ii
+    cdef double* weights
+    cdef int* indices_w
+    cdef int n_nz_w
+    for i in range(n_components):
+        z[i] = 0
+
     for jj in range(n_nz):
         j = indices[jj]
-        result += y[j]*x[jj]
-    return result
+        W.get_row_ptr(j, &indices_w, &weights, &n_nz_w)
+        for ii in range(n_nz_w):
+            i = indices_w[ii]
+            z[i] += x[jj] * weights[ii]
 
 
 cdef class BaseCRandomFeature(object):
@@ -84,8 +97,8 @@ cdef class CRBFSampler(BaseCRandomFeature):
 cdef class CRandomFourier(BaseCRandomFeature):
     def __init__(self, transformer):
         self.n_components = transformer.n_components
-        self.n_features = transformer.random_weights_.shape[1]
-        self.random_weights = transformer.random_weights_
+        self.n_features = transformer.random_weights_.shape[0]
+        self.random_weights = get_dataset(transformer.random_weights_, 'c')
         self.random_offset = transformer.random_offset_
         self.use_offset = transformer.use_offset
 
@@ -94,18 +107,17 @@ cdef class CRandomFourier(BaseCRandomFeature):
                         double* data,
                         int* indices,
                         int n_nz):
-        cdef Py_ssize_t i
+        cdef Py_ssize_t i, j, jj
         cdef Py_ssize_t index_offset = int(self.n_components/2)
+        dot_all(z, data, indices, n_nz, self.random_weights, self.n_components)
         # z = (cos, cos, ..., cos)
         if self.use_offset:
             for i in range(self.n_components):
-                z[i] = dot(data, indices, n_nz, &self.random_weights[i, 0])
                 z[i] += self.random_offset[i]
                 z[i] = cos(z[i])*sqrt(2./self.n_components)
         # z = (cos, ..., cos, sin, ..., sin)
         else:
             for i in range(index_offset):
-                z[i] = dot(data, indices, n_nz, &self.random_weights[i, 0])
                 z[i+index_offset] = sin(z[i])*sqrt(2./self.n_components)
                 z[i] = cos(z[i])*sqrt(2./self.n_components)
 
@@ -113,29 +125,38 @@ cdef class CRandomFourier(BaseCRandomFeature):
 cdef class CRandomMaclaurin(BaseCRandomFeature):
     def __init__(self, transformer):
         self.n_components = transformer.n_components
-        self.n_features = transformer.random_weights_.shape[1]
-        self.random_weights = transformer.random_weights_
+        self.n_features = transformer.random_weights_.shape[0]
+        self.random_weights = get_dataset(transformer.random_weights_,
+                                          order='c')
         self.orders = transformer.orders_
         self.p_choice = transformer.p_choice
         self.coefs = transformer.coefs
+        self.cache = array((transformer.random_weights_.shape[1], ),
+                           sizeof(double), format='d')
 
     cdef void transform(self,
                         double* z,
                         double* data,
                         int* indices,
                         int n_nz):
-        cdef Py_ssize_t i, k, offset, deg
-        cdef double tmp
+        cdef Py_ssize_t i, ii, k, offset, deg, n_basis
+        cdef double* weigths
+        cdef int* indices_w
+        cdef int n_nz_w
+
+        n_basis = self.random_weights.get_n_features()
+        dot_all(&self.cache[0], data, indices, n_nz, self.random_weights,
+                n_basis)
+
         offset = 0
         for i in range(self.n_components):
             z[i] = 1.
             deg = self.orders[i]
             for k in range(deg):
-                z[i] *= dot(data, indices, n_nz,
-                            &self.random_weights[offset+k, 0])
-            z[i] *= sqrt(self.coefs[self.orders[i]]/self.n_components)
-            z[i] /= sqrt(self.p_choice[self.orders[i]])
-            offset += self.orders[i]
+                z[i] *= self.cache[offset]
+                offset += 1
+            z[i] *= sqrt(self.coefs[deg]/self.p_choice[deg])
+            z[i] /= sqrt(self.n_components)
 
 
 cdef class CTensorSketch(BaseCRandomFeature):
@@ -186,10 +207,11 @@ cdef class CTensorSketch(BaseCRandomFeature):
 cdef class CRandomKernel(BaseCRandomFeature):
     def __init__(self, transformer):
         self.n_components = transformer.n_components
-        self.n_features = transformer.random_weights_.shape[1]
+        self.n_features = transformer.random_weights_.shape[0]
         self.degree = transformer.degree
         # Now, not support for sparse rademacher
-        self.random_weights = transformer.random_weights_
+        self.random_weights = get_dataset(transformer.random_weights_,
+                                          order='c')
         if transformer.kernel in ["anova", "anova_cython"]:
             self.kernel = 0
         elif transformer.kernel == "all_subsets":
@@ -197,23 +219,26 @@ cdef class CRandomKernel(BaseCRandomFeature):
         else:
             raise ValueError('kernel = {} is not defined.'
                              .format(transformer.kernel))
-        self.anova = array((self.degree+1, ), sizeof(double), format='d')
-        cdef Py_ssize_t i
-        self.anova[0] = 1
-        for i in range(self.degree):
-            self.anova[i+1] = 0
+        self.anova = array((self.n_components, self.degree+1), sizeof(double),
+                           format='d')
+        cdef Py_ssize_t i, j
+        for i in range(self.n_components):
+            self.anova[i, 0] = 1
+            for j in range(self.degree):
+                self.anova[i, j+1] = 0
 
     cdef void transform(self,
                         double* z,
                         double* data,
                         int* indices,
                         int n_nz):
-
+        cdef Py_ssize_t j, jj, deg, i
         if self.kernel == 0:
             anova(z, data, indices, n_nz, self.random_weights, self.degree,
-                  self.anova)
+                  self.anova, self.n_components)
         elif self.kernel == 1:
-            all_subsets(z, data, indices, n_nz, self.random_weights)
+            all_subsets(z, data, indices, n_nz, self.random_weights,
+                        self.n_components)
 
 
 cdef class CFastFood(BaseCRandomFeature):
@@ -318,8 +343,8 @@ cdef class CSubsampledRandomHadamard(BaseCRandomFeature):
 cdef class CRandomProjection(BaseCRandomFeature):
     def __init__(self, transformer):
         self.n_components = transformer.n_components
-        self.n_features = transformer.random_weights_.shape[1]
-        self.random_weights = transformer.random_weights_
+        self.n_features = transformer.random_weights_.shape[0]
+        self.random_weights = get_dataset(transformer.random_weights_, 'c')
 
 
     cdef void transform(self,
@@ -328,8 +353,8 @@ cdef class CRandomProjection(BaseCRandomFeature):
                         int* indices,
                         int n_nz):
         cdef Py_ssize_t i
+        dot_all(z, data, indices, n_nz, self.random_weights, self.n_components)
         for i in range(self.n_components):
-            z[i] = dot(data, indices, n_nz, &self.random_weights[i, 0])
             z[i] /= sqrt(self.n_components)
 
 
@@ -403,16 +428,14 @@ cdef class CSignedCirculantRandomMatrix(BaseCRandomFeature):
             for i in range(self.n_components):
                 z[i] = cos(factor*z[i]+self.random_offset[i])*sqrt(2)
 
-        #print(self.cache[0], z[0])
         for i in range(self.n_components):
             z[i] /= sqrt(self.n_components)
-        #print(self.cache[0].real, z[0])
 
 
 cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
     def __init__(self, transformer):
         self.n_stacks = transformer.random_weights_.shape[0]
-        self.n_features_padded = transformer.n_components //self.n_stacks
+        self.n_features_padded = transformer.n_components // self.n_stacks
         self.n_components = transformer.n_components
         self.n_features = transformer.random_weights_.shape[1] - 2*self.n_features_padded
 
@@ -470,54 +493,97 @@ cdef inline void anova(double* z,
                        double* data,
                        int* indices,
                        int n_nz,
-                       double[:, ::1] random_weights,
+                       RowDataset random_weights,
                        int degree,
-                       double[:] a):
-    cdef Py_ssize_t j, jj, deg, i
-    cdef Py_ssize_t n_components = random_weights.shape[0]
+                       double[:, ::1] a,
+                       int n_components):
+    cdef Py_ssize_t j, jj, deg, i, ii
+    cdef double* weights
+    cdef int* indices_w
+    cdef int n_nz_w
+    # init dp table
+    for i in range(n_components):
+        a[i, 0] = 1
+        for j in range(degree):
+            a[i, j+1] = 0
+
+    for jj in range(n_nz):
+        j = indices[jj]
+        random_weights.get_row_ptr(j, &indices_w, &weights, &n_nz_w)
+        for ii in range(n_nz_w):
+            i = indices_w[ii]
+            for deg in range(degree):
+                a[i, degree-deg] += weights[ii]*data[jj]*a[i, degree-deg-1]
 
     for i in range(n_components):
-        for j in range(degree+1):
-            a[j] = 0
-        a[0] = 1
-
-        for jj in range(n_nz):
-            j = indices[jj]
-            for deg in range(degree):
-                a[degree-deg] += random_weights[i, j]*data[jj]*a[degree-deg-1]
-
-        z[i] = a[degree] / sqrt(n_components)
+        z[i] = a[i, degree] / sqrt(n_components)
 
 
 cdef inline void all_subsets(double* z,
                              double* data,
                              int* indices,
                              int n_nz,
-                             double[:, ::1] random_weights):
-    cdef Py_ssize_t j, jj, i
-    cdef Py_ssize_t n_components = random_weights.shape[0]
-
+                             RowDataset random_weights,
+                             int n_components):
+    cdef Py_ssize_t j, jj, i, ii
+    cdef double* weights
+    cdef int* indices_w
+    cdef int n_nz_w
     for i in range(n_components):
         z[i] = 1
-        for jj in range(n_nz):
-            j = indices[jj]
-            z[i] *= (1+data[jj]*random_weights[i, j])
+    for jj in range(n_nz):
+        j = indices[jj]
+        random_weights.get_row_ptr(j, &indices_w, &weights, &n_nz_w)
+        for ii in range(n_nz_w):
+            i = indices_w[ii]
+            z[i] *= (1+data[jj]*weights[ii])
+    for i in range(n_components):
         z[i] /= sqrt(n_components)
 
 
-cdef void _transform_all_fast(double[:, ::1] Z, RowDataset dataset,
-                              BaseCRandomFeature transformer_fast):
+cdef _transform_all_fast_dense(RowDataset dataset,
+                                    BaseCRandomFeature transformer_fast):
     cdef Py_ssize_t i
     cdef Py_ssize_t n_samples = dataset.get_n_samples()
+    cdef Py_ssize_t n_components = transformer_fast.n_components
     cdef double* data
     cdef int* indices
     cdef int n_nz
+    cdef double[:, ::1] Z = array((n_samples, n_components), sizeof(double),
+                                  format='d')
     for i in range(n_samples):
         dataset.get_row_ptr(i, &indices, &data, &n_nz)
         transformer_fast.transform(&Z[i, 0], data, indices, n_nz)
+    return np.asarray(Z)
 
 
-def transform_all_fast(X, transformer):
+cdef _transform_all_fast_sparse(RowDataset dataset,
+                                BaseCRandomFeature transformer_fast):
+    cdef Py_ssize_t i, j
+    cdef Py_ssize_t n_samples = dataset.get_n_samples()
+    cdef Py_ssize_t n_components = transformer_fast.n_components
+    cdef double* data
+    cdef int* indices
+    cdef int n_nz
+    cdef double[:] z = array((n_components,), sizeof(double), format='d')
+    cdef vector[double] data_vec
+    cdef vector[int] row_vec
+    cdef vector[int] col_vec
+
+    for i in range(n_samples):
+        dataset.get_row_ptr(i, &indices, &data, &n_nz)
+        transformer_fast.transform(&z[0], data, indices, n_nz)
+        for j in range(n_components):
+            if z[j] != 0:
+                data_vec.push_back(z[j])
+                row_vec.push_back(i)
+                col_vec.push_back(j)
+
+    return csr_matrix((data_vec, (row_vec, col_vec)),
+                      shape=(n_samples, n_components))
+
+
+def transform_all_fast(X, transformer, dense_output=True):
     cdef RowDataset dataset = get_dataset(X, order='c')
 
     cdef BaseCRandomFeature transformer_fast \
@@ -525,11 +591,10 @@ def transform_all_fast(X, transformer):
     if transformer_fast is None:
         raise ValueError("transformer has no cython implementation.")
 
-    cdef double[:, ::1] Z = np.zeros((X.shape[0], transformer.n_components),
-                                     dtype=np.float64)
-
-    _transform_all_fast(Z, dataset, transformer_fast)
-    return np.asarray(Z)
+    if dense_output:
+        return _transform_all_fast_dense(dataset, transformer_fast)
+    else:
+        return _transform_all_fast_sparse(dataset, transformer_fast)
 
 
 def get_fast_random_feature(transformer):
