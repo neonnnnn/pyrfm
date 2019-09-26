@@ -76,7 +76,7 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
         if self.fit_intercept and hasattr(self, 'intercept_'):
             y_pred += self.intercept_
 
-        if y_pred.ndim == 1:
+        if y_pred.ndim != 1:
             y_pred = y_pred.ravel()
 
         return y_pred
