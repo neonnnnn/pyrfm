@@ -33,7 +33,6 @@ def _test_regressor(transform, y_train, y_test, X_trans, normalize=False):
         clf_fast.fit(X_train, y_train)
         assert_almost_equal(clf_fast.coef_, clf_slow.coef_, decimal=6)
 
-
         # overfitting
         clf = SDCARegressor(transform, max_iter=100, warm_start=True,
                             verbose=False, fit_intercept=True, loss=loss,
@@ -392,7 +391,6 @@ def test_sdca_regressor_rf_normalize():
     transform = RandomFourier(n_components=100, random_state=0, gamma=10)
     X_trans = transform.fit_transform(X)
     X_trans = StandardScaler().fit_transform(X_trans)
-    print(X_trans)
     y, coef = generate_target(X_trans, rng, -0.1, 0.1)
     y_train = y[:n_train]
     y_test = y[n_train:]
