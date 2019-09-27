@@ -7,6 +7,11 @@ def configuration(parent_package='', top_path=None):
 
     config = Configuration('pyrfm', parent_package, top_path)
 
+    config.add_extension('dataset_fast',
+                         sources=['dataset_fast.pyx'],
+                         language='c++',
+                         include_dirs=[numpy.get_include()])
+
     config.add_extension('kernels_fast',
                          sources=['kernels_fast.pyx'],
                          language='c++',
