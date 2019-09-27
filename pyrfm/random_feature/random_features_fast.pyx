@@ -9,8 +9,8 @@ from scipy.fftpack._fftpack import drfft, zrfft, zfft
 import numpy as np
 cimport numpy as np
 from sklearn.kernel_approximation import RBFSampler
-from lightning.impl.dataset_fast import get_dataset
-from lightning.impl.dataset_fast cimport RowDataset, ColumnDataset
+from ..dataset_fast import get_dataset
+from ..dataset_fast cimport RowDataset, ColumnDataset
 from cython.view cimport array
 from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
                FastFood, SubsampledRandomHadamard, CompactRandomFeature,
@@ -20,6 +20,7 @@ from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
 from .utils_fast cimport _fwht1d
 from libcpp.vector cimport vector
 from scipy.sparse import csc_matrix, csr_matrix
+from scipy.special import comb
 
 
 RANDOMFEATURES = {
@@ -167,7 +168,8 @@ cdef class CTensorSketch(BaseCRandomFeature):
         self.degree = transformer.degree
         self.hash_indices = transformer.hash_indices_
         self.hash_signs = transformer.hash_signs_
-        self.z_cache = array((self.n_components, ), sizeof(double), format='d')
+        self.tmp1 = np.zeros(self.n_components, dtype=np.complex)
+        self.tmp2 = np.zeros(self.n_components, dtype=np.complex)
 
     cdef void transform(self,
                         double* z,
@@ -177,32 +179,28 @@ cdef class CTensorSketch(BaseCRandomFeature):
 
         cdef Py_ssize_t i, jj, j, offset
         for i in range(self.n_components):
-            self.z_cache[i] = 0
+            self.tmp1[i] = 0
         for jj in range(n_nz):
             j = indices[jj]
-            self.z_cache[self.hash_indices[j]] += data[jj]*self.hash_signs[j]
-        drfft(self.z_cache, direction=1, overwrite_x=True)
-        for i in range(self.n_components):
-            z[i] = self.z_cache[i]
+            self.tmp1[self.hash_indices[j]] += data[jj]*self.hash_signs[j]
 
+        zfft(self.tmp1, direction=1, overwrite_x=True)
         for offset in range(self.n_features, self.n_features*self.degree, self.n_features):
             for i in range(self.n_components):
-                self.z_cache[i] = 0
+                self.tmp2[i] = 0
 
             for jj in range(n_nz):
                 j = indices[jj]
                 i = self.hash_indices[j+offset]
-                self.z_cache[i] += data[jj]*self.hash_signs[j+offset]
+                self.tmp2[i] += data[jj]*self.hash_signs[j+offset]
 
-            drfft(self.z_cache, direction=1, overwrite_x=True)
+            zfft(self.tmp2, direction=1, overwrite_x=True)
             for i in range(self.n_components):
-                z[i] *= self.z_cache[i]
+                self.tmp1[i] *= self.tmp2[i]
 
+        zfft(self.tmp1, direction=-1, overwrite_x=True)
         for i in range(self.n_components):
-            self.z_cache[i] = z[i]
-        drfft(self.z_cache, direction=-1, overwrite_x=True)
-        for i in range(self.n_components):
-            z[i] = self.z_cache[i]
+            z[i] = self.tmp1[i].real
 
 
 cdef class CRandomKernel(BaseCRandomFeature):
@@ -263,11 +261,10 @@ cdef class CRandomSubsetKernel(BaseCRandomFeature):
             self.anova[i, 0] = 1
             for j in range(self.degree):
                 self.anova[i, j+1] = 0
-        const = np.arange(self.n_features, self.n_features-self.degree, -1)
-        denominator = np.arange(self.n_sub_features,
-                                self.n_sub_features-self.degree,
-                                -1)
-        self.const = np.prod(np.sqrt(const / denominator))
+        self.const = comb(self.n_features, self.degree)
+        self.const /= comb(self.n_sub_features, self.degree)
+        self.const = sqrt(self.const/self.n_components)
+
 
     cdef void transform(self,
                         double* z,
@@ -278,7 +275,7 @@ cdef class CRandomSubsetKernel(BaseCRandomFeature):
         anova(z, data, indices, n_nz, self.random_weights, self.degree,
               self.anova, self.n_components)
         for i in range(self.n_components):
-            z[i] *= self.const / sqrt(self.n_components)
+            z[i] *= self.const
 
 
 cdef class CFastFood(BaseCRandomFeature):
@@ -580,7 +577,7 @@ cdef inline void all_subsets(double* z,
 
 
 cdef _transform_all_fast_dense(RowDataset dataset,
-                                    BaseCRandomFeature transformer_fast):
+                               BaseCRandomFeature transformer_fast):
     cdef Py_ssize_t i
     cdef Py_ssize_t n_samples = dataset.get_n_samples()
     cdef Py_ssize_t n_components = transformer_fast.n_components
