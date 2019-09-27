@@ -37,6 +37,7 @@ cdef class ContiguousDataset(RowDataset):
     cdef int* indices
     cdef double* data
     cdef object X
+    cdef int stride
 
     cdef void get_row_ptr(self,
                           int i,
@@ -50,6 +51,7 @@ cdef class FortranDataset(ColumnDataset):
     cdef int* indices
     cdef double* data
     cdef object X
+    cdef int stride
 
     cdef void get_column_ptr(self,
                              int j,

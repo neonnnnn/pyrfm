@@ -79,11 +79,13 @@ cdef class ContiguousDataset(RowDataset):
         self.n_features = X.shape[1]
         self.data = <double*> X.data
         self.X = X
+        self.stride = limits.INT_MAX // self.n_features
 
     def __cinit__(self, np.ndarray[double, ndim=2, mode='c'] X):
         cdef int i
         cdef int n_features = X.shape[1]
         self.indices = <int*> stdlib.malloc(sizeof(int) * n_features)
+
         for j in range(n_features):
             self.indices[j] = j
 
@@ -99,15 +101,14 @@ cdef class ContiguousDataset(RowDataset):
                           int** indices,
                           double** data,
                           int* n_nz) nogil:
-        cdef int ii, stride
+        cdef int ii
+        ii = 0
         indices[0] = self.indices
-        if limits.INT_MAX / self.n_features < i:
-            stride = limits.INT_MAX // self.n_features
-            data[0] = self.data + stride*self.n_features
-            ii = stride
-            while ii + stride < i:
-                data[0] += stride * self.n_features
-                ii += stride
+        if self.stride < i:
+            data[0] = self.data
+            while ii + self.stride < i:
+                data[0] += self.stride * self.n_features
+                ii += self.stride
             data[0] += (i-ii)*self.n_features
         else:
             data[0] = self.data + i * self.n_features
@@ -121,6 +122,7 @@ cdef class FortranDataset(ColumnDataset):
         self.n_features = X.shape[1]
         self.data = <double*> X.data
         self.X = X
+        self.stride = limits.INT_MAX // self.n_samples
 
     def __cinit__(self, np.ndarray[double, ndim=2, mode='fortran'] X):
         cdef int i
@@ -128,6 +130,7 @@ cdef class FortranDataset(ColumnDataset):
         self.indices = <int*> stdlib.malloc(sizeof(int) * n_samples)
         for i in range(n_samples):
             self.indices[i] = i
+
 
     def __dealloc__(self):
         stdlib.free(self.indices)
@@ -141,15 +144,14 @@ cdef class FortranDataset(ColumnDataset):
                              int** indices,
                              double** data,
                              int* n_nz) nogil:
-        cdef int jj, stride
+        cdef int jj
+        jj = 0
         indices[0] = self.indices
-        if limits.INT_MAX / self.n_samples < j:
-            stride = limits.INT_MAX // self.n_samples
-            data[0] = self.data + stride*self.n_samples
-            jj = stride
-            while jj + stride < j:
-                data[0] += stride * self.n_samples
-                jj += stride
+        if self.stride < j:
+            data[0] = self.data
+            while jj + self.stride < j:
+                data[0] += self.stride * self.n_samples
+                jj += self.stride
             data[0] += (j-jj)*self.n_samples
         else:
             data[0] = self.data + j * self.n_samples
