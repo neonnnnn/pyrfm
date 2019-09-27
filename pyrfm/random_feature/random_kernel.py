@@ -7,6 +7,8 @@ from scipy.sparse import csc_matrix, csr_matrix, issparse
 from math import sqrt
 from ..kernels import anova, all_subsets, anova_fast, pairwise
 from .utils import get_random_matrix
+import warnings
+from scipy.special import comb
 
 
 def _anova(degree=2, dense_output=True):
@@ -129,7 +131,16 @@ class RandomKernel(BaseEstimator, TransformerMixin):
             kernel_ = self.kernel
         try:
             from .random_features_fast import transform_all_fast
-            output = transform_all_fast(X, self, self.dense_output)
+            dense_output = self.dense_output
+            # for sparse output
+            if not dense_output:
+                if not (issparse(self.random_weights_) and issparse(X)):
+                    warnings.warn("dense_output=False is valid only when both "
+                                  "X and random_weights_ are sparse. "
+                                  "dense_output is changed to True now.")
+                    dense_output = True
+            output = transform_all_fast(X, self, dense_output)
+
         except ValueError:
             output = kernel_(X, self.random_weights_.T)
             output /= sqrt(self.n_components)
@@ -163,9 +174,9 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
         size = (self.n_sub_features * self.n_components, )
         distribution = self.distribution.lower()
         data = get_random_matrix(random_state, distribution, size=size)
-        row = np.repeat(np.arange(n_features), self.n_sub_features)
-        col = get_feature_indices(random_state, self.n_sub_features,
-                                  self.n_components, n_features)
+        col = np.repeat(np.arange(self.n_components), self.n_sub_features)
+        row = get_feature_indices(random_state, self.n_sub_features,
+                                  n_features, self.n_components)
         shape = (n_features, self.n_components)
         self.random_weights_ = csr_matrix((data, (row, col)),
                                           shape=shape)
@@ -175,11 +186,9 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
-        const = np.arange(n_features, n_features-self.degree, -1)
-        denominator = np.arange(self.n_sub_features,
-                                self.n_sub_features-self.degree,
-                                -1)
-        const = np.prod(np.sqrt(const / denominator))
+        const = comb(n_features, self.degree)
+        const /= comb(self.n_sub_features, self.degree)
+
         if isinstance(self.kernel, str):
             if self.kernel == 'anova':
                 kernel_ = _anova(self.degree, self.dense_output)
@@ -202,5 +211,5 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
         except ValueError:
             output = kernel_(X, self.random_weights_.T)
             output /= sqrt(self.n_components)
-        output *= const
+            output *= sqrt(const)
         return output
