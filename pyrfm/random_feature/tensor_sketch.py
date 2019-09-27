@@ -3,7 +3,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.extmath import safe_sparse_dot
 from scipy.sparse import csc_matrix
-from scipy.fftpack import rfft, irfft
+from scipy.fftpack import fft, ifft
 from sklearn.utils.validation import check_is_fitted
 
 
@@ -96,10 +96,10 @@ class TensorSketch(BaseEstimator, TransformerMixin):
         X = check_array(X, True)
         n_samples, n_features = X.shape
         P = safe_sparse_dot(X, self.random_weights_[:, :n_features].T, True)
-        output = rfft(P)
+        output = fft(P)
         for offset in range(n_features, n_features*self.degree, n_features):
             random_weight = self.random_weights_[:, offset:offset+n_features]
             P = safe_sparse_dot(X, random_weight.T, True)
-            output *= rfft(P)
+            output *= fft(P)
 
-        return irfft(output)
+        return ifft(output).real
