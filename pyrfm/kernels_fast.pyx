@@ -3,8 +3,8 @@
 # cython: boudscheck=False
 # cython: wraparound=False
 
-from lightning.impl.dataset_fast import get_dataset
-from lightning.impl.dataset_fast cimport RowDataset, ColumnDataset
+from .dataset_fast import get_dataset
+from .dataset_fast cimport RowDataset, ColumnDataset
 import numpy as np
 cimport numpy as np
 from cython.view cimport array

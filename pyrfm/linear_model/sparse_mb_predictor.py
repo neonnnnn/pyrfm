@@ -4,7 +4,7 @@ from scipy import sparse
 
 from sklearn.utils.extmath import row_norms
 from sklearn.utils import check_random_state
-from lightning.impl.dataset_fast import get_dataset
+from ..dataset_fast import get_dataset
 
 from .loss_fast import Squared, SquaredHinge, Logistic, Hinge
 from ..random_feature.maji_berg import SparseMB

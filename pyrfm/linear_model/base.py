@@ -8,7 +8,7 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.externals import six
 from sklearn.utils.multiclass import type_of_target
 from ..random_feature.random_features_fast import get_fast_random_feature
-from lightning.impl.dataset_fast import get_dataset
+from ..dataset_fast import get_dataset
 from .stochastic_predict import _predict_fast
 from scipy import sparse
 

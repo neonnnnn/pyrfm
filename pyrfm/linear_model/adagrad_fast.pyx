@@ -7,7 +7,7 @@ from libc.math cimport fabs, sqrt
 from .loss_fast cimport LossFunction
 import numpy as np
 cimport numpy as np
-from lightning.impl.dataset_fast cimport RowDataset
+from ..dataset_fast cimport RowDataset
 from .utils cimport transform, normalize
 from cython.view cimport array
 from ..random_feature.random_features_fast cimport BaseCRandomFeature

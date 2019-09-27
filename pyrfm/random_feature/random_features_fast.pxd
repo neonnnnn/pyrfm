@@ -1,4 +1,4 @@
-from lightning.impl.dataset_fast cimport RowDataset, ColumnDataset
+from ..dataset_fast cimport RowDataset, ColumnDataset
 
 
 cdef class BaseCRandomFeature(object):
@@ -34,7 +34,8 @@ cdef class CTensorSketch(BaseCRandomFeature):
     cdef int degree
     cdef int[:] hash_indices
     cdef int[:] hash_signs
-    cdef double[:] z_cache
+    cdef complex[:] tmp1
+    cdef complex[:] tmp2
 
 
 cdef class CRandomKernel(BaseCRandomFeature):

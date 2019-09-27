@@ -5,7 +5,7 @@
 # cython: wraparound=False
 
 from libc.math cimport fabs, sqrt
-from lightning.impl.dataset_fast cimport RowDataset
+from ..dataset_fast cimport RowDataset
 from ..random_feature.random_features_fast cimport BaseCRandomFeature
 from cython.view cimport array
 

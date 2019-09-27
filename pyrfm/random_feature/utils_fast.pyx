@@ -4,7 +4,6 @@
 # cython: wraparound=False
 import numpy as np
 cimport numpy as np
-import math
 from libc.math cimport sqrt
 
 

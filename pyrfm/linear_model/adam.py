@@ -6,7 +6,7 @@ from .loss_fast import Squared, SquaredHinge, Logistic, Hinge
 from .base import BaseLinear, LinearClassifierMixin, LinearRegressorMixin
 from sklearn.kernel_approximation import RBFSampler
 from .adam_fast import _adam_fast
-from lightning.impl.dataset_fast import get_dataset
+from ..dataset_fast import get_dataset
 from ..random_feature.random_features_fast import get_fast_random_feature
 
 
