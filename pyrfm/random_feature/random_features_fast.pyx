@@ -1,8 +1,10 @@
-# encoding: utf-8
 # cython: language_level=3
 # cython: cdivision=True
 # cython: boundscheck=False
 # cython: wraparound=False
+
+# Author: Kyohei Atarashi
+# License: BSD-2-Clause
 
 from libc.math cimport cos, sin, sqrt
 from scipy.fftpack._fftpack import drfft, zrfft, zfft

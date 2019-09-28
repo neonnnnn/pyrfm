@@ -1,3 +1,6 @@
+# Author: Kyohei Atarashi
+# License: BSD-2-Clause
+
 import numpy as np
 from abc import ABCMeta
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin

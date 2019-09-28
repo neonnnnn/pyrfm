@@ -3,6 +3,9 @@
 # cython: boudscheck=False
 # cython: wraparound=False
 
+# Author: Kyohei Atarashi
+# License: BSD-2-Clause
+
 from .dataset_fast import get_dataset
 from .dataset_fast cimport RowDataset, ColumnDataset
 import numpy as np

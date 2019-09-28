@@ -1,3 +1,6 @@
+# Author: Kyohei Atarashi
+# License: BSD-2-Clause
+
 import numpy as np
 from scipy import sparse
 from sklearn.utils import check_random_state

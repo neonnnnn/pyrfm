@@ -1,8 +1,10 @@
+# Author: Kyohei Atarashi
+# License: BSD-2-Clause
+
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.validation import check_is_fitted
-from sklearn.utils.extmath import safe_sparse_dot
 from scipy.special import factorial, binom
 from scipy.sparse import issparse
 
