@@ -101,8 +101,8 @@ class FastFood(BaseEstimator, TransformerMixin):
         n_components = n_stacks * n_features_padded
 
         if n_components != self.n_components:
-            warnings.warn("n_components is changed from {0} to {1}."
-                          "You should set n_components n-tuple of the next"
+            warnings.warn("n_components is changed from {0} to {1}. "
+                          "You should set n_components n-tuple of the next "
                           "power of two of n_features."
                           .format(self.n_components, n_components))
             self.n_components = n_components

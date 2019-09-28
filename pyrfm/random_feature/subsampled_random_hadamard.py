@@ -72,7 +72,7 @@ class SubsampledRandomHadamard(BaseEstimator, TransformerMixin):
 
         n_features_padded = next_pow_of_two(n_features)
         if n_features_padded < self.n_components:
-            raise ValueError("n_components is bigger than next power of two"
+            raise ValueError("n_components is bigger than next power of two "
                              "of n_features.")
         self.random_weights_ = self.distribution(random_state, n_features)
         self.random_weights_ = self.random_weights_.astype(np.float64)
