@@ -3,8 +3,8 @@
 # cython: boudscheck=False
 # cython: wraparound=False
 
-from lightning.impl.dataset_fast import get_dataset
-from lightning.impl.dataset_fast cimport RowDataset, ColumnDataset
+from .dataset_fast import get_dataset
+from .dataset_fast cimport RowDataset, ColumnDataset
 import numpy as np
 cimport numpy as np
 from cython.view cimport array
@@ -92,7 +92,7 @@ cdef _canova_sparse(RowDataset X,
                 col_vec.push_back(i2)
             for t in range(degree):
                 a[i2, 1+t] = 0
-
+    """
     cdef np.ndarray[np.float64_t, ndim=1] data = np.empty(n_nz_all,
                                                           dtype=np.float64)
     cdef np.ndarray[np.int32_t, ndim=1] row = np.empty(n_nz_all,
@@ -104,8 +104,11 @@ cdef _canova_sparse(RowDataset X,
         data[i1] = data_vec[i1]
         row[i1] = row_vec[i1]
         col[i1] = col_vec[i1]
+    """
+    return csc_matrix((data_vec, (row_vec, col_vec)),
+                      shape=(n_samples_x, n_samples_p))
 
-    return csc_matrix((data, (row, col)), shape=(n_samples_x, n_samples_p))
+    #return csc_matrix((data, (row, col)), shape=(n_samples_x, n_samples_p))
 
 
 cdef void _call_subsets(double[:, ::1] output,
@@ -176,11 +179,6 @@ cdef void _cchi_square(double[:, ::1] output,
 
 
 def _anova(X, P, degree, dense_output=True):
-    cdef double* data
-    cdef int* row
-    cdef int* col
-    cdef int n_nz
-
     if dense_output:
         output = np.zeros((X.shape[0], P.shape[0]))
 

@@ -5,7 +5,7 @@ from .loss_fast import Squared, SquaredHinge, Logistic, Hinge
 from .base import BaseLinear, LinearClassifierMixin, LinearRegressorMixin
 from sklearn.kernel_approximation import RBFSampler
 from .sdca_fast import _sdca_fast
-from lightning.impl.dataset_fast import get_dataset
+from ..dataset_fast import get_dataset
 from ..random_feature.random_features_fast import get_fast_random_feature
 
 
@@ -35,6 +35,9 @@ class BaseSDCAEstimator(BaseLinear):
 
     alpha : double (default=1.0)
         Weight of the penalty term.
+
+    alpha_intercept : double (default=1e-10)
+        Weight of the penalty term for intercept.
 
     l1_ratio : double (default=0)
         Ratio of L1 regularizer.
@@ -74,7 +77,8 @@ class BaseSDCAEstimator(BaseLinear):
 
     fast_solver : bool (default=True)
         Use cython fast solver or not. This argument is valid when transformer
-        is in {RandomFourier|RandomMaclaurin|TensorSketch|RandomKernel}.
+        is in {RandomFourier|RandomMaclaurin|TensorSketch|RandomKernel|
+               FastFood|CompactRandomFeature|RBFSampler|OrthogonalRandomFeature}
 
     shuffle : bool (default=True)
         Whether shuffle data before each epoch or not.
@@ -113,14 +117,15 @@ class BaseSDCAEstimator(BaseLinear):
     stochastic = True
 
     def __init__(self, transformer=RBFSampler(), loss='squared_hinge',
-                 C=1.0, alpha=1.0, l1_ratio=0, normalize=False,
-                 fit_intercept=True, max_iter=100, tol=1e-6,
+                 C=1.0, alpha=1.0, alpha_intercept=1e-10, l1_ratio=0,
+                 normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
                  warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
         self.transformer = transformer
         self.loss = loss
         self.C = C
         self.alpha = alpha
+        self.alpha_intercept = alpha_intercept
         self.l1_ratio = l1_ratio
         self.normalize = normalize
         self.fit_intercept = fit_intercept
@@ -141,11 +146,10 @@ class BaseSDCAEstimator(BaseLinear):
         n_components = self.transformer.n_components
         # init primal parameters, mean/var vectors and t_
         self._init_params(n_components)
-
         self.dual_coef_ = np.zeros(n_samples)
-
         loss = self.LOSSES[self.loss]
         alpha = self.alpha / self.C
+        alpha_intercept = self.alpha_intercept / self.C
         random_state = check_random_state(self.random_state)
 
         if alpha*(1-self.l1_ratio) == 0:
@@ -155,7 +159,7 @@ class BaseSDCAEstimator(BaseLinear):
         is_sparse = sparse.issparse(X)
         it = _sdca_fast(self.coef_, self.dual_coef_, self.intercept_,
                         get_dataset(X, order='c'), X, y,
-                        self.mean_, self.var_, loss, alpha,
+                        self.mean_, self.var_, loss, alpha, alpha_intercept,
                         self.l1_ratio, self.t_, self.max_iter, self.tol,
                         is_sparse, self.verbose, self.fit_intercept,
                         self.shuffle, random_state, self.transformer,
@@ -174,12 +178,12 @@ class SDCAClassifier(BaseSDCAEstimator, LinearClassifierMixin):
     }
 
     def __init__(self, transformer=RBFSampler(), loss='squared_hinge',
-                 C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
-                 fit_intercept=True, max_iter=100, tol=1e-6,
+                 C=1.0, alpha=1.0, alpha_intercept=1e-10, l1_ratio=0.,
+                 normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
                  warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
         super(SDCAClassifier, self).__init__(
-            transformer, loss, C, alpha, l1_ratio, normalize,
+            transformer, loss, C, alpha, alpha_intercept, l1_ratio, normalize,
             fit_intercept, max_iter, tol, warm_start, random_state, verbose,
             fast_solver, shuffle
         )
@@ -191,12 +195,13 @@ class SDCARegressor(BaseSDCAEstimator, LinearRegressorMixin):
     }
 
     def __init__(self, transformer=RBFSampler(), loss='squared',
-                 C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
+                 C=1.0, alpha=1.0, alpha_intercept=1e-10,
+                 l1_ratio=0., normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6,
                  warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
         super(SDCARegressor, self).__init__(
-            transformer, loss, C, alpha, l1_ratio, normalize,
+            transformer, loss, C, alpha, alpha_intercept, l1_ratio, normalize,
             fit_intercept, max_iter, tol, warm_start, random_state, verbose,
             fast_solver, shuffle
         )

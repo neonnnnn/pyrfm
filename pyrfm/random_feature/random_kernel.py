@@ -3,10 +3,13 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
-from scipy.sparse import csc_matrix, issparse
+from scipy.sparse import csr_matrix, issparse
 from math import sqrt
 from ..kernels import anova, all_subsets, anova_fast, pairwise
 from .utils import get_random_matrix
+from .sparse_rademacher import get_subfeatures_indices
+import warnings
+from scipy.special import comb
 
 
 def _anova(degree=2, dense_output=True):
@@ -77,7 +80,7 @@ class RandomKernel(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    random_weights_ : array, shape (n_components, n_features)
+    random_weights_ : array, shape (n_features, n_components)
         The sampled basis.
 
     References
@@ -102,17 +105,15 @@ class RandomKernel(BaseEstimator, TransformerMixin):
         random_state = check_random_state(self.random_state)
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
-        size = (self.n_components, n_features)
+        size = (n_features, self.n_components)
         distribution = self.distribution.lower()
         self.random_weights_ = get_random_matrix(random_state, distribution,
                                                  size, self.p_sparse)
-
         return self
 
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=['csr'])
-        n_samples, n_features = X.shape
         if isinstance(self.kernel, str):
             if self.kernel == 'anova':
                 kernel_ = _anova(self.degree, self.dense_output)
@@ -122,8 +123,6 @@ class RandomKernel(BaseEstimator, TransformerMixin):
                 kernel_ = all_subsets
             elif self.kernel == 'dot':
                 kernel_ = dot()
-            elif self.kernel == "pariwise":
-                kernel_ = _pairwise(self.dense_output, self.symmetric)
             else:
                 raise ValueError('Kernel {} is not supported. '
                                  'Use "anova", "anova_cython", "all_subsets", '
@@ -131,9 +130,22 @@ class RandomKernel(BaseEstimator, TransformerMixin):
                                  .format(self.kernel))
         else:
             kernel_ = self.kernel
-        output = kernel_(X, self.random_weights_).astype(np.float64)
+        try:
+            from .random_features_fast import transform_all_fast
+            dense_output = self.dense_output
+            # for sparse output
+            if not dense_output:
+                if not (issparse(self.random_weights_) and issparse(X)):
+                    warnings.warn("dense_output=False is valid only when both "
+                                  "X and random_weights_ are sparse. "
+                                  "dense_output is changed to True now.")
+                    dense_output = True
+            output = transform_all_fast(X, self, dense_output)
 
-        output /= sqrt(self.n_components)
+        except ValueError:
+            warnings.warn("Using pure python implementation.")
+            output = kernel_(X, self.random_weights_.T)
+            output /= sqrt(self.n_components)
         return output
 
 
@@ -164,37 +176,43 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
         size = (self.n_sub_features * self.n_components, )
         distribution = self.distribution.lower()
         data = get_random_matrix(random_state, distribution, size=size)
-        row = np.repeat(np.arange(self.n_components), self.n_sub_features)
-        col = get_feature_indices(random_state, self.n_sub_features,
-                                  n_features, self.n_components)
-        self.random_weights_ = csc_matrix((data, (row, col)),
-                                          shape=(self.n_components, n_features))
+        col = np.repeat(np.arange(self.n_components), self.n_sub_features)
+        row = get_subfeatures_indices(self.n_components, n_features,
+                                      self.n_sub_features, random_state)
+        shape = (n_features, self.n_components)
+        self.random_weights_ = csr_matrix((data, (row, col)),
+                                          shape=shape)
         return self
 
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
-        const = np.arange(n_features, n_features-self.degree, -1)
-        denominator = np.arange(self.n_sub_features,
-                                self.n_sub_features-self.degree,
-                                -1)
-        const = np.prod(np.sqrt(const / denominator))
+
         if isinstance(self.kernel, str):
             if self.kernel == 'anova':
                 kernel_ = _anova(self.degree, self.dense_output)
             elif self.kernel == 'anova_cython':
                 kernel_ = _anova_fast(self.degree, self.dense_output)
-            elif self.kernel == "pairwise":
-                kernel_ = _pairwise(self.dense_output, self.symmetric)
+            elif self.kernel == 'all_subsets':
+                kernel_ = all_subsets
+            elif self.kernel == 'dot':
+                kernel_ = dot()
             else:
                 raise ValueError('Kernel {} is not supported. '
-                                 'Use "anova" or "dot"'
+                                 'Use "anova", "anova_cython", "all_subsets", '
+                                 '"dot", or "pairwise".'
                                  .format(self.kernel))
         else:
             kernel_ = self.kernel
-        output = kernel_(X, self.random_weights_).astype(np.float64)
-
-        output /= sqrt(self.n_components)
-        output *= const
+        try:
+            from .random_features_fast import transform_all_fast
+            output = transform_all_fast(X, self, self.dense_output)
+        except ValueError:
+            warnings.warn("Using pure python implementation.")
+            const = comb(n_features, self.degree)
+            const /= comb(self.n_sub_features, self.degree)
+            output = kernel_(X, self.random_weights_.T)
+            output /= sqrt(self.n_components)
+            output *= sqrt(const)
         return output

@@ -41,7 +41,7 @@ class RandomProjection(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    random_weights_ : array, or sparse matrix, shape (n_components, n_features)
+    random_weights_ : array, or sparse matrix, shape (n_features, n_components)
         The sampled basis.
 
     References
@@ -63,7 +63,7 @@ class RandomProjection(BaseEstimator, TransformerMixin):
         random_state = check_random_state(self.random_state)
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
-        size = (self.n_components, n_features)
+        size = (n_features, self.n_components)
         if self.p_sparse == "auto":
             p_sparse = 1 - 1./np.sqrt(n_features)
         else:
@@ -85,5 +85,5 @@ class RandomProjection(BaseEstimator, TransformerMixin):
     def transform(self, X):
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=True)
-        output = safe_sparse_dot(X, self.random_weights_.T, True)
+        output = safe_sparse_dot(X, self.random_weights_, True)
         return output / sqrt(self.n_components)

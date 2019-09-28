@@ -4,11 +4,12 @@
 # cython: wraparound=False
 import numpy as np
 cimport numpy as np
-import math
 from libc.math cimport sqrt
 
 
-cdef void _fisher_yates_shuffle(int[:] permutation, int[:] fisher_yates_vec, rng):
+cdef inline void _fisher_yates_shuffle(int[:] permutation,
+                                       int[:] fisher_yates_vec,
+                                       rng):
     cdef Py_ssize_t i, n
     cdef int tmp
     n = permutation.shape[0]
@@ -20,7 +21,9 @@ cdef void _fisher_yates_shuffle(int[:] permutation, int[:] fisher_yates_vec, rng
 
 
 def fisher_yates_shuffle(int n, rng):
+    # sampled indices matrix (represent exchanging)
     cdef np.ndarray[int, ndim=1] fy_vec = np.zeros(n, dtype=np.int32)
+    # shuffled matrix
     cdef np.ndarray[int, ndim=1] perm = np.arange(n, dtype=np.int32)
     _fisher_yates_shuffle(perm, fy_vec, rng)
     return perm, fy_vec

@@ -74,7 +74,7 @@ class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
 
         t = self.n_components//n_features
         if self.n_components % n_features != 0:
-            warnings.warn("self.n_components is indivisible by n_features."
+            warnings.warn("self.n_components is indivisible by n_features. "
                           "Output.shape[1] is {}".format(t*n_features))
         if self.degree == 3:
             fft_X_pow_3 = fft(safe_power(X, 3, dense_output=True))

@@ -8,7 +8,7 @@ from libc.math cimport fabs, sqrt
 from .loss_fast cimport LossFunction
 import numpy as np
 cimport numpy as np
-from lightning.impl.dataset_fast cimport RowDataset
+from ..dataset_fast cimport RowDataset
 from cython.view cimport array
 from .utils cimport transform, normalize
 from ..random_feature.random_features_fast cimport BaseCRandomFeature
@@ -100,12 +100,11 @@ cdef double adam_epoch(double[:] coef,
         dloss = loss.dloss(y_pred, y[i])
         eta_t = eta * sqrt(1-beta2**t[0]) / (1-beta1**t[0])
 
-        if dloss != 0:
-            for j in range(n_components):
-                # grad = dloss*z[j]
-                grad = dloss*z[j]+lam2*coef[j]
-                mean_grad[j] = beta1*mean_grad[j] + (1-beta1)*grad
-                var_grad[j] = beta2*var_grad[j] + (1-beta2)*grad**2
+        for j in range(n_components):
+            # grad = dloss*z[j]
+            grad = dloss*z[j]+lam2*coef[j]
+            mean_grad[j] = beta1*mean_grad[j] + (1-beta1)*grad
+            var_grad[j] = beta2*var_grad[j] + (1-beta2)*grad**2
 
         for j in range(n_components):
             # m_hat_t = mean_grad[j] / (1-beta1**t[0])

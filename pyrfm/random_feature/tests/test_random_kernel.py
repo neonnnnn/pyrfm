@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, issparse
 
 from sklearn.utils.testing import (assert_less_equal,
                                    assert_allclose_dense_sparse,
@@ -49,7 +49,15 @@ def test_anova_kernel():
             assert_less_equal(np.max(error), 0.001)  # nothing too far off
             assert_less_equal(np.mean(error), 0.0005)  # mean is fairly close
 
+            # sparse input
             X_trans_sp = rk_transform.transform(X_sp)
+            assert_allclose_dense_sparse(X_trans, X_trans_sp)
+
+            # sparse output
+            rk_transform.dense_output = False
+            X_trans_sp = rk_transform.transform(X_sp)
+            if issparse(X_trans_sp):
+                X_trans_sp = X_trans_sp.toarray()
             assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
 
@@ -74,3 +82,33 @@ def test_all_subsets_kernel():
 
         X_trans_sp = rk_transform.transform(X_sp)
         assert_allclose_dense_sparse(X_trans, X_trans_sp)
+
+
+def test_anova_cython_kernel():
+    # compute exact kernel
+    distributions = ['rademacher', 'gaussian', 'laplace', 'uniform',
+                     'sparse_rademacher']
+    for degree in range(2, 5):
+        kernel = anova(X, Y, degree)
+        for dist in distributions:
+            # approximate kernel mapping
+            rk_transform = RandomKernel(n_components=1000, random_state=rng,
+                                        kernel='anova_cython', degree=degree,
+                                        distribution=dist, p_sparse=0.5)
+
+            X_trans = rk_transform.fit_transform(X)
+            Y_trans = rk_transform.transform(Y)
+            kernel_approx = np.dot(X_trans, Y_trans.T)
+            error = kernel - kernel_approx
+            assert_less_equal(np.abs(np.mean(error)), 0.0001)
+            assert_less_equal(np.max(error), 0.001)  # nothing too far off
+            assert_less_equal(np.mean(error), 0.0005)  # mean is fairly close
+
+            # sparse input
+            X_trans_sp = rk_transform.transform(X_sp)
+            assert_allclose_dense_sparse(X_trans, X_trans_sp)
+
+            # sparse output
+            rk_transform.dense_output = False
+            X_trans_sp = rk_transform.transform(X_sp)
+            assert_allclose_dense_sparse(X_trans, X_trans_sp.toarray())

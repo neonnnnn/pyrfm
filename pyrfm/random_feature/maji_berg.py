@@ -5,7 +5,7 @@ from sklearn.utils.validation import check_is_fitted
 
 from scipy.sparse import csc_matrix
 import warnings
-from lightning.impl.dataset_fast import get_dataset
+from ..dataset_fast import get_dataset
 from .unarize import unarize, make_sparse_mb
 
 

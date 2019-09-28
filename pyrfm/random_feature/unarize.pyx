@@ -3,7 +3,7 @@
 # cython: boudscheck=False
 # cython: wraparound=False
 
-from lightning.impl.dataset_fast cimport RowDataset
+from ..dataset_fast cimport RowDataset
 from libc.math cimport sqrt
 
 

@@ -5,8 +5,7 @@
 # cython: wraparound=False
 
 from libc.math cimport fabs
-from cython.view cimport array
-from lightning.impl.dataset_fast cimport ColumnDataset, RowDataset
+from ..dataset_fast cimport ColumnDataset, RowDataset
 from .loss_fast cimport LossFunction
 import numpy as np
 cimport numpy as np

@@ -5,10 +5,7 @@
 # cython: wraparound=False
 
 from libc.math cimport fabs, sqrt
-from .loss_fast cimport LossFunction
-import numpy as np
-cimport numpy as np
-from lightning.impl.dataset_fast cimport RowDataset
+from ..dataset_fast cimport RowDataset
 from ..random_feature.random_features_fast cimport BaseCRandomFeature
 from cython.view cimport array
 
@@ -20,7 +17,7 @@ def _predict_fast(double[:] coef,
                   double[:] var,
                   BaseCRandomFeature transformer_fast,
                   ):
-    cdef Py_ssize_t n_samples, n_components, j
+    cdef Py_ssize_t n_samples, n_components, j, i
     n_samples = X.get_n_samples()
     n_components = coef.shape[0]
     cdef double[:] z = array((n_components, ), sizeof(double), format='d')
