@@ -3,10 +3,11 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
-from scipy.sparse import csc_matrix, csr_matrix, issparse
+from scipy.sparse import csr_matrix, issparse
 from math import sqrt
 from ..kernels import anova, all_subsets, anova_fast, pairwise
 from .utils import get_random_matrix
+from .sparse_rademacher import get_subfeatures_indices
 import warnings
 from scipy.special import comb
 
@@ -142,6 +143,7 @@ class RandomKernel(BaseEstimator, TransformerMixin):
             output = transform_all_fast(X, self, dense_output)
 
         except ValueError:
+            warnings.warn("Using pure python implementation.")
             output = kernel_(X, self.random_weights_.T)
             output /= sqrt(self.n_components)
         return output
@@ -175,8 +177,8 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
         distribution = self.distribution.lower()
         data = get_random_matrix(random_state, distribution, size=size)
         col = np.repeat(np.arange(self.n_components), self.n_sub_features)
-        row = get_feature_indices(random_state, self.n_sub_features,
-                                  n_features, self.n_components)
+        row = get_subfeatures_indices(self.n_components, n_features,
+                                      self.n_sub_features, random_state)
         shape = (n_features, self.n_components)
         self.random_weights_ = csr_matrix((data, (row, col)),
                                           shape=shape)
@@ -186,8 +188,6 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
-        const = comb(n_features, self.degree)
-        const /= comb(self.n_sub_features, self.degree)
 
         if isinstance(self.kernel, str):
             if self.kernel == 'anova':
@@ -209,6 +209,9 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
             from .random_features_fast import transform_all_fast
             output = transform_all_fast(X, self, self.dense_output)
         except ValueError:
+            warnings.warn("Using pure python implementation.")
+            const = comb(n_features, self.degree)
+            const /= comb(self.n_sub_features, self.degree)
             output = kernel_(X, self.random_weights_.T)
             output /= sqrt(self.n_components)
             output *= sqrt(const)

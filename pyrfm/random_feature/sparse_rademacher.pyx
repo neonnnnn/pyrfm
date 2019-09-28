@@ -14,7 +14,7 @@ from scipy.sparse import csr_matrix
 def sparse_rademacher(rng, int[:] size, double p_sparse):
     # size = (n_features, n_components)
     # Preprocess for walker alias method: O(n_components)
-    cdef Py_ssize_t i, j, n_nz
+    cdef Py_ssize_t i, j, n_nz, n_nz_i
     cdef Py_ssize_t n_components, n_features
     cdef Py_ssize_t offset = 0
     n_features = size[0]
@@ -25,7 +25,7 @@ def sparse_rademacher(rng, int[:] size, double p_sparse):
     cdef int[:] n_nzs = np.zeros(n_components, dtype=np.int32)
     cdef int[:] arange = np.arange(n_features, dtype=np.int32)
 
-    # sampling number of nonzero elements in each column : O(n_features)
+    # sampling number of nonzero elements in each column : O(n_components)
     n_nz = 0
     for i in range(n_components):
         n_nzs[i] = binom.get_sample()
@@ -33,26 +33,27 @@ def sparse_rademacher(rng, int[:] size, double p_sparse):
     cdef int[:] row_ind = np.zeros(n_nz, dtype=np.int32)
     cdef int[:] col_ind = np.zeros(n_nz, dtype=np.int32)
 
-    # sampling nonzero row indices : O(\sum_{j=1}^{n_features} nnz_j=nnz)
+    # sampling nonzero row indices : O(\sum_{i=1}^{n_components} nnz_i=nnz)
     offset = 0
     for i in range(n_components):
-        fisher_yates_shuffle(arange, n_nzs[i], rng)
-        for j in range(n_nzs[i]):
+        fisher_yates_shuffle(arange, n_features, n_nzs[i], rng)
+        n_nz_i = n_nzs[i]
+        for j in range(n_nz_i):
             col_ind[offset+j] = i
             row_ind[offset+j] = arange[j]
-        offset += n_nzs[i]
+        offset += n_nz_i
 
     # sampling nonzero elements: O(nnz)
     data = (rng.randint(2, size=n_nz)*2-1) / np.sqrt(1-p_sparse)
     return csr_matrix((data, (row_ind, col_ind)), shape=size)
 
 
-cdef inline void fisher_yates_shuffle(int[:] permutation, int n, rng):
+cdef inline void fisher_yates_shuffle(int[:] permutation, int length, int n,
+                                      rng):
     cdef Py_ssize_t i, j
     cdef int tmp
-    cdef lengh = len(permutation)
     for i in range(n):
-        j = rng.randint(0, lengh-i)
+        j = rng.randint(0, length-i)
         tmp = permutation[i]
         permutation[i] = permutation[j+i]
         permutation[j+i] = tmp
@@ -168,3 +169,30 @@ cdef class Binomial:
 
     cdef inline int get_sample(self):
         return self.cat.get_sample()
+
+
+cdef inline void _get_subfeatures_indices(int[:] indices,
+                                          int[:] perm,
+                                          int n_components,
+                                          int n_features,
+                                          int n_sub_features,
+                                          rng):
+    cdef Py_ssize_t offset, i, j
+    cdef int ii
+    offset = 0
+    for j in range(n_components):
+        fisher_yates_shuffle(perm, n_features, n_sub_features, rng)
+        for i in range(n_sub_features):
+            indices[offset+i] = perm[i]
+        offset += n_sub_features
+
+
+def get_subfeatures_indices(int n_components, int n_features,
+                            int n_sub_features, rng):
+    cdef int size = n_components * n_sub_features
+    cdef np.ndarray[int, ndim=1] indices = np.zeros(size, dtype=np.int32)
+    cdef np.ndarray[int, ndim=1] perm = np.arange(n_features, dtype=np.int32)
+
+    _get_subfeatures_indices(indices, perm, n_components, n_features,
+                             n_sub_features, rng)
+    return indices
