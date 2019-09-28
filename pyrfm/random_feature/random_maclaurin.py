@@ -86,6 +86,19 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         self.random_state = random_state
 
     def fit(self, X, y=None):
+        """Generate random weights and orders according to n_features.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            Training data, where n_samples in the number of samples
+            and n_features is the number of features.
+
+        Returns
+        -------
+        self : object
+            Returns the transformer.
+        """
         random_state = check_random_state(self.random_state)
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
@@ -140,6 +153,18 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        """Apply the approximate feature map to X.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            New data, where n_samples in the number of samples
+            and n_features is the number of features.
+
+        Returns
+        -------
+        X_new : array-like, shape (n_samples, n_components)
+        """
         check_is_fitted(self, "random_weights_")
         from .random_features_fast import transform_all_fast
         X = check_array(X, accept_sparse=True)

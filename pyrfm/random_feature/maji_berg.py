@@ -30,6 +30,19 @@ class MB(BaseEstimator, TransformerMixin):
         self.n_components = n_components
 
     def fit(self, X, y=None):
+        """Compute the number of grids according to n_features.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            Training data, where n_samples in the number of samples
+            and n_features is the number of features.
+
+        Returns
+        -------
+        self : object
+            Returns the transformer.
+        """
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         self.n_grids_ = self.n_components // n_features
@@ -42,6 +55,18 @@ class MB(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        """Apply the approximate feature map to X.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            New data, where n_samples in the number of samples
+            and n_features is the number of features.
+
+        Returns
+        -------
+        X_new : array-like, shape (n_samples, n_components)
+        """
         check_is_fitted(self, "n_grids_")
         X = check_array(X, accept_sparse=['csc'])
         n_samples, n_features = X.shape
@@ -83,6 +108,18 @@ class SparseMB(BaseEstimator, TransformerMixin):
         self.n_components = n_components
 
     def fit(self, X, y=None):
+        """Apply the approximate feature map to X.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            New data, where n_samples in the number of samples
+            and n_features is the number of features.
+
+        Returns
+        -------
+        X_new : array-like, shape (n_samples, n_components)
+        """
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         if self.n_components < n_features:
@@ -99,6 +136,18 @@ class SparseMB(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        """Apply the approximate feature map to X for SparseMBEstimator.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            New data, where n_samples in the number of samples
+            and n_features is the number of features.
+
+        Returns
+        -------
+        X_new : array-like, shape (n_samples, n_components)
+        """
         check_is_fitted(self, "n_grids_")
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
