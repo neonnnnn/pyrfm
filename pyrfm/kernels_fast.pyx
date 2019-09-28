@@ -13,6 +13,32 @@ from libcpp.vector cimport vector
 from scipy.sparse import csc_matrix
 
 
+cdef inline double _sparse_dot(double* x,
+                               int* indices_x,
+                               int n_nz_x,
+                               double* y,
+                               int* indices_y,
+                               int n_nz_y):
+    cdef Py_ssize_t ii, i, jj, j
+    cdef double dot = 0
+    jj = 0
+    for ii in range(n_nz_x):
+        i = indices_x[ii]
+        while jj < n_nz_y:
+            j = indices_y[jj]
+            if j >= i:
+                break
+            jj += 1
+
+        if j == i:
+            dot += x[ii] * y[jj]
+            jj += 1
+
+        if jj == n_nz_y:
+            break
+    return dot
+
+
 cdef void _canova(double[:, ::1] output,
                   RowDataset X,
                   ColumnDataset P,
@@ -92,23 +118,8 @@ cdef _canova_sparse(RowDataset X,
                 col_vec.push_back(i2)
             for t in range(degree):
                 a[i2, 1+t] = 0
-    """
-    cdef np.ndarray[np.float64_t, ndim=1] data = np.empty(n_nz_all,
-                                                          dtype=np.float64)
-    cdef np.ndarray[np.int32_t, ndim=1] row = np.empty(n_nz_all,
-                                                       dtype=np.int32)
-    cdef np.ndarray[np.int32_t, ndim=1] col = np.empty(n_nz_all,
-                                                       dtype=np.int32)
-
-    for i1 in range(n_nz_all):
-        data[i1] = data_vec[i1]
-        row[i1] = row_vec[i1]
-        col[i1] = col_vec[i1]
-    """
     return csc_matrix((data_vec, (row_vec, col_vec)),
                       shape=(n_samples_x, n_samples_p))
-
-    #return csc_matrix((data, (row, col)), shape=(n_samples_x, n_samples_p))
 
 
 cdef void _call_subsets(double[:, ::1] output,
@@ -178,6 +189,32 @@ cdef void _cchi_square(double[:, ::1] output,
                 output[i1, i2] += 2*x[jj]*p[ii2] / (x[jj]+p[ii2])
 
 
+cdef double _score(RowDataset X,
+                   double[:, ::1] K,
+                   int loss):
+    cdef double* data1,
+    cdef int* indices1
+    cdef int n_nz1
+    cdef double* data2
+    cdef int* indices2
+    cdef int n_nz2
+    cdef Py_ssize_t i, j
+    cdef int n_samples = X.get_n_samples()
+    cdef double result = 0
+    cdef double dot
+    for i in range(n_samples):
+        X.get_row_ptr(i, &indices1, &data1, &n_nz1)
+        for j in range(i, n_samples):
+            X.get_row_ptr(j, &indices2, &data2, &n_nz2)
+            dot = _sparse_dot(data1, indices1, n_nz1, data2, indices2, n_nz2)
+            if loss == 1:
+                result += abs(K[i, j] - dot)
+            elif loss == 2:
+                result += (K[i, j] - dot) ** 2
+
+    return result / (n_samples * (n_samples+1) / 2)
+
+
 def _anova(X, P, degree, dense_output=True):
     if dense_output:
         output = np.zeros((X.shape[0], P.shape[0]))
@@ -208,9 +245,42 @@ def _intersection(X, P):
                    get_dataset(P, order='fortran'))
     return output
 
+
 def _chi_square(X, P):
     output = np.zeros(X.shape[0], P.shape[0])
     _cchi_square(output, get_dataset(X, order='c'),
                  get_dataset(P, order='fortran'))
 
     return output
+
+def score(X, K, loss='l2'):
+    """
+    Compute the approximation error of X:
+        \sum_{i=1}^{n}\sum_{j=i}^{n} loss(dot(X[i], X[j]), K[i,j]) / (n(n+1)/2)
+
+    Parameters
+    ----------
+    X : array-like, shape (n_samples, n_features)
+        Random feature matrix.
+
+    K : np.ndarray, shape (n_samples, n_samples)
+        Gram matrix.
+
+    loss : str
+        Which loss function. "l1" or "l2" can be used.
+
+    Returns
+    -------
+    double
+        Approximation error.
+    """
+
+    if loss == 'l1':
+        _loss = 1
+    elif loss == 'l2':
+        _loss = 2
+    else:
+        raise ValueError('loss {} is not supported, only "l1" or "l2" can be '
+                         'used')
+    return _score(get_dataset(X, 'c'), K, _loss)
+
