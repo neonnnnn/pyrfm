@@ -87,6 +87,17 @@ class LinearClassifierMixin(BaseLinear, ClassifierMixin):
         return self._predict(X)
 
     def predict(self, X):
+        """Perform classification on an array of test vectors X.
+
+        Parameters
+        ----------
+        X : array-like, shape = [n_samples, n_features]
+
+        Returns
+        -------
+        array, shape = [n_samples]
+            Predicted target values for X
+        """
         pred = self._predict(X)
         out = self.label_binarizer_.inverse_transform(pred)
 
@@ -124,6 +135,17 @@ class LinearClassifierMixin(BaseLinear, ClassifierMixin):
 
 class LinearRegressorMixin(BaseLinear, RegressorMixin):
     def predict(self, X):
+        """Perform regression on an array of test vectors X.
+
+        Parameters
+        ----------
+        X : array-like, shape = [n_samples, n_features]
+
+        Returns
+        -------
+        array, shape = [n_samples]
+            Predicted target values for X
+        """
         return self._predict(X)
 
     def _check_X_y(self, X, y, accept_sparse=True):
