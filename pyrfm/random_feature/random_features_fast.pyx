@@ -19,7 +19,7 @@ from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
                RandomProjection, OrthogonalRandomFeature,
                StructuredOrthogonalRandomFeature,
                SignedCirculantRandomMatrix, RandomSubsetKernel)
-from .utils_fast cimport _fwht1d
+from .fht_fast cimport _fwht1d_fast
 from libcpp.vector cimport vector
 from scipy.sparse import csc_matrix, csr_matrix
 from scipy.special import comb
@@ -210,7 +210,6 @@ cdef class CRandomKernel(BaseCRandomFeature):
         self.n_components = transformer.n_components
         self.n_features = transformer.random_weights_.shape[0]
         self.degree = transformer.degree
-        # Now, not support for sparse rademacher
         self.random_weights = get_dataset(transformer.random_weights_,
                                           order='c')
         if transformer.kernel in ["anova", "anova_cython"]:
@@ -250,7 +249,6 @@ cdef class CRandomSubsetKernel(BaseCRandomFeature):
         self.n_sub_features = transformer.n_sub_features
         self.n_features = transformer.random_weights_.shape[0]
         self.degree = transformer.degree
-        # Now, not support for sparse rademacher
         self.random_weights = get_dataset(transformer.random_weights_,
                                           order='c')
         if transformer.kernel not in ["anova", "anova_cython"]:
@@ -314,7 +312,7 @@ cdef class CFastFood(BaseCRandomFeature):
                 self.cache[j] = data[jj] * self.random_sign[t, j]
 
             # HBx: H is the Walsh-Hadamard transform
-            _fwht1d(&self.cache[0], self.degree_hadamard, normalize=False)
+            _fwht1d_fast(&self.cache[0], self.degree_hadamard, normalize=False)
             
             # \Pi HBx: \Pi is the random permutation matrix
             for j in range(n_features_padded):
@@ -329,7 +327,7 @@ cdef class CFastFood(BaseCRandomFeature):
                 self.cache[j] *= self.random_weights[t, j]
                 self.cache[j] *= self.random_scaling[t, j]
             
-            _fwht1d(&self.cache[0], self.degree_hadamard, False)
+            _fwht1d_fast(&self.cache[0], self.degree_hadamard, False)
 
             for j in range(n_features_padded):
                 i = j + n_features_padded*t
@@ -369,7 +367,7 @@ cdef class CSubsampledRandomHadamard(BaseCRandomFeature):
             self.cache[j] = data[jj] * self.random_weights[j]
 
         # HDx: H is the Walsh-Hadamard transform
-        _fwht1d(&self.cache[0], self.degree_hadamard, normalize=True)
+        _fwht1d_fast(&self.cache[0], self.degree_hadamard, normalize=True)
 
         # RHDx: R is a random n_components \times n_features_padded matrix,
         # which represents n_components indices of rows.
@@ -502,18 +500,18 @@ cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
                 self.cache[j] = data[jj] * self.random_weights[ii, j]
 
             # HDx: H is the Walsh-Hadamard transform
-            _fwht1d(&self.cache[0], self.degree_hadamard, normalize=True)
+            _fwht1d_fast(&self.cache[0], self.degree_hadamard, normalize=True)
 
             # Dx, D is a random diagonal sign matrix
             offset = self.n_features
             for j in range(self.n_features_padded):
                 self.cache[j] *= self.random_weights[ii, j+offset]
-            _fwht1d(&self.cache[0], self.degree_hadamard, normalize=True)
+            _fwht1d_fast(&self.cache[0], self.degree_hadamard, normalize=True)
             offset += self.n_features_padded
 
             for j in range(self.n_features_padded):
                 self.cache[j] *= self.random_weights[ii, j+offset]
-            _fwht1d(&self.cache[0], self.degree_hadamard, normalize=True)
+            _fwht1d_fast(&self.cache[0], self.degree_hadamard, normalize=True)
 
             for j in range(self.n_features_padded):
                 i = ii*self.n_features_padded + j
