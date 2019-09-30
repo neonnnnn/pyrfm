@@ -15,20 +15,20 @@ import warnings
 from scipy.special import comb
 
 
-def _anova(degree=2, dense_output=True):
-    return lambda X, Y: anova(X, Y, degree, dense_output=dense_output)
+def _anova(degree=2):
+    return lambda X, Y, dense_output: anova(X, Y, degree, dense_output)
 
 
-def _anova_fast(degree=2, dense_output=True):
-    return lambda X, Y: anova_fast(X, Y, degree, dense_output=dense_output)
+def _anova_fast(degree=2):
+    return lambda X, Y, dense_output: anova_fast(X, Y, degree, dense_output)
 
 
-def dot(dense_output=True):
-    return lambda X, Y: safe_sparse_dot(X, Y.T, dense_output)
+def dot():
+    return lambda X, Y, dense_output: safe_sparse_dot(X, Y.T, dense_output)
 
 
-def _pairwise(dense_output=True, symmetric=False):
-    return lambda X, Y: pairwise(X, Y, dense_output, symmetric)
+def _pairwise(symmetric=False):
+    return lambda X, Y, dense_output: pairwise(X, Y, dense_output, symmetric)
 
 
 def get_feature_indices(rng, n_sub_features, n_features, n_components):
@@ -144,9 +144,9 @@ class RandomKernel(BaseEstimator, TransformerMixin):
         X = check_array(X, accept_sparse=['csr'])
         if isinstance(self.kernel, str):
             if self.kernel == 'anova':
-                kernel_ = _anova(self.degree, self.dense_output)
+                kernel_ = _anova(self.degree)
             elif self.kernel == 'anova_cython':
-                kernel_ = _anova_fast(self.degree, self.dense_output)
+                kernel_ = _anova_fast(self.degree)
             elif self.kernel == 'all_subsets':
                 kernel_ = all_subsets
             elif self.kernel == 'dot':
@@ -158,22 +158,17 @@ class RandomKernel(BaseEstimator, TransformerMixin):
                                  .format(self.kernel))
         else:
             kernel_ = self.kernel
-        try:
-            from .random_features_fast import transform_all_fast
-            dense_output = self.dense_output
-            # for sparse output
-            if not dense_output:
-                if not (issparse(self.random_weights_) and issparse(X)):
-                    warnings.warn("dense_output=False is valid only when both "
-                                  "X and random_weights_ are sparse. "
-                                  "dense_output is changed to True now.")
-                    dense_output = True
-            output = transform_all_fast(X, self, dense_output)
+        dense_output = self.dense_output
+        # for sparse output
+        if not dense_output:
+            if not (issparse(self.random_weights_) and issparse(X)):
+                warnings.warn("dense_output=False is valid only when both "
+                              "X and random_weights_ are sparse. "
+                              "dense_output is changed to True now.")
+                dense_output = True
 
-        except ValueError:
-            warnings.warn("Using pure python implementation.")
-            output = kernel_(X, self.random_weights_.T)
-            output /= sqrt(self.n_components)
+        output = kernel_(X, self.random_weights_.T, dense_output)
+        output /= sqrt(self.n_components)
         return output
 
 
@@ -244,9 +239,9 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
 
         if isinstance(self.kernel, str):
             if self.kernel == 'anova':
-                kernel_ = _anova(self.degree, self.dense_output)
+                kernel_ = _anova(self.degree)
             elif self.kernel == 'anova_cython':
-                kernel_ = _anova_fast(self.degree, self.dense_output)
+                kernel_ = _anova_fast(self.degree)
             elif self.kernel == 'all_subsets':
                 kernel_ = all_subsets
             elif self.kernel == 'dot':
@@ -258,14 +253,18 @@ class RandomSubsetKernel(BaseEstimator, TransformerMixin):
                                  .format(self.kernel))
         else:
             kernel_ = self.kernel
-        try:
-            from .random_features_fast import transform_all_fast
-            output = transform_all_fast(X, self, self.dense_output)
-        except ValueError:
-            warnings.warn("Using pure python implementation.")
-            const = comb(n_features, self.degree)
-            const /= comb(self.n_sub_features, self.degree)
-            output = kernel_(X, self.random_weights_.T)
-            output /= sqrt(self.n_components)
-            output *= sqrt(const)
+        dense_output = self.dense_output
+        # for sparse output
+        if not dense_output:
+            if not (issparse(self.random_weights_) and issparse(X)):
+                warnings.warn("dense_output=False is valid only when both "
+                              "X and random_weights_ are sparse. "
+                              "dense_output is changed to True now.")
+                dense_output = True
+
+        const = comb(n_features, self.degree)
+        const /= comb(self.n_sub_features, self.degree)
+        output = kernel_(X, self.random_weights_.T, dense_output)
+        output /= sqrt(self.n_components)
+        output *= sqrt(const)
         return output

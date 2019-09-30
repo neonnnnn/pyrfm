@@ -13,7 +13,7 @@ cimport numpy as np
 from cython.view cimport array
 from libc.math cimport fmin
 from libcpp.vector cimport vector
-from scipy.sparse import csc_matrix
+from scipy.sparse import csr_matrix
 
 
 cdef inline double _sparse_dot(double* x,
@@ -85,18 +85,17 @@ cdef _canova_sparse(RowDataset X,
     cdef double *p
     cdef int *x_indices
     cdef int *p_indices
-    cdef int x_n_nz, p_n_nz, n_nz_all
+    cdef int x_n_nz, p_n_nz
+    cdef unsigned long int n_nz_all_all
     cdef Py_ssize_t n_samples_x, n_samples_p, i1, ii2, i2, jj, j, t
 
     cdef vector[double] data_vec
     cdef vector[int] row_vec
     cdef vector[int] col_vec
-
     n_samples_x = X.get_n_samples()
     n_samples_p = P.get_n_samples()
 
     cdef double[:, ::1] a = array((n_samples_p, degree+1), sizeof(double), 'd')
-
     for i2 in range(n_samples_p):
         a[i2, 0] = 1
         for t in range(degree):
@@ -121,7 +120,20 @@ cdef _canova_sparse(RowDataset X,
                 col_vec.push_back(i2)
             for t in range(degree):
                 a[i2, 1+t] = 0
-    return csc_matrix((data_vec, (row_vec, col_vec)),
+
+    cdef np.ndarray[np.float64_t, ndim=1] data = np.empty(n_nz_all,
+                                                          dtype=np.float64)
+    cdef np.ndarray[np.int32_t, ndim=1] row = np.empty(n_nz_all,
+                                                       dtype=np.int32)
+    cdef np.ndarray[np.int32_t, ndim=1] col = np.empty(n_nz_all,
+                                                       dtype=np.int32)
+    
+    for i1 in range(n_nz_all):
+        data[i1] = data_vec[i1]
+        row[i1] = row_vec[i1]
+        col[i1] = col_vec[i1]
+
+    return csr_matrix((data, (row, col)),
                       shape=(n_samples_x, n_samples_p))
 
 
