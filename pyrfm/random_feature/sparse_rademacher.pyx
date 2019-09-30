@@ -3,6 +3,9 @@
 # cython: boudscheck=False
 # cython: wraparound=False
 
+# Author: Kyohei Atarashi
+# License: BSD-2-Clause
+
 from cython.view cimport array
 from sklearn.utils import check_random_state
 import numpy as np

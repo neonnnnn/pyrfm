@@ -1,8 +1,11 @@
-# encoding: utf-8
 # cython: language_level=3
 # cython: cdivision=True
 # cython: boundscheck=False
 # cython: wraparound=False
+
+# Author: Kyohei Atarashi
+# License: BSD-2-Clause
+
 from libc.math cimport fabs, sqrt
 from .loss_fast cimport LossFunction
 import numpy as np
