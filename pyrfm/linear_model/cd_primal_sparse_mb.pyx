@@ -4,6 +4,9 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 
+# Author: Kyohei Atarashi
+# License: BSD-2-Clause
+
 from libc.math cimport fabs
 from ..dataset_fast cimport ColumnDataset, RowDataset
 from .loss_fast cimport LossFunction

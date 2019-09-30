@@ -1,4 +1,3 @@
-# encoding: utf-8
 # cython: language_level=3
 # cython: cdivision=True
 # cython: boundscheck=False

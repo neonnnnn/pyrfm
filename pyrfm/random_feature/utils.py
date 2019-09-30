@@ -41,14 +41,6 @@ def get_random_matrix(random_state, distribution, size, p_sparse=0.,
     elif distribution == 'sparse_rademacher':
         # n_nzs : (n_features, )
         # n_nzs[j] is n_nz of random_weights[:, j]
-        """
-        n_nzs = rng.binomial(size[0], 1-p_sparse, size[1])
-        indptr = np.append(0, np.cumsum(n_nzs))
-        arange = np.arange(size[0])
-        indices = [rng.choice(arange, size=nnz, replace=False) for nnz in n_nzs]
-        data = (rng.randint(2, size=np.sum(n_nzs))*2-1) / np.sqrt(1-p_sparse)
-        return csc_matrix((data, np.concatenate(indices), indptr), shape=size)
-        """
         return sparse_rademacher(random_state, np.array(size, dtype=np.int32),
                                  p_sparse)
     else:

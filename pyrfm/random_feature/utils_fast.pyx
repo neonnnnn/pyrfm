@@ -2,6 +2,10 @@
 # cython: cdivision=True
 # cython: boudscheck=False
 # cython: wraparound=False
+
+# Author: Kyohei Atarashi
+# License: BSD-2-Clause
+
 import numpy as np
 cimport numpy as np
 from libc.math cimport sqrt
