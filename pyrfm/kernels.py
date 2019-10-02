@@ -96,10 +96,10 @@ def hellinger(X, P):
     return safe_sparse_dot(np.sqrt(X), np.sqrt(P))
 
 
-def all_subsets(X, P):
+def all_subsets(X, P, dense_output=True):
     X = check_array(X, True)
     P = check_array(P, True)
-    return _all_subsets(X, P)
+    return _all_subsets(X, P, dense_output)
 
 
 def anova_fast(X, P, degree, dense_output=True):
