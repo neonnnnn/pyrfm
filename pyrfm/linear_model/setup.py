@@ -35,6 +35,14 @@ def configuration(parent_package='', top_path=None):
                          language='c++',
                          include_dirs=[numpy.get_include()])
 
+    config.add_extension("sgd_fast", sources=['sgd_fast.pyx'],
+                         language='c++',
+                         include_dirs=[numpy.get_include()])
+
+    config.add_extension("saga_fast", sources=['saga_fast.pyx'],
+                         language='c++',
+                         include_dirs=[numpy.get_include()])
+
     config.add_extension("stochastic_predict",
                          sources=['stochastic_predict.pyx'],
                          language='c++',
