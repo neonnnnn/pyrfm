@@ -32,9 +32,9 @@ cdef inline double _get_eta(double eta0,
                             double lam2,
                             int t):
     cdef double eta = eta0
-    if learning_rate == 2:
-        eta = 1.0 / lam2 * t
-    elif learning_rate == 3:
+    if learning_rate == 1:
+        eta = 1.0 / (lam2 * t)
+    elif learning_rate == 2:
         eta /= pow(t, power_t)
     return eta
 
@@ -52,6 +52,7 @@ cdef inline double _pred(double[:] z,
         y_pred += z[j] * coef[j]
         acc_loss[0] += 0.5*lam2*coef[j]**2 + lam1*fabs(coef[j])
     return y_pred + intercept
+
 
 cdef double sgd_initialization(double[:] coef,
                                double[:] intercept,
