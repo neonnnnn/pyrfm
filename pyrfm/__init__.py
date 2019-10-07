@@ -12,4 +12,6 @@ from .kernels_fast import (_anova, _all_subsets, _chi_square, _intersection,
 from .linear_model import (AdaGradRegressor, AdaGradClassifier,
                            SparseMBRegressor, SparseMBClassifier,
                            SDCARegressor, SDCAClassifier,
-                           AdamClassifier, AdamRegressor)
+                           AdamRegressor, AdamClassifier,
+                           SGDRegressor, SGDClassifier,
+                           SAGARegressor, SAGAClassifier)
