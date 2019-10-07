@@ -39,7 +39,7 @@ class BaseSDCAEstimator(BaseLinear):
     alpha : double (default=1.0)
         Weight of the penalty term.
 
-    alpha_intercept : double (default=1e-10)
+    intercept_decay : double (default=1e-1)
         Weight of the penalty term for intercept.
 
     l1_ratio : double (default=0)
@@ -120,7 +120,7 @@ class BaseSDCAEstimator(BaseLinear):
     stochastic = True
 
     def __init__(self, transformer=RBFSampler(), loss='squared_hinge',
-                 C=1.0, alpha=1.0, alpha_intercept=1e-10, l1_ratio=0,
+                 C=1.0, alpha=1.0, l1_ratio=0, intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
                  warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
@@ -128,7 +128,7 @@ class BaseSDCAEstimator(BaseLinear):
         self.loss = loss
         self.C = C
         self.alpha = alpha
-        self.alpha_intercept = alpha_intercept
+        self.intercept_decay = intercept_decay
         self.l1_ratio = l1_ratio
         self.normalize = normalize
         self.fit_intercept = fit_intercept
@@ -139,6 +139,13 @@ class BaseSDCAEstimator(BaseLinear):
         self.verbose = verbose
         self.fast_solver = fast_solver
         self.shuffle = shuffle
+
+    def _valid_params(self):
+        super(BaseSDCAEstimator, self)._valid_params()
+        if self.alpha*(1-self.l1_ratio) == 0:
+            raise ValueError("alpha*(1-l1_ratio)/C = 0. SDCA needs a strongly"
+                             "convex regularizer (alpha*(1-l1_ration)/C must"
+                             "be bigger than 0).")
 
     def fit(self, X, y):
         """Fit model according to X and y.
@@ -163,21 +170,19 @@ class BaseSDCAEstimator(BaseLinear):
         n_samples, n_features = X.shape
         n_components = self.transformer.n_components
         # init primal parameters, mean/var vectors and t_
+        self._valid_params()
         self._init_params(n_components)
+
         self.dual_coef_ = np.zeros(n_samples)
         loss = self.LOSSES[self.loss]
         alpha = self.alpha / self.C
-        alpha_intercept = self.alpha_intercept / self.C
+        intercept_decay = self.intercept_decay / self.C
         random_state = check_random_state(self.random_state)
 
-        if alpha*(1-self.l1_ratio) == 0:
-            raise ValueError("alpha*(1-l1_ratio)/C = 0. SDCA needs a strongly"
-                             "convex regularizer (alpha*(1-l1_ration)/C must"
-                             "be bigger than 0).")
         is_sparse = sparse.issparse(X)
         it = _sdca_fast(self.coef_, self.dual_coef_, self.intercept_,
                         get_dataset(X, order='c'), X, y,
-                        self.mean_, self.var_, loss, alpha, alpha_intercept,
+                        self.mean_, self.var_, loss, alpha, intercept_decay,
                         self.l1_ratio, self.t_, self.max_iter, self.tol,
                         is_sparse, self.verbose, self.fit_intercept,
                         self.shuffle, random_state, self.transformer,
@@ -196,12 +201,12 @@ class SDCAClassifier(BaseSDCAEstimator, LinearClassifierMixin):
     }
 
     def __init__(self, transformer=RBFSampler(), loss='squared_hinge',
-                 C=1.0, alpha=1.0, alpha_intercept=1e-10, l1_ratio=0.,
+                 C=1.0, alpha=1.0, l1_ratio=0, intercept_decay=1e-1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
                  warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
         super(SDCAClassifier, self).__init__(
-            transformer, loss, C, alpha, alpha_intercept, l1_ratio, normalize,
+            transformer, loss, C, alpha, l1_ratio, intercept_decay, normalize,
             fit_intercept, max_iter, tol, warm_start, random_state, verbose,
             fast_solver, shuffle
         )
@@ -213,13 +218,12 @@ class SDCARegressor(BaseSDCAEstimator, LinearRegressorMixin):
     }
 
     def __init__(self, transformer=RBFSampler(), loss='squared',
-                 C=1.0, alpha=1.0, alpha_intercept=1e-10,
-                 l1_ratio=0., normalize=False,
-                 fit_intercept=True, max_iter=100, tol=1e-6,
+                 C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=1e-1,
+                 normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
                  warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
         super(SDCARegressor, self).__init__(
-            transformer, loss, C, alpha, alpha_intercept, l1_ratio, normalize,
+            transformer, loss, C, alpha, l1_ratio, intercept_decay, normalize,
             fit_intercept, max_iter, tol, warm_start, random_state, verbose,
             fast_solver, shuffle
         )

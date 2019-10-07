@@ -26,7 +26,7 @@ class BaseAdamEstimator(BaseLinear):
         transformer must have (1) n_components attribute, (2) fit(X, y),
         and (3) transform(X).
 
-    eta : double (default=0.001)
+    eta0 : double (default=0.001)
         Step-size parameter.
 
     beta1 : double (default=0.9)
@@ -55,6 +55,9 @@ class BaseAdamEstimator(BaseLinear):
         If l1_ratio = 0 : Ridge.
         else If l1_ratio = 1 : Lasso.
         else : Elastic Net.
+
+    intercept_decay : double (default=0.1)
+        Weight of the penalty term for intercept.
 
     normalize : bool (default=False)
         Whether normalize random features or not.
@@ -134,19 +137,21 @@ class BaseAdamEstimator(BaseLinear):
 
     stochastic = True
 
-    def __init__(self, transformer=RBFSampler(), eta=0.001, beta1=0.9,
+    def __init__(self, transformer=RBFSampler(), eta0=0.001, beta1=0.9,
                  beta2=0.999, loss='squared', C=1.0, alpha=1.0,
-                 l1_ratio=0, normalize=False, fit_intercept=True, max_iter=100,
+                 l1_ratio=0, intercept_decay=0.1, normalize=False,
+                 fit_intercept=True, max_iter=100,
                  tol=1e-6,  eps=1e-8, warm_start=False, random_state=None,
                  verbose=True, fast_solver=True, shuffle=True):
         self.transformer = transformer
-        self.eta = eta
+        self.eta0 = eta0
         self.beta1 = beta1
         self.beta2 = beta2
         self.loss = loss
         self.C = C
         self.alpha = alpha
         self.l1_ratio = l1_ratio
+        self.intercept_decay = intercept_decay
         self.normalize = normalize
         self.fit_intercept = fit_intercept
         self.max_iter = max_iter
@@ -157,6 +162,30 @@ class BaseAdamEstimator(BaseLinear):
         self.verbose = verbose
         self.fast_solver = fast_solver
         self.shuffle = shuffle
+
+    def _init_params(self, n_components):
+        super(BaseAdamEstimator, self)._init_params(n_components)
+        if not (self.warm_start and hasattr(self, 'mean_grad_')):
+            self.mean_grad_ = np.zeros(n_components)
+
+        if not (self.warm_start and hasattr(self, 'var_grad_')):
+            self.var_grad_ = np.zeros(n_components)
+
+        if not (self.warm_start and hasattr(self, 'mean_grad_intercept_')):
+            self.mean_grad_intercept_ = np.zeros(self.intercept_.shape)
+
+        if not (self.warm_start
+                and hasattr(self, 'var_grad_intercept_')):
+            self.var_grad_intercept_ = np.zeros(self.intercept_.shape)
+
+    def _valid_params(self):
+        super(BaseAdamEstimator, self)._valid_params()
+
+        if not (0 < self.beta1 < 1):
+            raise ValueError("beta1 must be in (0, 1).")
+
+        if not (0 < self.beta2 < 1):
+            raise ValueError("beta2 must be in (0, 1).")
 
     def fit(self, X, y):
         """Fit model according to X and y.
@@ -180,35 +209,22 @@ class BaseAdamEstimator(BaseLinear):
 
         n_samples, n_features = X.shape
         n_components = self.transformer.n_components
-        # init primal parameters, mean/var vectors and t_
+        # valid hyper parameters and init parameters
+        self._valid_params()
         self._init_params(n_components)
-
-        if not (self.warm_start and hasattr(self, 'intercept_')):
-            self.intercept_ = np.zeros((1,))
-
-        if not (self.warm_start and hasattr(self, 'mean_grad_')):
-            self.mean_grad_ = np.zeros(n_components)
-
-        if not (self.warm_start and hasattr(self, 'var_grad_')):
-            self.var_grad_ = np.zeros(n_components)
-
-        if not (self.warm_start and hasattr(self, 'mean_grad_intercept_')):
-            self.mean_grad_intercept_ = np.zeros(self.intercept_.shape)
-
-        if not (self.warm_start
-                and hasattr(self, 'var_grad_intercept_')):
-            self.var_grad_intercept_ = np.zeros(self.intercept_.shape)
 
         loss = self.LOSSES[self.loss]
         alpha = self.alpha / self.C
+        intercept_decay = self.intercept_decay / self.C
         random_state = check_random_state(self.random_state)
         is_sparse = sparse.issparse(X)
+
         it = _adam_fast(self.coef_, self.intercept_,
                         get_dataset(X, order='c'), X, y, self.mean_grad_,
                         self.var_grad_,  self.mean_grad_intercept_,
                         self.var_grad_intercept_, self.mean_, self.var_,
-                        loss, alpha,  self.l1_ratio,
-                        self.eta, self.beta1, self.beta2, self.t_,
+                        loss, alpha,  self.l1_ratio, intercept_decay,
+                        self.eta0, self.beta1, self.beta2, self.t_,
                         self.max_iter, self.tol, self.eps, is_sparse,
                         self.verbose, self.fit_intercept, self.shuffle,
                         random_state, self.transformer,
@@ -226,16 +242,16 @@ class AdamClassifier(BaseAdamEstimator, LinearClassifierMixin):
         'log': Logistic()
     }
 
-    def __init__(self, transformer=RBFSampler(), eta=0.001, beta1=0.9,
-                 beta2=0.999, loss='squared_hinge',
-                 C=1.0, alpha=1.0, l1_ratio=0., normalize=False,
+    def __init__(self, transformer=RBFSampler(), eta0=0.001, beta1=0.9,
+                 beta2=0.999, loss='squared_hinge', C=1.0, alpha=1.0,
+                 l1_ratio=0., intercept_decay=0.1, normalize=False,
                  fit_intercept=True, max_iter=100, tol=1e-6, eps=1e-8,
                  warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
         super(AdamClassifier, self).__init__(
-            transformer, eta, beta1, beta2, loss, C, alpha, l1_ratio, normalize,
-            fit_intercept, max_iter, tol, eps, warm_start, random_state,
-            verbose, fast_solver, shuffle
+            transformer, eta0, beta1, beta2, loss, C, alpha, l1_ratio,
+            intercept_decay, normalize, fit_intercept, max_iter, tol, eps,
+            warm_start, random_state, verbose, fast_solver, shuffle
         )
 
 
@@ -244,13 +260,14 @@ class AdamRegressor(BaseAdamEstimator, LinearRegressorMixin):
         'squared': Squared(),
     }
 
-    def __init__(self, transformer=RBFSampler(), eta=0.001, beta1=0.9,
+    def __init__(self, transformer=RBFSampler(), eta0=0.001, beta1=0.9,
                  beta2=0.999, loss='squared', C=1.0, alpha=1.0, l1_ratio=0.,
-                 normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
-                 eps=1e-8, warm_start=False, random_state=None, verbose=True,
-                 fast_solver=True, shuffle=True):
+                 intercept_decay=0.1, normalize=False, fit_intercept=True,
+                 max_iter=100, tol=1e-6, eps=1e-8, warm_start=False,
+                 random_state=None, verbose=True, fast_solver=True,
+                 shuffle=True):
         super(AdamRegressor, self).__init__(
-            transformer, eta, beta1, beta2, loss, C, alpha, l1_ratio, normalize,
-            fit_intercept, max_iter, tol, eps, warm_start, random_state,
-            verbose, fast_solver, shuffle
+            transformer, eta0, beta1, beta2, loss, C, alpha, l1_ratio,
+            intercept_decay, normalize, fit_intercept, max_iter, tol, eps,
+            warm_start, random_state, verbose, fast_solver, shuffle
         )
