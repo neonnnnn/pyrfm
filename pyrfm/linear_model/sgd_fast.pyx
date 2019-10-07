@@ -6,7 +6,7 @@
 # Author: Kyohei Atarashi
 # License: BSD-2-Clause
 
-from libc.math cimport fabs, sqrt, pow
+from libc.math cimport fabs, sqrt, pow, fmax
 from .loss_fast cimport LossFunction
 import numpy as np
 cimport numpy as np
@@ -32,10 +32,12 @@ cdef inline double _get_eta(double eta0,
                             double lam2,
                             int t):
     cdef double eta = eta0
-    if learning_rate == 2:
-        eta = 1.0 / lam2 * t
+    if learning_rate == 1: # pegasos
+        eta = 1.0 / (lam2 * t)
+    elif learning_rate == 2: # inv_scaling
+        eta /= pow(t, power_t) # optimal
     elif learning_rate == 3:
-        eta /= pow(t, power_t)
+        eta /= pow(1.0 + eta0*lam2*t, power_t)
     return eta
 
 
@@ -84,7 +86,7 @@ cdef double sgd_epoch(double[:] coef,
 
     cdef Py_ssize_t i, ii, j
     cdef int n_samples, n_components
-    cdef double dloss, eta_t, viol, y_pred, intercept_new, coef_new_j
+    cdef double dloss, eta_t, viol, y_pred, intercept_new, coef_new_j, mu_t
     # data pointers
     cdef int* indices
     cdef double* data
@@ -138,9 +140,10 @@ cdef double sgd_epoch(double[:] coef,
             viol += fabs(update)
 
         if average:
+            mu_t = 1.0 / fmax(1, fmax(t[0]-n_samples, t[0]-n_components))
             for j in range(n_components):
-                coef[j] = (coef[j] + coef_cache[j]) / t[0]
-            intercept[0] = (intercept[0] + intercept_cache[0]) / t[0]
+                coef[j] += (coef_cache[j] - coef[j]) * mu_t
+            intercept[0] += (intercept_cache[0] - intercept[0]) * mu_t
 
         t[0] += 1
     acc_loss[0] /= n_samples

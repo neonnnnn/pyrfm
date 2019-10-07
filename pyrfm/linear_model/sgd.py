@@ -17,7 +17,8 @@ class BaseSGDEstimator(BaseLinear):
     LEARNING_RATE = {
         'constant': 0,
         'pegasos': 1,
-        'inv_scaling': 2
+        'inv_scaling': 2,
+        'optimal': 3,
     }
     """SGD solver for linear models with random feature maps.
     Random feature mapping is computed just before computing prediction and
@@ -31,7 +32,7 @@ class BaseSGDEstimator(BaseLinear):
         transformer must have (1) n_components attribute, (2) fit(X, y),
         and (3) transform(X).
 
-    eta0 : double (default=1.0)
+    eta0 : double (default=0.01)
         Step-size parameter.
 
     loss : str (default="squared")
@@ -75,15 +76,25 @@ class BaseSGDEstimator(BaseLinear):
         the SGD solver stops learning.
     
     learning_rate : str (default='pegasos')
-        The method for learning rate decay. {'constant'|'pegasos'|'inv_scaling'}
+        The method for learning rate decay. 
+        'constant':
+            eta = eta0
+        'pegasos':
+            eta = 1.0 / (alpha * (1-l1_ratio) * t)
+        'inv_svaling':
+            eta = eta0 / pow(t, power_t)
+        'optimal':
+            eta = eta0 / pow(1 + alpha*(1-l1_ratio)*t, power_t)
         are supported now.
     
     power_t : double (default=0.5)
         The parameter for learning_rate 'inv_scaling'.
         
-    average : bool (default=False)
+    average : bool (default=True)
         Whether output averaged weight or not.
-    
+        If average=True, you should use learning_rate='optimal' and
+        power_t=0.75[2].
+        
     warm_start : bool (default=False)
         Whether to activate warm-start or not.
 
@@ -131,6 +142,12 @@ class BaseSGDEstimator(BaseLinear):
     Leon Bottou.
     In Proc. COMPSTAT'2010.
     (https://leon.bottou.org/publications/pdf/compstat-2010.pdf)
+    
+    [2] Stochastic Gradient Descent Tricks.
+    Leon Bottou.
+    Neural Networks, Tricks of the Trade, Reloaded, 430–445, 
+    Lecture Notes in Computer Science (LNCS 7700), Springer, 2012
+    (https://link.springer.com/content/pdf/10.1007%2F978-3-642-35289-8_25.pdf)
     """
     LOSSES = {
         'squared': Squared(),
@@ -142,7 +159,7 @@ class BaseSGDEstimator(BaseLinear):
 
     stochastic = True
 
-    def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared',
+    def __init__(self, transformer=RBFSampler(), eta0=0.01, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0, intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
                  learning_rate='pegasos', power_t=0.5, average=True,
@@ -184,9 +201,10 @@ class BaseSGDEstimator(BaseLinear):
             raise ValueError("average is not bool.")
         
         if self.learning_rate == 'pegasos':
-            if not (self.l1_ratio > 0):
-                raise ValueError("l1_ratio must be > 0 when "
+            if not (self.l1_ratio < 1):
+                raise ValueError("1 - l1_ratio must be > 0 when "
                                  "learning_rate = 'pegasos'.")
+
             if not (self.alpha / self.C > 0):
                 raise ValueError("alpha / C must be > 0 when "
                                  "learning_rate = 'pegasos'.")
@@ -231,7 +249,6 @@ class BaseSGDEstimator(BaseLinear):
         random_state = check_random_state(self.random_state)
         is_sparse = sparse.issparse(X)
         learning_rate = self.LEARNING_RATE[self.learning_rate]
-
         it = _sgd_fast(self.coef_, self.intercept_, self.coef_cache_,
                        self.intecept_cache_, get_dataset(X, order='c'), X, y,
                        self.mean_, self.var_, loss, alpha, self.l1_ratio,
@@ -253,12 +270,12 @@ class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
         'log': Logistic()
     }
 
-    def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared_hinge',
-                 C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
-                 normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
-                 learning_rate='pegasos', power_t=0.5, average=False,
-                 warm_start=False, random_state=None, verbose=True,
-                 fast_solver=True, shuffle=True):
+    def __init__(self, transformer=RBFSampler(), eta0=0.01,
+                 loss='squared_hinge', C=1.0, alpha=1.0, l1_ratio=0.,
+                 intercept_decay=0.1, normalize=False, fit_intercept=True,
+                 max_iter=100, tol=1e-6, learning_rate='optimal', power_t=0.75,
+                 average=True, warm_start=False, random_state=None,
+                 verbose=True, fast_solver=True, shuffle=True):
         super(SGDClassifier, self).__init__(
             transformer, eta0, loss, C, alpha, l1_ratio, intercept_decay,
             normalize, fit_intercept, max_iter, tol, learning_rate, power_t,
@@ -271,10 +288,10 @@ class SGDRegressor(BaseSGDEstimator, LinearRegressorMixin):
         'squared': Squared(),
     }
 
-    def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared',
+    def __init__(self, transformer=RBFSampler(), eta0=0.001, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
-                 learning_rate='pegasos', power_t=0.5, average=False,
+                 learning_rate='optimal', power_t=0.75, average=True,
                  warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
         super(SGDRegressor, self).__init__(
