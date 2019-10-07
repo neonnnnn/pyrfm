@@ -21,13 +21,60 @@ def sigmoid(pred):
 
 
 class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
+    def _valid_params(self):
+        if not self.C > 0:
+            raise ValueError("C <= 0.")
+
+        if not self.alpha >= 0:
+            raise ValueError("alpha < 0.")
+
+        if not self.tol >= 0:
+            raise ValueError("tol <  0")
+
+        if self.loss not in self.LOSSES:
+            raise ValueError("loss {} is not supported. Only {}"
+                             "are supported.".format(self.loss,
+                                                     self.LOSSES.key()))
+        if not isinstance(self.max_iter, int):
+            raise TypeError("max_iter is not int.")
+
+        if not isinstance(self.verbose, bool):
+            raise TypeError("verbose is not bool.")
+
+        if hasattr(self, "fast_solver"):
+            if not isinstance(self.warm_start, bool):
+                raise TypeError("fast_solver is not bool.")
+
+        if hasattr(self, "warm_start"):
+            if not isinstance(self.warm_start, bool):
+                raise TypeError("warm_start is not bool.")
+
+        if hasattr(self, "fit_intercept"):
+            if not isinstance(self.fit_intercept, bool):
+                raise TypeError("fit_intercept is not bool.")
+
+        if hasattr(self, "normalize") and not isinstance(self.normalize, bool):
+            raise TypeError("normalize is not bool.")
+
+        if hasattr(self, "shuffle") and not isinstance(self.shuffle, bool):
+            raise TypeError("shuffle is not bool.")
+
+        if hasattr(self, "l1_ratio") and not (0 <= self.l1_ratio <= 1.0):
+            raise ValueError("l1_ratio must be in [0, 1].")
+
+        if hasattr(self, "eps") and not (0 < self.eps):
+            raise ValueError("eps <= 0.")
+
+        if hasattr(self, "eta0") and not (0 < self.eta0):
+            raise ValueError("eta0 <= 0.")
+
     # for stochastic solver
     def _init_params(self, n_components):
         if not (self.warm_start and hasattr(self, 'coef_')):
             self.coef_ = np.zeros(n_components)
 
         if not (self.warm_start and hasattr(self, 'intercept_')):
-            self.intercept_ = np.zeros((1,))
+            self.intercept_ = np.zeros(1)
 
         if not (self.warm_start and hasattr(self, 't_')):
             self.t_ = 1
