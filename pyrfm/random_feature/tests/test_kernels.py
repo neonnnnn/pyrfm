@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.sparse import csr_matrix, issparse
-from sklearn.utils.testing import assert_array_almost_equal
+from sklearn.utils.testing import assert_array_almost_equal, assert_allclose
 from sklearn.utils.extmath import safe_sparse_dot
 
 from itertools import product, combinations
@@ -134,3 +134,25 @@ def test_all_subsets_kernel():
     all_subsets = pyrfm.all_subsets(X, Y)
     assert_array_almost_equal(expected, all_subsets, decimal=4)
 
+
+def test_score_l1():
+    expected = 0
+    # any kernels
+    K = pyrfm.all_subsets(X, Y)
+    for i in range(X.shape[0]):
+        for j in range(i, X.shape[0]):
+            expected += abs(np.dot(X[i], X[j]) - K[i, j])
+    expected /= (X.shape[0]*(X.shape[0]+1)/2)
+    assert_allclose(pyrfm.score(X, K, 'l1'), expected)
+
+
+def test_score_l2():
+    expected = 0
+    # any kernels
+    K = pyrfm.all_subsets(X, Y)
+    for i in range(X.shape[0]):
+        for j in range(i, X.shape[0]):
+            print(expected)
+            expected += (np.dot(X[i], X[j]) - K[i, j])**2
+    expected /= (X.shape[0]*(X.shape[0]+1)/2)
+    assert_allclose(pyrfm.score(X, K, 'l2'), expected)

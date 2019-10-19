@@ -85,6 +85,8 @@ def test_compact_random_feature_tensor_sketch():
             transformer = CompactRandomFeature(transformer_up=transform_up,
                                                transformer_down=transform_down)
             X_trans = transformer.fit_transform(X)
+            print(X_trans)
+            print(X_trans_naive)
             assert_allclose(X_trans_naive, X_trans)
 
 

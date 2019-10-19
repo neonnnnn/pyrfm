@@ -38,38 +38,3 @@ def test_tensor_sketching():
 
         X_trans_sp = ts_transform.transform(X_sp)
         assert_allclose_dense_sparse(X_trans, X_trans_sp)
-
-
-def test_tensor_sketching_cython():
-    degree = 2
-    ts = TensorSketch(n_components=1000, degree=degree,
-                      random_state=rng)
-    X_trans = ts.fit_transform(X)
-    z = np.zeros(ts.n_components)
-    z_cache = np.zeros(ts.n_components)
-    X_trans_cython = np.zeros((X.shape[0], ts.n_components))
-    hash_indices = ts.hash_indices_
-    hash_signs = ts.hash_signs_
-    n_features = X.shape[1]
-    for i, x in enumerate(X):
-        for j in range(ts.n_components):
-            z[j] = 0
-            z_cache[j] = 0
-
-        for j in range(n_features):
-            z[hash_indices[j]] += x[j]*hash_signs[j]
-
-        drfft(z, direction=1, overwrite_x=True)
-
-        for offset in range(n_features, n_features*degree, n_features):
-            for j in range(n_features):
-                z_cache[hash_indices[j+offset]] += x[j]*hash_signs[j+offset]
-
-            drfft(z_cache, direction=1, overwrite_x=True)
-
-            for j in range(ts.n_components):
-                z[j] *= z_cache[j]
-        drfft(z, direction=-1, overwrite_x=True)
-        X_trans_cython[i] = np.array(z)
-    assert_allclose_dense_sparse(X_trans, X_trans_cython)
-
