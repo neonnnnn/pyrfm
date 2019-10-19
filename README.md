@@ -65,7 +65,7 @@ Furthermore, pyrfm **supports following structured random features**.
  - `OrthogonalRandomFeature` / `StructuredOrthogonalRandomFeature`: orthogonal random feature / structured orthogonal random feature (for the dot product / RBF kernel) [15]
 
 These methods are faster and more memory-efficient than canonical random features such as random Fourier, random kernel, etc.
-We believe that you can use these structured random features as a subroutine of your proposed random features.
+We believe that you can use these structured random features as a subroutine of your proposed random features, and `SignedCirculantRandomKernel` is an example of it (`SignedCirculantRandomMatrix` is used as a subroutine).
 
 ## Linear Models Implemented
 Moreover, pyrfm **supports following solvers for linear models with random features**.
