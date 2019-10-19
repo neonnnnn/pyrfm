@@ -5,11 +5,10 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.validation import check_is_fitted
-from scipy.fftpack import fft, ifft
 from ..kernels import safe_power
-import warnings
 from math import sqrt
 from scipy.sparse import issparse
+from .signed_circulant_random_projection import SignedCirculantRandomMatrix
 
 
 class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
@@ -30,6 +29,11 @@ class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
         If RandomState instance, random_state is the random number generator;
         If None, the random number generator is the RandomState instance used
         by `np.random`.
+
+    Attributes
+    ----------
+    transformer_ : SignedCirculantRandomMatrix
+        Transformer object of signed circulant random matrix.
 
     References
     ----------
@@ -61,16 +65,12 @@ class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
         """
         random_state = check_random_state(self.random_state)
         X = check_array(X, accept_sparse=True)
-        n_samples, n_features = X.shape
-
-        if n_features > self.n_components:
-            raise ValueError('n_components is lower than X.shape[1]')
-
-        t = self.n_components//n_features
-        size = (t, n_features)
-        self.n_components_actual_ = t * n_features
-        self.random_weights_ = fft(random_state.randint(2, size=size)*2-1)
-        self.signs_ = random_state.randint(2, size=size)*2-1
+        self.transformer_ = SignedCirculantRandomMatrix(
+            self.n_components, distribution='rademacher', random_fourier=False,
+            random_state=random_state
+        )
+        self.transformer_.fit(X)
+        self.n_components = self.transformer_.n_components
         return self
 
     def transform(self, X):
@@ -86,40 +86,31 @@ class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
         -------
         X_new : array-like, shape (n_samples, n_components)
         """
-        check_is_fitted(self, ["signs_", "random_weights_"])
+        check_is_fitted(self.transformer_, "random_weights_")
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
-        output = []
-        if issparse(X):
-            fft_X = fft(X.toarray())
-        else:
-            fft_X = fft(X)
-        fft_X_pow_3 = None
-        if issparse(X):
-            D2 = np.array(np.sum(safe_power(X, 2), axis=1))
-        else:
-            D2 = np.sum(safe_power(X, 2), axis=1, keepdims=True)
+        Ds = [1.]
+        # O(mND \log d) (m=degree, N=n_samples, D=n_components, d=n_features)
+        for deg in range(1, self.degree+1):
+            if deg % 2 == 0:
+                # O(nnz(X)) ( = O(Nd))
+                # D.shape = (n_samples, 1)
+                if issparse(X):
+                    D = np.array(np.sum(safe_power(X, 2), axis=1))
+                else:
+                    D = np.sum(safe_power(X, 2), axis=1, keepdims=True)
+            else:
+                # O(ND\log d)
+                # D.shape = (n_samples, n_components)
+                D = self.transformer_.transform(safe_power(X, deg))
+                D *= sqrt(self.n_components)
+            Ds.append(D)
 
-        t = self.n_components//n_features
-        if self.n_components % n_features != 0:
-            warnings.warn("self.n_components is indivisible by n_features. "
-                          "Output.shape[1] is {}".format(t*n_features))
-        if self.degree == 3:
-            fft_X_pow_3 = fft(safe_power(X, 3, dense_output=True))
-
-        for random_weight, sign in zip(self.random_weights_, self.signs_):
-            random_weight_x = ifft(fft_X*random_weight).real*sign
-            output.append(safe_power(random_weight_x, self.degree))
-            if self.degree == 3:
-                output[-1] -= 3*random_weight_x*D2
-                output[-1] += 2*ifft(fft_X_pow_3*random_weight).real*sign
-
-        output = np.asarray(output).real
-        output = output.swapaxes(0, 1).reshape(n_samples, t*n_features)
-        if self.degree == 2:
-            output -= D2
-            output /= 2
-        elif self.degree == 3:
-            output /= 6
-
-        return output/sqrt(t*n_features)
+        # O(m^2ND)
+        As = [1, self.transformer_.transform(X)]
+        for deg in range(2, self.degree+1):
+            A = np.zeros((n_samples, self.n_components))
+            for t in range(1, deg+1):
+                A += (-1) ** (t+1) * As[deg - t] * Ds[t]
+            As.append(A / deg)
+        return As[-1] / sqrt(self.n_components)

@@ -2,7 +2,8 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 
-from sklearn.utils.testing import assert_less_equal, assert_almost_equal
+from sklearn.utils.testing import (assert_less_equal, assert_almost_equal,
+                                   assert_allclose_dense_sparse)
 from sklearn.utils.extmath import safe_sparse_dot
 from pyrfm import anova, RandomSubsetKernel, RandomKernel
 
@@ -54,7 +55,7 @@ def test_anova_kernel_sparse():
         kernel = anova(X_sp, Y_sp, degree, True)
         for dist in distributions:
             # approximate kernel mapping
-            rk_transform = RandomKernel(n_components=2000*4,
+            rk_transform = RandomKernel(n_components=2000*5,
                                         random_state=rng,
                                         kernel='anova', degree=degree,
                                         distribution=dist)
@@ -95,8 +96,8 @@ def test_anova_kernel_sparse_sparse_rademacher():
 def test_anova_kernel_sparse_subset():
     # compute exact kernel
     distributions = ['rademacher']
-    n_components = 2000*4
-    n_sub_features = 20
+    n_components = 2000*5
+    n_sub_features = 25
     for degree in range(2, 4):
         kernel = anova(X_sp, Y_sp, degree, True)
         for dist in distributions:
@@ -113,11 +114,12 @@ def test_anova_kernel_sparse_subset():
 
             kernel_approx = safe_sparse_dot(X_trans, Y_trans.T, True)
             error = kernel - kernel_approx
-            print('nnz_sparse_subset {}'.format(Y_trans.nnz/np.prod(Y_trans.shape)))
-            print('abs(mean(error)) {}'.format(np.abs(np.mean(error))))
-            print('mean(abs(error)) {}'.format(np.mean(np.abs(error))))
-            print('max(abs(error)) {}'.format(np.max(np.abs(error))))
-
             assert_less_equal(np.abs(np.mean(error)), 0.001)
             assert_less_equal(np.max(error), 0.1)  # nothing too far off
             assert_less_equal(np.mean(error), 0.005)  # mean is fairly close
+            assert_almost_equal(n_sub_features*n_components,
+                                rk_transform.random_weights_.nnz)
+            assert_allclose_dense_sparse(
+                n_sub_features*np.ones(n_components),
+                np.array(abs(rk_transform.random_weights_).sum(axis=0))[0]
+            )

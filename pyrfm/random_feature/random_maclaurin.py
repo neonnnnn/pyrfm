@@ -6,7 +6,9 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.validation import check_is_fitted
 from scipy.special import factorial, binom
-from scipy.sparse import issparse
+from scipy.sparse import issparse, hstack, csr_matrix
+from .utils import get_random_matrix
+import warnings
 
 
 class RandomMaclaurin(BaseEstimator, TransformerMixin):
@@ -32,6 +34,11 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
     degree : int (default=2)
         Parameter of the polynomial product kernel.
 
+    distribution : str, (default="rademacher")
+        Distribution for random_weights_.
+        "rademacher", "gaussian", "laplace", "uniform", or "sparse_rademacher"
+        can be used.
+
     gamma : float or str (default="auto")
         Parameter of the exponential kernel.
 
@@ -47,6 +54,18 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
     h01 : bool (default=False)
         Use h01 heuristic or not. See [1].
 
+    dense_output : bool (default=True)
+        Whether randomized feature matrix is dense or sparse.
+        For kernel='anova', if dense_output = False,
+        distribution='sparse_rademacher', and X is sparse matrix, output random
+        feature matrix will become sparse matrix.
+        For kernel='anova_cython', if dense_output=False, output random feature
+        matrix will become sparse matrix.
+
+    p_sparse : float (default=0.)
+        Sparsity parameter for "sparse_rademacher" distribution.
+        If p_sparse = 0, "sparse_rademacher" is equivalent to "rademacher".
+
     random_state : int, RandomState instance or None, optional (default=None)
         If int, random_state is the seed used by the random number generator;
         If RandomState instance, random_state is the random number generator;
@@ -60,7 +79,7 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         The j-th components of random feature approximates orders_[j]-th order
         of the Maclaurin expansion.
 
-    random_weights_ : array, shape (n_components*np.sum(orders_), n_features)
+    random_weights_ : array, shape (n_features, n_components*np.sum(orders_))
         The sampled basis.
 
     References
@@ -71,12 +90,14 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
     (http://proceedings.mlr.press/v22/kar12/kar12.pdf)
     """
     def __init__(self, n_components=100, p=10, kernel='poly', degree=2,
-                 gamma='auto', bias=0., coefs=None, max_expansion=50,
-                 h01=False, random_state=None):
+                 distribution='rademacher', gamma='auto', bias=0., coefs=None,
+                 max_expansion=50, h01=False,  dense_output=True, p_sparse=0.0,
+                 random_state=None):
         self.n_components = n_components
         self.p = p
         self.gamma = gamma
         self.degree = degree
+        self.distribution = distribution
         # coefs of Maclaurin series.
         # If kernel is 'poly' or 'exp', this is computed automatically.
         self.coefs = coefs
@@ -85,6 +106,8 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         self.max_expansion = max_expansion
         self.p_choice = None
         self.h01 = h01
+        self.dense_output = dense_output
+        self.p_sparse = p_sparse
         self.random_state = random_state
 
     def fit(self, X, y=None):
@@ -149,9 +172,10 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
                                            self.n_components,
                                            p=self.p_choice).astype(np.int32)
 
+        distribution = self.distribution.lower()
         size = (n_features, np.sum(self.orders_))
-        self.random_weights_ = 2*random_state.randint(2, size=size) - 1.
-
+        self.random_weights_ = get_random_matrix(random_state, distribution,
+                                                 size, self.p_sparse)
         return self
 
     def transform(self, X):
@@ -171,13 +195,26 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         from .random_features_fast import transform_all_fast
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
-        output = transform_all_fast(X, self)
+        dense_output = self.dense_output
+        if not dense_output:
+            if not (issparse(self.random_weights_) and issparse(X)):
+                warnings.warn("dense_output=False is valid only when both "
+                              "X and random_weights_ are sparse. "
+                              "dense_output is changed to True now.")
+                dense_output = True
+        output = transform_all_fast(X, self, dense_output)
+
         if self.h01 and self.bias != 0:
             linear = X * np.sqrt(self.degree*self.bias**(self.degree-1))
-            if issparse(linear):
-                output = np.hstack([linear.toarray(), output])
+            dummy = np.sqrt(self.bias ** self.degree) * np.ones((n_samples, 1))
+            if dense_output:
+                if issparse(linear):
+                    output = np.hstack([linear.toarray(), output])
+                else:
+                    output = np.hstack([linear, output])
+                output = np.hstack((dummy, output))
             else:
-                output = np.hstack([linear, output])
-            dummy = np.sqrt(self.bias**self.degree)*np.ones((n_samples, 1))
-            output = np.hstack((dummy, output))
+                output = hstack([linear, output])
+                output = hstack((csr_matrix(dummy), output))
+
         return output

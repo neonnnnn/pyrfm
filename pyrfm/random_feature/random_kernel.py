@@ -31,15 +31,6 @@ def _pairwise(symmetric=False):
     return lambda X, Y, dense_output: pairwise(X, Y, dense_output, symmetric)
 
 
-def get_feature_indices(rng, n_sub_features, n_features, n_components):
-    arange = np.arange(n_features)
-    mat = np.array(
-        [rng.choice(arange, size=n_sub_features, replace=False)
-         for _ in range(n_components)]
-    )
-    return mat.ravel()
-
-
 class RandomKernel(BaseEstimator, TransformerMixin):
     """Approximates feature map of the ANOVA/all-subsets kernel by Monte Carlo
     approximation by Random Kernel Feature map.

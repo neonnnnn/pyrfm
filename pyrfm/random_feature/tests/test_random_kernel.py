@@ -3,7 +3,8 @@ from scipy.sparse import csr_matrix, issparse
 
 from sklearn.utils.testing import (assert_less_equal,
                                    assert_allclose_dense_sparse,
-                                   assert_almost_equal)
+                                   assert_almost_equal,
+                                   assert_true)
 from pyrfm import anova, all_subsets, RandomKernel
 
 
@@ -109,6 +110,13 @@ def test_anova_cython_kernel():
             assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
             # sparse output
-            rk_transform.dense_output = False
-            X_trans_sp = rk_transform.transform(X_sp)
-            assert_allclose_dense_sparse(X_trans, X_trans_sp.toarray())
+            if dist == "sparse_rademacher":
+                rk_transform.dense_output = False
+                X_trans_sp = rk_transform.transform(X_sp)
+                assert_true(issparse(X_trans_sp))
+                assert_allclose_dense_sparse(X_trans, X_trans_sp.toarray())
+            else:
+                rk_transform.dense_output = False
+                X_trans_sp = rk_transform.transform(X_sp)
+                assert_true(not issparse(X_trans_sp))
+                assert_allclose_dense_sparse(X_trans, X_trans_sp)
