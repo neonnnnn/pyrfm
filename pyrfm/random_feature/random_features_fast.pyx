@@ -615,12 +615,15 @@ cdef _transform_all_fast_sparse(RowDataset dataset,
     cdef Py_ssize_t n_components = transformer_fast.n_components
     cdef double* data
     cdef int* indices
-    cdef int n_nz
+    cdef int n_nz, n_nz_output
     cdef double[:] z = array((n_components,), sizeof(double), format='d')
     cdef vector[double] data_vec
     cdef vector[int] row_vec
     cdef vector[int] col_vec
-
+    cdef double[:] data_arr
+    cdef unsigned int[:] row_indices
+    cdef unsigned int[:] col_indices
+    n_nz_output = 0
     for i in range(n_samples):
         dataset.get_row_ptr(i, &indices, &data, &n_nz)
         transformer_fast.transform(&z[0], data, indices, n_nz)
@@ -629,8 +632,18 @@ cdef _transform_all_fast_sparse(RowDataset dataset,
                 data_vec.push_back(z[j])
                 row_vec.push_back(i)
                 col_vec.push_back(j)
+                n_nz_output += 1
+    data_arr = array((n_nz_output, ), sizeof(double), format='d')
+    row_indices = array((n_nz_output, ), sizeof(unsigned int),
+                        format='ui')
+    col_indices = array((n_nz_output, ), sizeof(unsigned int),
+                        format='ui')
 
-    return csr_matrix((data_vec, (row_vec, col_vec)),
+    for j in range(n_nz_output):
+        data_arr[j] = data_vec[j]
+        row_indices[j] = row_vec[j]
+        col_indices[j] = col_vec[j]
+    return csr_matrix((data_arr, (row_indices, col_indices)),
                       shape=(n_samples, n_components))
 
 
