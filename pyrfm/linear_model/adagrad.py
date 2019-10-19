@@ -14,114 +14,6 @@ from ..random_feature.random_features_fast import get_fast_random_feature
 
 
 class BaseAdaGradEstimator(BaseLinear):
-    """AdaGrad solver for linear models with random feature maps.
-    Random feature mapping is computed just before computing prediction and
-    gradient.
-    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
-
-    Parameters
-    ----------
-    transformer : scikit-learn Transformer object (default=RBFSampler())
-        A scikit-learn TransformerMixin object.
-        transformer must have (1) n_components attribute, (2) fit(X, y),
-        and (3) transform(X).
-
-    eta0 : double (default=1.0)
-        Step-size parameter.
-
-    loss : str (default="squared")
-        Which loss function to use. Following losses can be used:
-            'squared' (for regression)
-            'squared_hinge' (for classification)
-            'hinge' (for classification)
-            'logistic' (for classification)
-
-    C : double (default=1.0)
-        Weight of the loss term.
-
-    alpha : double (default=1.0)
-        Weight of the penalty term.
-
-    l1_ratio : double (default=0)
-        Ratio of L1 regularizer.
-        Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
-        is 0.5 * alpha * (1-l1_ratio).
-        If l1_ratio = 0 : Ridge.
-        else If l1_ratio = 1 : Lasso.
-        else : Elastic Net.
-
-    intercept_decay : double (default=0.1)
-        Weight of the penalty term for intercept.
-
-    normalize : bool (default=False)
-        Whether normalize random features or not.
-        If true, the adagrad solver computes running mean and variance
-        at learning, and uses them for inference.
-
-    fit_intercept : bool (default=True)
-        Whether to fit intercept (bias term) or not.
-
-    max_iter : int (default=100)
-        Maximum number of iterations.
-
-    tol : double (default=1e-6)
-        Tolerance of stopping criterion.
-        If sum of absolute val of update in one epoch is lower than tol,
-        the AdaGrad solver stops learning.
-
-    eps : double (default=1e-4)
-        A small double to avoid zero-division.
-
-    warm_start : bool (default=False)
-        Whether to activate warm-start or not.
-
-    random_state : int, RandomState instance or None, optional (default=None)
-        If int, random_state is the seed used by the random number generator;
-        If RandomState instance, random_state is the random number generator;
-        If None, the random number generator is the RandomState instance used
-        by `np.random`.
-
-    verbose : bool (default=True)
-        Verbose mode or not.
-
-    fast_solver : bool (default=True)
-        Use cython fast solver or not. This argument is valid when transformer
-        is in {RandomFourier|RandomMaclaurin|TensorSketch|RandomKernel}.
-
-    shuffle : bool (default=True)
-        Whether shuffle data before each epoch or not.
-
-    Attributes
-    ----------
-    self.coef_ : array, shape (n_components, )
-        The learned coefficients of the linear model.
-
-    self.intercept_ : array, shape (1, )
-        The learned intercept (bias) of the linear model.
-
-    self.acc_grad_, self.acc_grad_norm_ : array, shape (n_components, )
-        The sum of gradients and sum of norm of gradient for coefficients.
-        They are used in adagrad.
-
-    self.acc_grad_intercept_, self.acc_grad_intercept_norm :
-     array, shape (n_components, )
-        The sum of gradients and sum of norm of gradient for intercept_.
-        They are used in adagrad.
-
-    self.mean_, self.var_ : array or None, shape (n_components, )
-        The running mean and variances of random feature vectors.
-        They are used if normalize=True (they are None if False).
-
-    self.t_ : int
-        The number of iteration.
-
-    References
-    ---------
-    [1] Adaptive Subgradient Methods for Online Learning and Stochastic
-    Optimization.
-    Jonh Duchi, Elad Hazan, and Yoram Singer.
-    JMLR 2011 (vol 12), pp. 2121--2159.
-    """
     LOSSES = {
         'squared': Squared(),
         'squared_hinge': SquaredHinge(),
@@ -219,6 +111,113 @@ class BaseAdaGradEstimator(BaseLinear):
 
 
 class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
+    """AdaGrad solver for linear classifier with random feature maps.
+    Random feature mapping is computed just before computing prediction and
+    gradient.
+    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
+
+    Parameters
+    ----------
+    transformer : scikit-learn Transformer object (default=RBFSampler())
+        A scikit-learn TransformerMixin object.
+        transformer must have (1) n_components attribute, (2) fit(X, y),
+        and (3) transform(X).
+
+    eta0 : double (default=1.0)
+        Step-size parameter.
+
+    loss : str (default="squared_hinge")
+        Which loss function to use. Following losses can be used:
+            'squared_hinge'
+            'hinge'
+            'logistic'
+
+    C : double (default=1.0)
+        Weight of the loss term.
+
+    alpha : double (default=1.0)
+        Weight of the penalty term.
+
+    l1_ratio : double (default=0)
+        Ratio of L1 regularizer.
+        Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
+        is 0.5 * alpha * (1-l1_ratio).
+        If l1_ratio = 0 : Ridge.
+        else If l1_ratio = 1 : Lasso.
+        else : Elastic Net.
+
+    intercept_decay : double (default=0.1)
+        Weight of the penalty term for intercept.
+
+    normalize : bool (default=False)
+        Whether normalize random features or not.
+        If true, the adagrad solver computes running mean and variance
+        at learning, and uses them for inference.
+
+    fit_intercept : bool (default=True)
+        Whether to fit intercept (bias term) or not.
+
+    max_iter : int (default=100)
+        Maximum number of iterations.
+
+    tol : double (default=1e-6)
+        Tolerance of stopping criterion.
+        If sum of absolute val of update in one epoch is lower than tol,
+        the AdaGrad solver stops learning.
+
+    eps : double (default=1e-4)
+        A small double to avoid zero-division.
+
+    warm_start : bool (default=False)
+        Whether to activate warm-start or not.
+
+    random_state : int, RandomState instance or None, optional (default=None)
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+
+    verbose : bool (default=True)
+        Verbose mode or not.
+
+    fast_solver : bool (default=True)
+        Use cython fast solver or not. This argument is valid when transformer
+        is implemented in random_features_fast.pyx/pxd
+
+    shuffle : bool (default=True)
+        Whether to shuffle data before each epoch or not.
+
+    Attributes
+    ----------
+    self.coef_ : array, shape (n_components, )
+        The learned coefficients of the linear model.
+
+    self.intercept_ : array, shape (1, )
+        The learned intercept (bias) of the linear model.
+
+    self.acc_grad_, self.acc_grad_norm_ : array, shape (n_components, )
+        The sum of gradients and sum of norm of gradient for coefficients.
+        They are used in adagrad.
+
+    self.acc_grad_intercept_, self.acc_grad_intercept_norm :
+     array, shape (n_components, )
+        The sum of gradients and sum of norm of gradient for intercept_.
+        They are used in adagrad.
+
+    self.mean_, self.var_ : array or None, shape (n_components, )
+        The running mean and variances of random feature vectors.
+        They are used if normalize=True (they are None if False).
+
+    self.t_ : int
+        The number of iteration.
+
+    References
+    ----------
+    [1] Adaptive Subgradient Methods for Online Learning and Stochastic
+    Optimization.
+    Jonh Duchi, Elad Hazan, and Yoram Singer.
+    JMLR 2011 (vol 12), pp. 2121--2159.
+    """
     LOSSES = {
         'squared_hinge': SquaredHinge(),
         'logistic': Logistic(),
@@ -239,6 +238,111 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
 
 
 class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
+    """AdaGrad solver for linear regression with random feature maps.
+    Random feature mapping is computed just before computing prediction and
+    gradient.
+    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
+
+    Parameters
+    ----------
+    transformer : scikit-learn Transformer object (default=RBFSampler())
+        A scikit-learn TransformerMixin object.
+        transformer must have (1) n_components attribute, (2) fit(X, y),
+        and (3) transform(X).
+
+    eta0 : double (default=1.0)
+        Step-size parameter.
+
+    loss : str (default="squared")
+        Which loss function to use. Following losses can be used:
+            'squared'
+
+    C : double (default=1.0)
+        Weight of the loss term.
+
+    alpha : double (default=1.0)
+        Weight of the penalty term.
+
+    l1_ratio : double (default=0)
+        Ratio of L1 regularizer.
+        Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
+        is 0.5 * alpha * (1-l1_ratio).
+        If l1_ratio = 0 : Ridge.
+        else If l1_ratio = 1 : Lasso.
+        else : Elastic Net.
+
+    intercept_decay : double (default=0.1)
+        Weight of the penalty term for intercept.
+
+    normalize : bool (default=False)
+        Whether normalize random features or not.
+        If true, the adagrad solver computes running mean and variance
+        at learning, and uses them for inference.
+
+    fit_intercept : bool (default=True)
+        Whether to fit intercept (bias term) or not.
+
+    max_iter : int (default=100)
+        Maximum number of iterations.
+
+    tol : double (default=1e-6)
+        Tolerance of stopping criterion.
+        If sum of absolute val of update in one epoch is lower than tol,
+        the AdaGrad solver stops learning.
+
+    eps : double (default=1e-4)
+        A small double to avoid zero-division.
+
+    warm_start : bool (default=False)
+        Whether to activate warm-start or not.
+
+    random_state : int, RandomState instance or None, optional (default=None)
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+
+    verbose : bool (default=True)
+        Verbose mode or not.
+
+    fast_solver : bool (default=True)
+        Use cython fast solver or not. This argument is valid when transformer
+        is implemented in random_features_fast.pyx/pxd
+
+    shuffle : bool (default=True)
+        Whether to shuffle data before each epoch or not.
+
+    Attributes
+    ----------
+    self.coef_ : array, shape (n_components, )
+        The learned coefficients of the linear model.
+
+    self.intercept_ : array, shape (1, )
+        The learned intercept (bias) of the linear model.
+
+    self.acc_grad_, self.acc_grad_norm_ : array, shape (n_components, )
+        The sum of gradients and sum of norm of gradient for coefficients.
+        They are used in adagrad.
+
+    self.acc_grad_intercept_, self.acc_grad_intercept_norm :
+     array, shape (n_components, )
+        The sum of gradients and sum of norm of gradient for intercept_.
+        They are used in adagrad.
+
+    self.mean_, self.var_ : array or None, shape (n_components, )
+        The running mean and variances of random feature vectors.
+        They are used if normalize=True (they are None if False).
+
+    self.t_ : int
+        The number of iteration.
+
+    References
+    ----------
+    [1] Adaptive Subgradient Methods for Online Learning and Stochastic
+    Optimization.
+    Jonh Duchi, Elad Hazan, and Yoram Singer.
+    JMLR 2011 (vol 12), pp. 2121--2159.
+    """
     LOSSES = {
         'squared': Squared(),
     }

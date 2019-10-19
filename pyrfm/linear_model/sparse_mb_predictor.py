@@ -16,78 +16,6 @@ from .base import BaseLinear, LinearClassifierMixin, LinearRegressorMixin
 
 
 class BaseSparseMBEstimator(BaseLinear):
-    """Linear model with feature map approximating the intersection (min)
-    kernel by sparse explicit feature map, which was proposed by S.Maji
-    and A.C.Berg. SparseMB does not approximate min kernel only itself.
-    Linear classifier with SparseMB approximates linear classifier with MB.
-    For more detail, see [1].
-
-    Parameters
-    ----------
-    n_components : int (default=1000)
-        Number of Monte Carlo samples per original features.
-        Equals the dimensionality of the computed (mapped) feature space.
-
-    loss : str (default="squared")
-        Which loss function to use. Following losses can be used:
-            'squared' (for regression)
-            'squared_hinge' (for classification)
-            'logistic' (for classification)
-
-    C : double (default=1.0)
-        Weight of loss term.
-
-    alpha : double (default=1.0)
-        Weight of the penalty term.
-
-    fit_intercept : bool (default=True)
-        Whether to fit intercept (bias term) or not.
-
-    max_iter : int (default=100)
-        Maximum number of iterations.
-
-    tol : double (default=1e-6)
-        Tolerance of stopping criterion.
-        If sum of absolute val of update in one epoch is lower than tol,
-        the AdaGrad solver stops learning.
-
-    eps : double (default=1e-2)
-        A small double to ensure objective function convex.
-
-    warm_start : bool (default=False)
-        Whether to activate warm-start or not.
-
-    random_state : int, RandomState instance or None, optional (default=None)
-        If int, random_state is the seed used by the random number generator;
-        If RandomState instance, random_state is the random number generator;
-        If None, the random number generator is the RandomState instance used
-        by `np.random`.
-
-    verbose : bool (default=True)
-        Verbose mode or not.
-
-    shuffle : boole (default=True)
-        Whether shuffle the order of parameters for optimization or not.
-
-    Attributes
-    ----------
-    self.transformer_ : scikit-learn TransformMixin object.
-        The learned transformer for random feature maps.
-
-    self.coef_ : array, shape (n_components, )
-        The learned coefficients of the linear model.
-
-    self.intercept_ : array, shape (1, )
-        The learned intercept (bias) of the linear model.
-
-
-    References
-    ----------
-    [1] Max-Margin Additive Classifiers for Detection
-    Subhransu Maji, Alexander C. Berg.
-    In ICCV 2009.
-    (http://acberg.com/papers/mb09iccv.pdf)
-    """
     LOSSES = {
         'squared': Squared(),
         'squared_hinge': SquaredHinge(),
@@ -165,6 +93,76 @@ class BaseSparseMBEstimator(BaseLinear):
 
 
 class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):
+    """Linear classifier with feature map approximating the intersection (min)
+    kernel by sparse explicit feature map, which was proposed by S.Maji
+    and A.C.Berg. SparseMB does not approximate min kernel only itself.
+    Linear classifier with SparseMB approximates linear classifier with MB.
+    For more detail, see [1].
+
+    Parameters
+    ----------
+    n_components : int (default=1000)
+        Number of Monte Carlo samples per original features.
+        Equals the dimensionality of the computed (mapped) feature space.
+
+    loss : str (default="squared_hinge")
+        Which loss function to use. Following losses can be used:
+            'squared_hinge'
+            'logistic'
+
+    C : double (default=1.0)
+        Weight of loss term.
+
+    alpha : double (default=1.0)
+        Weight of the penalty term.
+
+    fit_intercept : bool (default=True)
+        Whether to fit intercept (bias term) or not.
+
+    max_iter : int (default=100)
+        Maximum number of iterations.
+
+    tol : double (default=1e-6)
+        Tolerance of stopping criterion.
+        If sum of absolute val of update in one epoch is lower than tol,
+        the AdaGrad solver stops learning.
+
+    eps : double (default=1e-2)
+        A small double to ensure objective function convex.
+
+    warm_start : bool (default=False)
+        Whether to activate warm-start or not.
+
+    random_state : int, RandomState instance or None, optional (default=None)
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+
+    verbose : bool (default=True)
+        Verbose mode or not.
+
+    shuffle : boole (default=True)
+        Whether to shuffle the order of parameters for optimization or not.
+
+    Attributes
+    ----------
+    self.transformer_ : scikit-learn TransformMixin object.
+        The learned transformer for random feature maps.
+
+    self.coef_ : array, shape (n_components, )
+        The learned coefficients of the linear model.
+
+    self.intercept_ : array, shape (1, )
+        The learned intercept (bias) of the linear model.
+
+    References
+    ----------
+    [1] Max-Margin Additive Classifiers for Detection
+    Subhransu Maji, Alexander C. Berg.
+    In ICCV 2009.
+    (http://acberg.com/papers/mb09iccv.pdf)
+    """
     LOSSES = {
         'squared_hinge': SquaredHinge(),
         'logistic': Logistic(),
@@ -182,6 +180,75 @@ class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):
 
 
 class SparseMBRegressor(BaseSparseMBEstimator, LinearRegressorMixin):
+    """Linear regression with feature map approximating the intersection (min)
+    kernel by sparse explicit feature map, which was proposed by S.Maji
+    and A.C.Berg.
+    For more detail, see [1].
+
+    Parameters
+    ----------
+    n_components : int (default=1000)
+        Number of Monte Carlo samples per original features.
+        Equals the dimensionality of the computed (mapped) feature space.
+
+    loss : str (default="squared")
+        Which loss function to use. Following losses can be used:
+            'squared'
+
+    C : double (default=1.0)
+        Weight of loss term.
+
+    alpha : double (default=1.0)
+        Weight of the penalty term.
+
+    fit_intercept : bool (default=True)
+        Whether to fit intercept (bias term) or not.
+
+    max_iter : int (default=100)
+        Maximum number of iterations.
+
+    tol : double (default=1e-6)
+        Tolerance of stopping criterion.
+        If sum of absolute val of update in one epoch is lower than tol,
+        the AdaGrad solver stops learning.
+
+    eps : double (default=1e-2)
+        A small double to ensure objective function convex.
+
+    warm_start : bool (default=False)
+        Whether to activate warm-start or not.
+
+    random_state : int, RandomState instance or None, optional (default=None)
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+
+    verbose : bool (default=True)
+        Verbose mode or not.
+
+    shuffle : boole (default=True)
+        Whether to shuffle the order of parameters for optimization or not.
+
+    Attributes
+    ----------
+    self.transformer_ : scikit-learn TransformMixin object.
+        The learned transformer for random feature maps.
+
+    self.coef_ : array, shape (n_components, )
+        The learned coefficients of the linear model.
+
+    self.intercept_ : array, shape (1, )
+        The learned intercept (bias) of the linear model.
+
+
+    References
+    ----------
+    [1] Max-Margin Additive Classifiers for Detection
+    Subhransu Maji, Alexander C. Berg.
+    In ICCV 2009.
+    (http://acberg.com/papers/mb09iccv.pdf)
+    """
     LOSSES = {
         'squared': Squared(),
     }
