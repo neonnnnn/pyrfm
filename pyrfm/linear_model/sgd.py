@@ -20,135 +20,6 @@ class BaseSGDEstimator(BaseLinear):
         'inv_scaling': 2,
         'optimal': 3,
     }
-    """SGD solver for linear models with random feature maps.
-    Random feature mapping is computed just before computing prediction and
-    gradient.
-    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
-
-    Parameters
-    ----------
-    transformer : scikit-learn Transformer object (default=RBFSampler())
-        A scikit-learn TransformerMixin object.
-        transformer must have (1) n_components attribute, (2) fit(X, y),
-        and (3) transform(X).
-
-    eta0 : double (default=0.01)
-        Step-size parameter.
-
-    loss : str (default="squared")
-        Which loss function to use. Following losses can be used:
-            'squared' (for regression)
-            'squared_hinge' (for classification)
-            'hinge' (for classification)
-            'logistic' (for classification)
-
-    C : double (default=1.0)
-        Weight of the loss term.
-
-    alpha : double (default=1.0)
-        Weight of the penalty term.
-
-    l1_ratio : double (default=0)
-        Ratio of L1 regularizer.
-        Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
-        is 0.5 * alpha * (1-l1_ratio).
-        If l1_ratio = 0 : Ridge.
-        else If l1_ratio = 1 : Lasso.
-        else : Elastic Net.
-    
-    intercept_decay : double (default=0.1)
-        Weight of the penalty term for intercept.
-
-    normalize : bool (default=False)
-        Whether normalize random features or not.
-        If true, the sgd solver computes running mean and variance
-        at learning, and uses them for inference.
-
-    fit_intercept : bool (default=True)
-        Whether to fit intercept (bias term) or not.
-
-    max_iter : int (default=100)
-        Maximum number of iterations.
-
-    tol : double (default=1e-6)
-        Tolerance of stopping criterion.
-        If sum of absolute val of update in one epoch is lower than tol,
-        the SGD solver stops learning.
-    
-    learning_rate : str (default='pegasos')
-        The method for learning rate decay. 
-        'constant':
-            eta = eta0
-        'pegasos':
-            eta = 1.0 / (alpha * (1-l1_ratio) * t)
-        'inv_svaling':
-            eta = eta0 / pow(t, power_t)
-        'optimal':
-            eta = eta0 / pow(1 + alpha*(1-l1_ratio)*t, power_t)
-        are supported now.
-    
-    power_t : double (default=0.5)
-        The parameter for learning_rate 'inv_scaling'.
-        
-    average : bool (default=True)
-        Whether output averaged weight or not.
-        If average=True, you should use learning_rate='optimal' and
-        power_t=0.75[2].
-        
-    warm_start : bool (default=False)
-        Whether to activate warm-start or not.
-
-    random_state : int, RandomState instance or None, optional (default=None)
-        If int, random_state is the seed used by the random number generator;
-        If RandomState instance, random_state is the random number generator;
-        If None, the random number generator is the RandomState instance used
-        by `np.random`.
-
-    verbose : bool (default=True)
-        Verbose mode or not.
-
-    fast_solver : bool (default=True)
-        Use cython fast solver or not. This argument is valid when transformer
-        is in {RandomFourier|RandomMaclaurin|TensorSketch|RandomKernel}.
-
-    shuffle : bool (default=True)
-        Whether shuffle data before each epoch or not.
-
-    Attributes
-    ----------
-    self.coef_ : array, shape (n_components, )
-        The learned coefficients of the linear model.
-
-    self.coef_cache_ : array, shape (n_components, )
-        The latest learned coefficients of the linear model for average=True.
-
-    self.intercept_ : array, shape (1, )
-        The learned intercept (bias) of the linear model.
-
-    self.intercept_cache_ : array, shape (1, )
-        The latest learned intercept (bias) of the linear model
-        for average=True.
-
-    self.mean_, self.var_ : array or None, shape (n_components, )
-        The running mean and variances of random feature vectors.
-        They are used if normalize=True (they are None if False).
-
-    self.t_ : int
-        The number of iteration.
-
-    References
-    ---------
-    [1] Large-Scale Machine Learning with Stochastic Gradient Descent.
-    Leon Bottou.
-    In Proc. COMPSTAT'2010.
-    (https://leon.bottou.org/publications/pdf/compstat-2010.pdf)
-    
-    [2] Stochastic Gradient Descent Tricks.
-    Leon Bottou.
-    Neural Networks, Tricks of the Trade, Reloaded, 430–445, 
-    Lecture Notes in Computer Science (LNCS 7700), Springer, 2012
-    (https://link.springer.com/content/pdf/10.1007%2F978-3-642-35289-8_25.pdf)
-    """
     LOSSES = {
         'squared': Squared(),
         'squared_hinge': SquaredHinge(),
@@ -156,7 +27,6 @@ class BaseSGDEstimator(BaseLinear):
         'hinge': Hinge(),
         'log': Logistic()
     }
-
     stochastic = True
 
     def __init__(self, transformer=RBFSampler(), eta0=0.01, loss='squared',
@@ -269,7 +139,134 @@ class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
         'hinge': Hinge(),
         'log': Logistic()
     }
+    """SGD solver for linear classifier with random feature maps.
+    Random feature mapping is computed just before computing prediction and
+    gradient.
+    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
 
+    Parameters
+    ----------
+    transformer : scikit-learn Transformer object (default=RBFSampler())
+        A scikit-learn TransformerMixin object.
+        transformer must have (1) n_components attribute, (2) fit(X, y),
+        and (3) transform(X).
+
+    eta0 : double (default=0.01)
+        Step-size parameter.
+
+    loss : str (default="squared_hinge")
+        Which loss function to use. Following losses can be used:
+            'squared_hinge' (for classification)
+            'hinge' (for classification)
+            'logistic' (for classification)
+
+    C : double (default=1.0)
+        Weight of the loss term.
+
+    alpha : double (default=1.0)
+        Weight of the penalty term.
+
+    l1_ratio : double (default=0)
+        Ratio of L1 regularizer.
+        Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
+        is 0.5 * alpha * (1-l1_ratio).
+        If l1_ratio = 0 : Ridge.
+        else If l1_ratio = 1 : Lasso.
+        else : Elastic Net.
+
+    intercept_decay : double (default=0.1)
+        Weight of the penalty term for intercept.
+
+    normalize : bool (default=False)
+        Whether normalize random features or not.
+        If true, the sgd solver computes running mean and variance
+        at learning, and uses them for inference.
+
+    fit_intercept : bool (default=True)
+        Whether to fit intercept (bias term) or not.
+
+    max_iter : int (default=100)
+        Maximum number of iterations.
+
+    tol : double (default=1e-6)
+        Tolerance of stopping criterion.
+        If sum of absolute val of update in one epoch is lower than tol,
+        the SGD solver stops learning.
+
+    learning_rate : str (default='optimal')
+        The method for learning rate decay. 
+        'constant':
+            eta = eta0
+        'pegasos':
+            eta = 1.0 / (alpha * (1-l1_ratio) * t)
+        'inv_scaling':
+            eta = eta0 / pow(t, power_t)
+        'optimal':
+            eta = eta0 / pow(1 + alpha*(1-l1_ratio)*t, power_t)
+        are supported now.
+
+    power_t : double (default=0.5)
+        The parameter for learning_rate 'inv_scaling'.
+
+    average : bool (default=True)
+        Whether output averaged weight or not.
+        If average=True, you should use learning_rate='optimal' and
+        power_t=0.75[2].
+
+    warm_start : bool (default=False)
+        Whether to activate warm-start or not.
+
+    random_state : int, RandomState instance or None, optional (default=None)
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+
+    verbose : bool (default=True)
+        Verbose mode or not.
+
+    fast_solver : bool (default=True)
+        Use cython fast solver or not. This argument is valid when transformer
+        is implemented in random_features_fast.pyx/pxd
+    
+    shuffle : bool (default=True)
+        Whether to shuffle data before each epoch or not.
+
+    Attributes
+    ----------
+    self.coef_ : array, shape (n_components, )
+        The learned coefficients of the linear model.
+
+    self.coef_cache_ : array, shape (n_components, )
+        The latest learned coefficients of the linear model for average=True.
+
+    self.intercept_ : array, shape (1, )
+        The learned intercept (bias) of the linear model.
+
+    self.intercept_cache_ : array, shape (1, )
+        The latest learned intercept (bias) of the linear model
+        for average=True.
+
+    self.mean_, self.var_ : array or None, shape (n_components, )
+        The running mean and variances of random feature vectors.
+        They are used if normalize=True (they are None if False).
+
+    self.t_ : int
+        The number of iteration.
+
+    References
+    ---------
+    [1] Large-Scale Machine Learning with Stochastic Gradient Descent.
+    Leon Bottou.
+    In Proc. COMPSTAT'2010.
+    (https://leon.bottou.org/publications/pdf/compstat-2010.pdf)
+
+    [2] Stochastic Gradient Descent Tricks.
+    Leon Bottou.
+    Neural Networks, Tricks of the Trade, Reloaded, 430–445, 
+    Lecture Notes in Computer Science (LNCS 7700), Springer, 2012
+    (https://link.springer.com/content/pdf/10.1007%2F978-3-642-35289-8_25.pdf)
+    """
     def __init__(self, transformer=RBFSampler(), eta0=0.01,
                  loss='squared_hinge', C=1.0, alpha=1.0, l1_ratio=0.,
                  intercept_decay=0.1, normalize=False, fit_intercept=True,
@@ -287,7 +284,132 @@ class SGDRegressor(BaseSGDEstimator, LinearRegressorMixin):
     LOSSES = {
         'squared': Squared(),
     }
+    """SGD solver for linear regression with random feature maps.
+    Random feature mapping is computed just before computing prediction and
+    gradient.
+    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
 
+    Parameters
+    ----------
+    transformer : scikit-learn Transformer object (default=RBFSampler())
+        A scikit-learn TransformerMixin object.
+        transformer must have (1) n_components attribute, (2) fit(X, y),
+        and (3) transform(X).
+
+    eta0 : double (default=0.01)
+        Step-size parameter.
+
+    loss : str (default="squared")
+        Which loss function to use. Following losses can be used:
+            'squared'
+
+    C : double (default=1.0)
+        Weight of the loss term.
+
+    alpha : double (default=1.0)
+        Weight of the penalty term.
+
+    l1_ratio : double (default=0)
+        Ratio of L1 regularizer.
+        Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
+        is 0.5 * alpha * (1-l1_ratio).
+        If l1_ratio = 0 : Ridge.
+        else If l1_ratio = 1 : Lasso.
+        else : Elastic Net.
+
+    intercept_decay : double (default=0.1)
+        Weight of the penalty term for intercept.
+
+    normalize : bool (default=False)
+        Whether normalize random features or not.
+        If true, the sgd solver computes running mean and variance
+        at learning, and uses them for inference.
+
+    fit_intercept : bool (default=True)
+        Whether to fit intercept (bias term) or not.
+
+    max_iter : int (default=100)
+        Maximum number of iterations.
+
+    tol : double (default=1e-6)
+        Tolerance of stopping criterion.
+        If sum of absolute val of update in one epoch is lower than tol,
+        the SGD solver stops learning.
+
+    learning_rate : str (default='optimal')
+        The method for learning rate decay. 
+        'constant':
+            eta = eta0
+        'pegasos':
+            eta = 1.0 / (alpha * (1-l1_ratio) * t)
+        'inv_scaling':
+            eta = eta0 / pow(t, power_t)
+        'optimal':
+            eta = eta0 / pow(1 + alpha*(1-l1_ratio)*t, power_t)
+        are supported now.
+
+    power_t : double (default=0.5)
+        The parameter for learning_rate 'inv_scaling'.
+
+    average : bool (default=True)
+        Whether output averaged weight or not.
+        If average=True, you should use learning_rate='optimal' and
+        power_t=0.75[2].
+
+    warm_start : bool (default=False)
+        Whether to activate warm-start or not.
+
+    random_state : int, RandomState instance or None, optional (default=None)
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+
+    verbose : bool (default=True)
+        Verbose mode or not.
+
+    fast_solver : bool (default=True)
+        Use cython fast solver or not. This argument is valid when transformer
+        is implemented in random_features_fast.pyx/pxd.
+
+    shuffle : bool (default=True)
+        Whether to shuffle data before each epoch or not.
+
+    Attributes
+    ----------
+    self.coef_ : array, shape (n_components, )
+        The learned coefficients of the linear model.
+
+    self.coef_cache_ : array, shape (n_components, )
+        The latest learned coefficients of the linear model for average=True.
+
+    self.intercept_ : array, shape (1, )
+        The learned intercept (bias) of the linear model.
+
+    self.intercept_cache_ : array, shape (1, )
+        The latest learned intercept (bias) of the linear model
+        for average=True.
+
+    self.mean_, self.var_ : array or None, shape (n_components, )
+        The running mean and variances of random feature vectors.
+        They are used if normalize=True (they are None if False).
+
+    self.t_ : int
+        The number of iteration.
+
+    References
+    ---------
+    [1] Large-Scale Machine Learning with Stochastic Gradient Descent.
+    Leon Bottou.
+    In Proc. COMPSTAT'2010.
+    (https://leon.bottou.org/publications/pdf/compstat-2010.pdf)
+
+    [2] Stochastic Gradient Descent Tricks.
+    Leon Bottou.
+    Neural Networks, Tricks of the Trade, Reloaded, 430–445, 
+    Lecture Notes in Computer Science (LNCS 7700), Springer, 2012
+    (https://link.springer.com/content/pdf/10.1007%2F978-3-642-35289-8_25.pdf)
+    """
     def __init__(self, transformer=RBFSampler(), eta0=0.001, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
