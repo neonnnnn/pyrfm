@@ -5,35 +5,15 @@
 
 # Author: Kyohei Atarashi
 # License: BSD-2-Clause
-
 import numpy as np
 cimport numpy as np
 from libc.math cimport sqrt
 
-
-cdef inline void _fisher_yates_shuffle(int[:] permutation,
-                                       int[:] fisher_yates_vec,
-                                       rng):
-    cdef Py_ssize_t i, n
-    cdef int tmp
-    n = permutation.shape[0]
-    for i in range(n):
-        fisher_yates_vec[i] = rng.randint(n-i)
-        tmp = permutation[i]
-        permutation[i] = permutation[i+fisher_yates_vec[i]]
-        permutation[i+fisher_yates_vec[i]] = tmp
+cdef extern from "fht.h":
+    int fht_double(double *buf, int log_n)
 
 
-def fisher_yates_shuffle(int n, rng):
-    # sampled indices matrix (represent exchanging)
-    cdef np.ndarray[int, ndim=1] fy_vec = np.zeros(n, dtype=np.int32)
-    # shuffled matrix
-    cdef np.ndarray[int, ndim=1] perm = np.arange(n, dtype=np.int32)
-    _fisher_yates_shuffle(perm, fy_vec, rng)
-    return perm, fy_vec
-
-# following fwht methods are not used now
-cdef void  _fwht1d(double* out, int degree, bint normalize):
+cdef void  _fwht1d_fast(double* out, int degree, bint normalize):
     cdef Py_ssize_t jj, j1, i2, k, step, m, n_block, offset
     cdef double tmp, norm
     n_block = 1
@@ -60,14 +40,17 @@ cdef void  _fwht1d(double* out, int degree, bint normalize):
             out[jj] /= norm
 
 
-cdef void _fwht2d(double[:, ::1] out, int degree, bint normalize):
+cdef void _fwht2d_fast(double[:, ::1] out, int degree, bint normalize):
     cdef Py_ssize_t n, i
     n = out.shape[0]
     for i in range(n):
-        _fwht1d(&out[i, 0], degree, normalize)
+        _fwht1d_fast(&out[i, 0], degree, normalize)
 
 
-def fwht1d(np.ndarray[double, ndim=1] x, bint normalize, bint inplace=False):
+
+def fwht1d_fast(np.ndarray[double, ndim=1] x,
+                bint normalize,
+                bint inplace=False):
     cdef Py_ssize_t n_features, n_features_padded
     cdef int degree
     cdef double* out_ptr
@@ -83,11 +66,13 @@ def fwht1d(np.ndarray[double, ndim=1] x, bint normalize, bint inplace=False):
         if x.shape[0] != n_features_padded:
             raise ValueError("If inplace=True, len(x) must be power of 2.")
     out_ptr = <double *> out.data
-    _fwht1d(out_ptr, degree, normalize)
+    _fwht1d_fast(out_ptr, degree, normalize)
     return out
 
 
-def fwht2d(np.ndarray[double, ndim=2] X, bint normalize, bint inplace=False):
+def fwht2d_fast(np.ndarray[double, ndim=2] X,
+                bint normalize,
+                bint inplace=False):
     cdef Py_ssize_t n, n_features, n_features_padded
     cdef int degree
     cdef double* out_ptr
@@ -105,13 +90,14 @@ def fwht2d(np.ndarray[double, ndim=2] X, bint normalize, bint inplace=False):
         if X.shape[1] != n_features_padded:
             raise ValueError("If inplace = True, "
                              "X.shape[1] must be power of 2.")
-    _fwht2d(out, degree, normalize)
+    _fwht2d_fast(out, degree, normalize)
     return out
 
 
 def fwht(x, bint normalize=True, bint inplace=False):
     type = x.dtype
     if x.ndim == 1:
-        ret = fwht1d(x, normalize, inplace)
+        ret = fwht1d_fast(x, normalize, inplace)
     elif x.ndim == 2:
-        ret = fwht2d(x, normalize, inplace)
+        ret = fwht2d_fast(x, normalize, inplace)
+    return ret

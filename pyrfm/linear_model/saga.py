@@ -8,12 +8,18 @@ from sklearn.utils import check_random_state
 from .loss_fast import Squared, SquaredHinge, Logistic, Hinge
 from .base import BaseLinear, LinearClassifierMixin, LinearRegressorMixin
 from sklearn.kernel_approximation import RBFSampler
-from .adagrad_fast import _adagrad_fast
+from .saga_fast import _saga_fast
 from ..dataset_fast import get_dataset
 from ..random_feature.random_features_fast import get_fast_random_feature
 
 
-class BaseAdaGradEstimator(BaseLinear):
+class BaseSAGAEstimator(BaseLinear):
+    LEARNING_RATE = {
+        'constant': 0,
+        'pegasos': 1,
+        'inv_scaling': 2
+    }
+
     LOSSES = {
         'squared': Squared(),
         'squared_hinge': SquaredHinge(),
@@ -27,7 +33,8 @@ class BaseAdaGradEstimator(BaseLinear):
     def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0, intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
-                 eps=1e-6, warm_start=False, random_state=None, verbose=True,
+                 learning_rate='pegasos', power_t=0.5, is_saga=True,
+                 warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
         self.transformer = transformer
         self.eta0 = eta0
@@ -40,7 +47,9 @@ class BaseAdaGradEstimator(BaseLinear):
         self.fit_intercept = fit_intercept
         self.max_iter = max_iter
         self.tol = tol
-        self.eps = eps
+        self.learning_rate = learning_rate
+        self.power_t = power_t
+        self.is_saga = is_saga
         self.warm_start = warm_start
         self.random_state = random_state
         self.verbose = verbose
@@ -48,19 +57,36 @@ class BaseAdaGradEstimator(BaseLinear):
         self.shuffle = shuffle
 
     def _init_params(self, n_components):
-        super(BaseAdaGradEstimator, self)._init_params(n_components)
-        if not (self.warm_start and hasattr(self, 'acc_grad_')):
-            self.acc_grad_ = np.zeros(n_components)
+        super(BaseSAGAEstimator, self)._init_params(n_components)
 
-        if not (self.warm_start and hasattr(self, 'acc_grad_norm_')):
-            self.acc_grad_norm_ = np.zeros(n_components)
+        if not (self.warm_start and hasattr(self, 'averaged_grad_coef')):
+            self.averaged_grad_coef_ = np.zeros(n_components)
 
-        if not (self.warm_start and hasattr(self, 'acc_grad_intercept_')):
-            self.acc_grad_intercept_ = np.zeros(self.intercept_.shape)
+        if not (self.warm_start and hasattr(self, 'averaged_grad_intercept_')):
+            self.averaged_grad_intercept_ = np.zeros(1)
 
-        if not (self.warm_start
-                and hasattr(self, 'acc_grad_norm_intercept_')):
-            self.acc_grad_norm_intercept_ = np.zeros(self.intercept_.shape)
+        if not (self.warm_start and hasattr(self, "dloss_")):
+            self.dloss_ = np.zeros(n_components)
+
+    def _valid_params(self):
+        super(BaseSAGAEstimator, self)._valid_params()
+        if not isinstance(self.is_saga, bool):
+            raise ValueError("is_saga is not bool.")
+
+        if self.learning_rate == 'pegasos':
+            if not (self.l1_ratio > 0):
+                raise ValueError("l1_ratio must be > 0 when "
+                                 "learning_rate = 'pegasos'.")
+            if not (self.alpha / self.C > 0):
+                raise ValueError("alpha / C must be > 0 when "
+                                 "learning_rate = 'pegasos'.")
+
+            if not (self.intercept_decay / self.C > 0):
+                raise ValueError("intercept_decay / C must be > 0 when "
+                                 "learning_rate = 'pegasos'.")
+
+        if not (0 <= self.power_t):
+            raise ValueError("power_t < 0.")
 
     def fit(self, X, y):
         """Fit model according to X and y.
@@ -94,24 +120,30 @@ class BaseAdaGradEstimator(BaseLinear):
         intercept_decay = self.intercept_decay / self.C
         random_state = check_random_state(self.random_state)
         is_sparse = sparse.issparse(X)
+        learning_rate = self.LEARNING_RATE[self.learning_rate]
 
-        it = _adagrad_fast(self.coef_, self.intercept_,
-                           get_dataset(X, order='c'), X, y, self.acc_grad_,
-                           self.acc_grad_norm_,  self.acc_grad_intercept_,
-                           self.acc_grad_norm_intercept_, self.mean_, self.var_,
-                           loss, alpha, self.l1_ratio, intercept_decay,
-                           self.eta0, self.t_, self.max_iter, self.tol,
-                           self.eps, is_sparse, self.verbose,
-                           self.fit_intercept, self.shuffle,
-                           random_state, self.transformer,
-                           get_fast_random_feature(self.transformer))
-        self.t_ += n_samples*(it+1)
+        it = _saga_fast(self.coef_, self.intercept_, self.averaged_grad_coef_,
+                        self.averaged_grad_intercept_, self.dloss_,
+                        get_dataset(X, order='c'), X, y, self.mean_, self.var_,
+                        loss, alpha, self.l1_ratio, intercept_decay, self.eta0,
+                        learning_rate, self.power_t, self.is_saga, self.t_,
+                        self.max_iter, self.tol, is_sparse, self.verbose,
+                        self.fit_intercept, self.shuffle, random_state,
+                        self.transformer,
+                        get_fast_random_feature(self.transformer))
+        self.t_ += n_samples * (it + 1)
 
         return self
 
 
-class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
-    """AdaGrad solver for linear classifier with random feature maps.
+class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
+    LOSSES = {
+        'squared_hinge': SquaredHinge(),
+        'logistic': Logistic(),
+        'hinge': Hinge(),
+        'log': Logistic()
+    }
+    """SAGA solver for linear classifier with random feature maps.
     Random feature mapping is computed just before computing prediction and
     gradient.
     minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
@@ -145,13 +177,13 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
         If l1_ratio = 0 : Ridge.
         else If l1_ratio = 1 : Lasso.
         else : Elastic Net.
-
+        
     intercept_decay : double (default=0.1)
         Weight of the penalty term for intercept.
-
+    
     normalize : bool (default=False)
         Whether normalize random features or not.
-        If true, the adagrad solver computes running mean and variance
+        If true, the SAGA solver computes running mean and variance
         at learning, and uses them for inference.
 
     fit_intercept : bool (default=True)
@@ -163,10 +195,17 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
     tol : double (default=1e-6)
         Tolerance of stopping criterion.
         If sum of absolute val of update in one epoch is lower than tol,
-        the AdaGrad solver stops learning.
+        the SAGA solver stops learning.
 
-    eps : double (default=1e-4)
-        A small double to avoid zero-division.
+    learning_rate : str (default='pegasos')
+        The method for learning rate decay. {'constant'|'pegasos'|'inv_scaling'}
+        are supported now.
+
+    power_t : double (default=0.5)
+        The parameter for learning_rate 'inv_scaling'.
+
+    is_saga : bool (default=True)
+        Whether SAGA (True) or SAG (False).
 
     warm_start : bool (default=False)
         Whether to activate warm-start or not.
@@ -182,7 +221,7 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
 
     fast_solver : bool (default=True)
         Use cython fast solver or not. This argument is valid when transformer
-        is implemented in random_features_fast.pyx/pxd
+        is implemented in random_features_fast.pyx/pxd.
 
     shuffle : bool (default=True)
         Whether to shuffle data before each epoch or not.
@@ -192,17 +231,17 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
     self.coef_ : array, shape (n_components, )
         The learned coefficients of the linear model.
 
+    self.averaged_grad_coef_ : array, shape (n_components, )
+        The averaged gradient of coefficients.
+
     self.intercept_ : array, shape (1, )
         The learned intercept (bias) of the linear model.
 
-    self.acc_grad_, self.acc_grad_norm_ : array, shape (n_components, )
-        The sum of gradients and sum of norm of gradient for coefficients.
-        They are used in adagrad.
+    self.averaged_grad_intercept_ : array, shape (1, )
+        The averaged gradient of intercept.
 
-    self.acc_grad_intercept_, self.acc_grad_intercept_norm :
-     array, shape (n_components, )
-        The sum of gradients and sum of norm of gradient for intercept_.
-        They are used in adagrad.
+    self.dloss : array, shape (n_samples, )
+        The gradient of loss for each samples.    
 
     self.mean_, self.var_ : array or None, shape (n_components, )
         The running mean and variances of random feature vectors.
@@ -212,33 +251,36 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
         The number of iteration.
 
     References
-    ----------
-    [1] Adaptive Subgradient Methods for Online Learning and Stochastic
-    Optimization.
-    Jonh Duchi, Elad Hazan, and Yoram Singer.
-    JMLR 2011 (vol 12), pp. 2121--2159.
+    ---------
+    [1] SAGA: A Fast Incremental Gradient Method with Support for Non-Strongly
+    Convex Composite Objectives.
+    Aaron Defazo, Francis Bach, and Simon Lacoste-Julien.
+    In Proc. NIPS 2014.
+    (https://arxiv.org/pdf/1407.0202.pdf)
+    
+    [2] Minimizing Finite Sums with the Stochastic Average Gradient.
+    Mark Schmidt, Nicolas Le Roux, and Francis Bach. 
+    Mathematical Programming Vol 162, 2017.
+    (https://arxiv.org/pdf/1309.2388.pdf)
     """
-    LOSSES = {
-        'squared_hinge': SquaredHinge(),
-        'logistic': Logistic(),
-        'hinge': Hinge(),
-        'log': Logistic()
-    }
-
     def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared_hinge',
                  C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
-                 eps=1e-4, warm_start=False, random_state=None, verbose=True,
+                 learning_rate='pegasos', power_t=0.5, is_saga=False,
+                 warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
-        super(AdaGradClassifier, self).__init__(
+        super(SAGAClassifier, self).__init__(
             transformer, eta0, loss, C, alpha, l1_ratio, intercept_decay,
-            normalize, fit_intercept, max_iter, tol, eps, warm_start,
-            random_state, verbose, fast_solver, shuffle
+            normalize, fit_intercept, max_iter, tol, learning_rate, power_t,
+            is_saga, warm_start, random_state, verbose, fast_solver, shuffle
         )
 
 
-class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
-    """AdaGrad solver for linear regression with random feature maps.
+class SAGARegressor(BaseSAGAEstimator, LinearRegressorMixin):
+    LOSSES = {
+        'squared': Squared(),
+    }
+    """SAGA solver for linear classifier with random feature maps.
     Random feature mapping is computed just before computing prediction and
     gradient.
     minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
@@ -270,13 +312,13 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
         If l1_ratio = 0 : Ridge.
         else If l1_ratio = 1 : Lasso.
         else : Elastic Net.
-
+        
     intercept_decay : double (default=0.1)
         Weight of the penalty term for intercept.
-
+    
     normalize : bool (default=False)
         Whether normalize random features or not.
-        If true, the adagrad solver computes running mean and variance
+        If true, the SAGA solver computes running mean and variance
         at learning, and uses them for inference.
 
     fit_intercept : bool (default=True)
@@ -288,10 +330,17 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
     tol : double (default=1e-6)
         Tolerance of stopping criterion.
         If sum of absolute val of update in one epoch is lower than tol,
-        the AdaGrad solver stops learning.
+        the SAGA solver stops learning.
 
-    eps : double (default=1e-4)
-        A small double to avoid zero-division.
+    learning_rate : str (default='pegasos')
+        The method for learning rate decay. {'constant'|'pegasos'|'inv_scaling'}
+        are supported now.
+
+    power_t : double (default=0.5)
+        The parameter for learning_rate 'inv_scaling'.
+
+    is_saga : bool (default=True)
+        Whether SAGA (True) or SAG (False).
 
     warm_start : bool (default=False)
         Whether to activate warm-start or not.
@@ -317,17 +366,17 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
     self.coef_ : array, shape (n_components, )
         The learned coefficients of the linear model.
 
+    self.averaged_grad_coef_ : array, shape (n_components, )
+        The averaged gradient of coefficients.
+
     self.intercept_ : array, shape (1, )
         The learned intercept (bias) of the linear model.
 
-    self.acc_grad_, self.acc_grad_norm_ : array, shape (n_components, )
-        The sum of gradients and sum of norm of gradient for coefficients.
-        They are used in adagrad.
+    self.averaged_grad_intercept_ : array, shape (1, )
+        The averaged gradient of intercept.
 
-    self.acc_grad_intercept_, self.acc_grad_intercept_norm :
-     array, shape (n_components, )
-        The sum of gradients and sum of norm of gradient for intercept_.
-        They are used in adagrad.
+    self.dloss : array, shape (n_samples, )
+        The gradient of loss for each samples.    
 
     self.mean_, self.var_ : array or None, shape (n_components, )
         The running mean and variances of random feature vectors.
@@ -338,22 +387,25 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
 
     References
     ----------
-    [1] Adaptive Subgradient Methods for Online Learning and Stochastic
-    Optimization.
-    Jonh Duchi, Elad Hazan, and Yoram Singer.
-    JMLR 2011 (vol 12), pp. 2121--2159.
+    [1] SAGA: A Fast Incremental Gradient Method with Support for Non-Strongly
+    Convex Composite Objectives.
+    Aaron Defazo, Francis Bach, and Simon Lacoste-Julien.
+    In Proc. NIPS 2014.
+    (https://arxiv.org/pdf/1407.0202.pdf)
+    
+    [2] Minimizing Finite Sums with the Stochastic Average Gradient.
+    Mark Schmidt, Nicolas Le Roux, and Francis Bach. 
+    Mathematical Programming Vol 162, 2017.
+    (https://arxiv.org/pdf/1309.2388.pdf)
     """
-    LOSSES = {
-        'squared': Squared(),
-    }
-
     def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
-                 eps=1e-4, warm_start=False, random_state=None, verbose=True,
+                 learning_rate='pegasos', power_t=0.5, is_saga=False,
+                 warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
-        super(AdaGradRegressor, self).__init__(
+        super(SAGARegressor, self).__init__(
             transformer, eta0, loss, C, alpha, l1_ratio, intercept_decay,
-            normalize, fit_intercept, max_iter, tol, eps, warm_start,
-            random_state, verbose, fast_solver, shuffle
+            normalize, fit_intercept, max_iter, tol, learning_rate, power_t,
+            is_saga, warm_start, random_state, verbose, fast_solver, shuffle
         )

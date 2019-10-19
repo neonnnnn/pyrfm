@@ -13,7 +13,8 @@ cimport numpy as np
 from cython.view cimport array
 from libc.math cimport fmin
 from libcpp.vector cimport vector
-from scipy.sparse import csc_matrix
+from scipy.sparse import csr_matrix
+import warnings
 
 
 cdef inline double _sparse_dot(double* x,
@@ -85,18 +86,17 @@ cdef _canova_sparse(RowDataset X,
     cdef double *p
     cdef int *x_indices
     cdef int *p_indices
-    cdef int x_n_nz, p_n_nz, n_nz_all
+    cdef int x_n_nz, p_n_nz
+    cdef unsigned long int n_nz_all_all
     cdef Py_ssize_t n_samples_x, n_samples_p, i1, ii2, i2, jj, j, t
 
     cdef vector[double] data_vec
     cdef vector[int] row_vec
     cdef vector[int] col_vec
-
     n_samples_x = X.get_n_samples()
     n_samples_p = P.get_n_samples()
 
     cdef double[:, ::1] a = array((n_samples_p, degree+1), sizeof(double), 'd')
-
     for i2 in range(n_samples_p):
         a[i2, 0] = 1
         for t in range(degree):
@@ -121,7 +121,20 @@ cdef _canova_sparse(RowDataset X,
                 col_vec.push_back(i2)
             for t in range(degree):
                 a[i2, 1+t] = 0
-    return csc_matrix((data_vec, (row_vec, col_vec)),
+
+    cdef np.ndarray[np.float64_t, ndim=1] data = np.empty(n_nz_all,
+                                                          dtype=np.float64)
+    cdef np.ndarray[np.int32_t, ndim=1] row = np.empty(n_nz_all,
+                                                       dtype=np.int32)
+    cdef np.ndarray[np.int32_t, ndim=1] col = np.empty(n_nz_all,
+                                                       dtype=np.int32)
+    
+    for i1 in range(n_nz_all):
+        data[i1] = data_vec[i1]
+        row[i1] = row_vec[i1]
+        col[i1] = col_vec[i1]
+
+    return csr_matrix((data, (row, col)),
                       shape=(n_samples_x, n_samples_p))
 
 
@@ -194,7 +207,9 @@ cdef void _cchi_square(double[:, ::1] output,
 
 cdef double _score(RowDataset X,
                    double[:, ::1] K,
-                   int loss):
+                   int loss,
+                   bint mean,
+                   double* err_sup):
     cdef double* data1,
     cdef int* indices1
     cdef int n_nz1
@@ -204,18 +219,24 @@ cdef double _score(RowDataset X,
     cdef Py_ssize_t i, j
     cdef int n_samples = X.get_n_samples()
     cdef double result = 0
-    cdef double dot
+    cdef double dot, err
+    err_sup[0] = 0
     for i in range(n_samples):
         X.get_row_ptr(i, &indices1, &data1, &n_nz1)
         for j in range(i, n_samples):
             X.get_row_ptr(j, &indices2, &data2, &n_nz2)
             dot = _sparse_dot(data1, indices1, n_nz1, data2, indices2, n_nz2)
             if loss == 1:
-                result += abs(K[i, j] - dot)
+                err = abs(K[i, j] - dot)
             elif loss == 2:
-                result += (K[i, j] - dot) ** 2
+                err = (K[i, j] - dot) ** 2
+            result += err
+            if err_sup[0] < err:
+                err_sup[0] = err
 
-    return result / (n_samples * (n_samples+1) / 2)
+    if mean:
+        result = result / (n_samples * (n_samples+1) / 2)
+    return result
 
 
 def _anova(X, P, degree, dense_output=True):
@@ -234,8 +255,11 @@ def _anova(X, P, degree, dense_output=True):
     return output
 
 
-def _all_subsets(X, P):
+def _all_subsets(X, P, dense_output=True):
     output = np.ones((X.shape[0], P.shape[0]))
+    if not dense_output:
+        warnings.warn("The all-subsets kernel outputs np.ndarray"
+                      "since its output matrix has no zero elements.")
     _call_subsets(output,
                   get_dataset(X, order='c'),
                   get_dataset(P, order='fortran'))
@@ -256,7 +280,8 @@ def _chi_square(X, P):
 
     return output
 
-def score(X, K, loss='l2'):
+
+def score(X, K, loss='l2', mean=True, return_max=False):
     """
     Compute the approximation error of X:
         \sum_{i=1}^{n}\sum_{j=i}^{n} loss(dot(X[i], X[j]), K[i,j]) / (n(n+1)/2)
@@ -272,10 +297,19 @@ def score(X, K, loss='l2'):
     loss : str
         Which loss function. "l1" or "l2" can be used.
 
+    mean : bool
+        Whether compute mean or not. If false, return sum of the errs.
+
+    return_max : bool
+        Whether return the max error or not.
     Returns
     -------
-    double
+    error : double
         Approximation error.
+
+    sup : double, optional (only when return_max = True)
+        Maximum approximation error.
+
     """
 
     if loss == 'l1':
@@ -285,5 +319,9 @@ def score(X, K, loss='l2'):
     else:
         raise ValueError('loss {} is not supported, only "l1" or "l2" can be '
                          'used')
-    return _score(get_dataset(X, 'c'), K, _loss)
-
+    cdef double sup, error
+    error = _score(get_dataset(X, 'c'), K, _loss, mean, &sup)
+    if return_max:
+        return error, sup
+    else:
+        return error

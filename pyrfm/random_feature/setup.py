@@ -1,6 +1,7 @@
 from lightning._build_utils import maybe_cythonize_extensions
 import numpy
-
+from os.path import join
+import os
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
@@ -26,6 +27,14 @@ def configuration(parent_package='', top_path=None):
                          sources=["utils_fast.pyx"],
                          language="c++",
                          include_dirs=[numpy.get_include()])
+
+    config.add_extension('fht_fast',
+                         sources=["fht_fast.pyx",
+                                  join("src", "FFHT", "fht_avx.c")],
+                         include_dirs=[join('.', 'src', 'FFHT'),
+                                       numpy.get_include()],
+                         depends=[join("src", "FFHT", "fht.h")],
+                         )
 
     maybe_cythonize_extensions(top_path, config)
     return config

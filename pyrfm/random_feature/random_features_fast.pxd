@@ -4,6 +4,7 @@ from ..dataset_fast cimport RowDataset, ColumnDataset
 cdef class BaseCRandomFeature(object):
     cdef Py_ssize_t n_components
     cdef Py_ssize_t n_features
+    cdef double scale
     cdef void transform(self,
                         double* z,
                         double* data,
@@ -51,7 +52,6 @@ cdef class CRandomSubsetKernel(BaseCRandomFeature):
     cdef int kernel
     cdef double[:, ::1] anova
     cdef int n_sub_features
-    cdef double const
 
 
 cdef class CFastFood(BaseCRandomFeature):

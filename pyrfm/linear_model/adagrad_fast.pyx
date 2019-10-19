@@ -16,6 +16,21 @@ from cython.view cimport array
 from ..random_feature.random_features_fast cimport BaseCRandomFeature
 
 
+cdef inline double _pred(double[:] z,
+                         double[:] coef,
+                         double intercept,
+                         double lam1,
+                         double lam2,
+                         double* acc_loss,
+                         Py_ssize_t n_components):
+    cdef double y_pred = 0
+    cdef Py_ssize_t j
+    for j in range(n_components):
+        y_pred += z[j] * coef[j]
+        acc_loss[0] += 0.5*lam2*coef[j]**2 + lam1*fabs(coef[j])
+    return y_pred + intercept
+
+
 cdef double adagrad_epoch(double[:] coef,
                           double[:] intercept,
                           RowDataset X,
@@ -30,6 +45,7 @@ cdef double adagrad_epoch(double[:] coef,
                           LossFunction loss,
                           double lam1,
                           double lam2,
+                          double intercept_decay,
                           double eta,
                           unsigned int* t,
                           double eps,
@@ -74,19 +90,12 @@ cdef double adagrad_epoch(double[:] coef,
         # if normalize
         if mean is not None:
             normalize(z, mean, var, t[0], n_components)
-
-        y_pred = 0
-        norm = 0
-        for j in range(n_components):
-            y_pred += z[j] * coef[j]
-            acc_loss[0] += 0.5*lam2*coef[j]**2 + lam1*fabs(coef[j])
-
-        y_pred += intercept[0]
+        y_pred = _pred(z, coef, intercept[0], lam1, lam2, &acc_loss[0],
+                       n_components)
         acc_loss[0] += loss.loss(y_pred, y[i])
 
         # update parameters
         dloss = loss.dloss(y_pred, y[i])
-
         eta_t = eta*t[0]
         if dloss != 0:
             for j in range(n_components):
@@ -111,6 +120,7 @@ cdef double adagrad_epoch(double[:] coef,
             acc_grad_intercept[0] += dloss
             acc_grad_norm_intercept[0] += dloss*dloss
             denom = sqrt(acc_grad_norm_intercept[0]) + eps
+            denom += intercept_decay*eta_t
 
             intercept_new = -eta*acc_grad_intercept[0] / denom
             viol += fabs(intercept_new - intercept[0])
@@ -135,6 +145,7 @@ def _adagrad_fast(double[:] coef,
                   LossFunction loss,
                   double alpha,
                   double l1_ratio,
+                  double intercept_decay,
                   double eta,
                   unsigned int t,
                   unsigned int max_iter,
@@ -166,7 +177,7 @@ def _adagrad_fast(double[:] coef,
         viol = adagrad_epoch(coef, intercept, X, X_array, y, acc_grad,
                              acc_grad_norm, acc_grad_intercept,
                              acc_grad_norm_intercept, mean, var, loss, lam1,
-                             lam2, eta, &t, eps, is_sparse,
+                             lam2, intercept_decay, eta, &t, eps, is_sparse,
                              fit_intercept, shuffle, random_state, &acc_loss,
                              transformer, transformer_fast, indices_samples, z,
                              )

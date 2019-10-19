@@ -7,7 +7,7 @@
 # License: BSD-2-Clause
 
 from libc.math cimport cos, sin, sqrt
-from scipy.fftpack._fftpack import drfft, zrfft, zfft
+from scipy.fftpack._fftpack import zfft
 import numpy as np
 cimport numpy as np
 from sklearn.kernel_approximation import RBFSampler
@@ -19,7 +19,7 @@ from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
                RandomProjection, OrthogonalRandomFeature,
                StructuredOrthogonalRandomFeature,
                SignedCirculantRandomMatrix, RandomSubsetKernel)
-from .utils_fast cimport _fwht1d
+from .fht_fast cimport _fwht1d_fast
 from libcpp.vector cimport vector
 from scipy.sparse import csc_matrix, csr_matrix
 from scipy.special import comb
@@ -79,6 +79,7 @@ cdef class CRBFSampler(BaseCRandomFeature):
         self.n_features = transformer.random_weights_.shape[0]
         self.random_weights = transformer.random_weights_
         self.random_offset = transformer.random_offset_
+        self.scale = sqrt(self.n_components/2.)
 
     cdef void transform(self,
                         double* z,
@@ -95,7 +96,7 @@ cdef class CRBFSampler(BaseCRandomFeature):
                 z[i] += data[jj] * self.random_weights[j, i]
 
         for i in range(self.n_components):
-            z[i] = cos(z[i])*sqrt(2./self.n_components)
+            z[i] = cos(z[i]) / self.scale
 
 
 cdef class CRandomFourier(BaseCRandomFeature):
@@ -105,6 +106,8 @@ cdef class CRandomFourier(BaseCRandomFeature):
         self.random_weights = get_dataset(transformer.random_weights_, 'c')
         self.random_offset = transformer.random_offset_
         self.use_offset = transformer.use_offset
+        self.scale = sqrt(self.n_components/2.)
+
 
     cdef void transform(self,
                         double* z,
@@ -118,12 +121,12 @@ cdef class CRandomFourier(BaseCRandomFeature):
         if self.use_offset:
             for i in range(self.n_components):
                 z[i] += self.random_offset[i]
-                z[i] = cos(z[i])*sqrt(2./self.n_components)
+                z[i] = cos(z[i])*self.scale
         # z = (cos, ..., cos, sin, ..., sin)
         else:
             for i in range(index_offset):
                 z[i+index_offset] = sin(z[i])*sqrt(2./self.n_components)
-                z[i] = cos(z[i])*sqrt(2./self.n_components)
+                z[i] = cos(z[i])/self.scale
 
 
 cdef class CRandomMaclaurin(BaseCRandomFeature):
@@ -137,6 +140,7 @@ cdef class CRandomMaclaurin(BaseCRandomFeature):
         self.coefs = transformer.coefs
         self.cache = array((transformer.random_weights_.shape[1], ),
                            sizeof(double), format='d')
+        self.scale = sqrt(self.n_components)
 
     cdef void transform(self,
                         double* z,
@@ -160,7 +164,7 @@ cdef class CRandomMaclaurin(BaseCRandomFeature):
                 z[i] *= self.cache[offset]
                 offset += 1
             z[i] *= sqrt(self.coefs[deg]/self.p_choice[deg])
-            z[i] /= sqrt(self.n_components)
+            z[i] /= self.scale
 
 
 cdef class CTensorSketch(BaseCRandomFeature):
@@ -210,9 +214,10 @@ cdef class CRandomKernel(BaseCRandomFeature):
         self.n_components = transformer.n_components
         self.n_features = transformer.random_weights_.shape[0]
         self.degree = transformer.degree
-        # Now, not support for sparse rademacher
         self.random_weights = get_dataset(transformer.random_weights_,
                                           order='c')
+        self.scale = sqrt(self.n_components)
+
         if transformer.kernel in ["anova", "anova_cython"]:
             self.kernel = 0
         elif transformer.kernel == "all_subsets":
@@ -241,7 +246,7 @@ cdef class CRandomKernel(BaseCRandomFeature):
             all_subsets(z, data, indices, n_nz, self.random_weights,
                         self.n_components)
         for i in range(self.n_components):
-            z[i] /= sqrt(self.n_components)
+            z[i] /= self.scale
 
 
 cdef class CRandomSubsetKernel(BaseCRandomFeature):
@@ -250,7 +255,6 @@ cdef class CRandomSubsetKernel(BaseCRandomFeature):
         self.n_sub_features = transformer.n_sub_features
         self.n_features = transformer.random_weights_.shape[0]
         self.degree = transformer.degree
-        # Now, not support for sparse rademacher
         self.random_weights = get_dataset(transformer.random_weights_,
                                           order='c')
         if transformer.kernel not in ["anova", "anova_cython"]:
@@ -263,10 +267,9 @@ cdef class CRandomSubsetKernel(BaseCRandomFeature):
             self.anova[i, 0] = 1
             for j in range(self.degree):
                 self.anova[i, j+1] = 0
-        self.const = comb(self.n_features, self.degree)
-        self.const /= comb(self.n_sub_features, self.degree)
-        self.const = sqrt(self.const/self.n_components)
-
+        self.scale = comb(self.n_features, self.degree)
+        self.scale /= comb(self.n_sub_features, self.degree)
+        self.scale = sqrt(self.n_components/self.scale)
 
     cdef void transform(self,
                         double* z,
@@ -277,7 +280,7 @@ cdef class CRandomSubsetKernel(BaseCRandomFeature):
         anova(z, data, indices, n_nz, self.random_weights, self.degree,
               self.anova, self.n_components)
         for i in range(self.n_components):
-            z[i] *= self.const
+            z[i] /= self.scale
 
 
 cdef class CFastFood(BaseCRandomFeature):
@@ -295,6 +298,10 @@ cdef class CFastFood(BaseCRandomFeature):
         self.random_offset = transformer.random_offset_
         self.cache = array((2**self.degree_hadamard, ), sizeof(double),
                            format='d')
+        if self.random_fourier:
+            self.scale = sqrt(self.n_components/2.)
+        else:
+            self.scale = sqrt(self.n_components)
 
     cdef void transform(self,
                         double* z,
@@ -303,6 +310,7 @@ cdef class CFastFood(BaseCRandomFeature):
                         int n_nz):
         cdef Py_ssize_t i, j, jj, k, n_features_padded, t, n_stacks
         cdef double tmp, factor
+        factor = sqrt(2*self.gamma)
         n_features_padded = 2**self.degree_hadamard
         n_stacks = self.n_components // n_features_padded
         for t in range(n_stacks):
@@ -314,7 +322,7 @@ cdef class CFastFood(BaseCRandomFeature):
                 self.cache[j] = data[jj] * self.random_sign[t, j]
 
             # HBx: H is the Walsh-Hadamard transform
-            _fwht1d(&self.cache[0], self.degree_hadamard, normalize=False)
+            _fwht1d_fast(&self.cache[0], self.degree_hadamard, normalize=False)
             
             # \Pi HBx: \Pi is the random permutation matrix
             for j in range(n_features_padded):
@@ -329,7 +337,7 @@ cdef class CFastFood(BaseCRandomFeature):
                 self.cache[j] *= self.random_weights[t, j]
                 self.cache[j] *= self.random_scaling[t, j]
             
-            _fwht1d(&self.cache[0], self.degree_hadamard, False)
+            _fwht1d_fast(&self.cache[0], self.degree_hadamard, False)
 
             for j in range(n_features_padded):
                 i = j + n_features_padded*t
@@ -337,9 +345,8 @@ cdef class CFastFood(BaseCRandomFeature):
 
         for i in range(self.n_components):
             if self.random_fourier:
-                z[i] = cos(sqrt(2*self.gamma)*z[i]+self.random_offset[i])
-                z[i] *= sqrt(2)
-            z[i] /= sqrt(self.n_components)
+                z[i] = cos(factor*z[i]+self.random_offset[i])
+            z[i] /= self.scale
 
 
 cdef class CSubsampledRandomHadamard(BaseCRandomFeature):
@@ -351,15 +358,18 @@ cdef class CSubsampledRandomHadamard(BaseCRandomFeature):
         self.degree_hadamard = (self.n_features-1).bit_length()
         self.cache = array((2**self.degree_hadamard, ), sizeof(double),
                            format='d')
+        cdef int n_features_padded = 2**self.degree_hadamard
+        self.scale = sqrt((1.0*self.n_components)/n_features_padded)
+        print(self.scale, self.n_components, n_features_padded)
 
     cdef void transform(self,
                         double* z,
                         double* data,
                         int* indices,
                         int n_nz):
-        cdef Py_ssize_t j, jj, n_features_padded
-        n_features_padded = 2**self.degree_hadamard
-        cdef double factor = sqrt(n_features_padded/self.n_components)
+        cdef Py_ssize_t j, jj
+        cdef int n_features_padded = 2**self.degree_hadamard
+
         for i in range(n_features_padded):
             self.cache[i] = 0
 
@@ -369,14 +379,14 @@ cdef class CSubsampledRandomHadamard(BaseCRandomFeature):
             self.cache[j] = data[jj] * self.random_weights[j]
 
         # HDx: H is the Walsh-Hadamard transform
-        _fwht1d(&self.cache[0], self.degree_hadamard, normalize=True)
+        _fwht1d_fast(&self.cache[0], self.degree_hadamard, normalize=True)
 
         # RHDx: R is a random n_components \times n_features_padded matrix,
         # which represents n_components indices of rows.
         for j in range(self.n_components):
             jj = self.random_indices_rows[j]
             z[j] = self.cache[jj]
-            z[j] *= factor
+            z[j] /= self.scale
 
 
 cdef class CRandomProjection(BaseCRandomFeature):
@@ -384,7 +394,7 @@ cdef class CRandomProjection(BaseCRandomFeature):
         self.n_components = transformer.n_components
         self.n_features = transformer.random_weights_.shape[0]
         self.random_weights = get_dataset(transformer.random_weights_, 'c')
-
+        self.scale = sqrt(self.n_components)
 
     cdef void transform(self,
                         double* z,
@@ -394,7 +404,7 @@ cdef class CRandomProjection(BaseCRandomFeature):
         cdef Py_ssize_t i
         dot_all(z, data, indices, n_nz, self.random_weights, self.n_components)
         for i in range(self.n_components):
-            z[i] /= sqrt(self.n_components)
+            z[i] /= self.scale
 
 
 cdef class CCompactRandomFeature(BaseCRandomFeature):
@@ -436,7 +446,10 @@ cdef class CSignedCirculantRandomMatrix(BaseCRandomFeature):
         self.gamma = transformer.gamma
         self.random_fourier = transformer.random_fourier
         self.n_stacks = self.random_weights.shape[0]
-
+        if self.random_fourier:
+            self.scale = sqrt(self.n_components/2.)
+        else:
+            self.scale = sqrt(self.n_components)
 
     cdef void transform(self,
                         double* z,
@@ -465,10 +478,10 @@ cdef class CSignedCirculantRandomMatrix(BaseCRandomFeature):
 
         if self.random_fourier:
             for i in range(self.n_components):
-                z[i] = cos(factor*z[i]+self.random_offset[i])*sqrt(2)
+                z[i] = cos(factor*z[i]+self.random_offset[i])
 
         for i in range(self.n_components):
-            z[i] /= sqrt(self.n_components)
+            z[i] /= self.scale
 
 
 cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
@@ -485,6 +498,7 @@ cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
         self.degree_hadamard = (self.n_features-1).bit_length()
         self.gamma = transformer.gamma
         self.random_fourier = transformer.random_fourier
+        self.scale = sqrt(self.n_components)
 
     cdef void transform(self,
                         double* z,
@@ -502,18 +516,18 @@ cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
                 self.cache[j] = data[jj] * self.random_weights[ii, j]
 
             # HDx: H is the Walsh-Hadamard transform
-            _fwht1d(&self.cache[0], self.degree_hadamard, normalize=True)
+            _fwht1d_fast(&self.cache[0], self.degree_hadamard, normalize=True)
 
             # Dx, D is a random diagonal sign matrix
             offset = self.n_features
             for j in range(self.n_features_padded):
                 self.cache[j] *= self.random_weights[ii, j+offset]
-            _fwht1d(&self.cache[0], self.degree_hadamard, normalize=True)
+            _fwht1d_fast(&self.cache[0], self.degree_hadamard, normalize=True)
             offset += self.n_features_padded
 
             for j in range(self.n_features_padded):
                 self.cache[j] *= self.random_weights[ii, j+offset]
-            _fwht1d(&self.cache[0], self.degree_hadamard, normalize=True)
+            _fwht1d_fast(&self.cache[0], self.degree_hadamard, normalize=True)
 
             for j in range(self.n_features_padded):
                 i = ii*self.n_features_padded + j
@@ -525,7 +539,7 @@ cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
                 z[i] *= sqrt(2)
 
         for i in range(self.n_components):
-            z[i] /= sqrt(self.n_components)
+            z[i] /= self.scale
 
 
 cdef inline void anova(double* z,
