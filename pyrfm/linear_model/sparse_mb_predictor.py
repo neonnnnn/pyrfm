@@ -95,7 +95,9 @@ class BaseSparseMBEstimator(BaseLinear):
 class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):
     """Linear classifier with feature map approximating the intersection (min)
     kernel by sparse explicit feature map, which was proposed by S.Maji
-    and A.C.Berg. SparseMB does not approximate min kernel only itself.
+    and A.C.Berg.
+
+    SparseMB does not approximate min kernel only itself.
     Linear classifier with SparseMB approximates linear classifier with MB.
     For more detail, see [1].
 
@@ -107,8 +109,10 @@ class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):
 
     loss : str (default="squared_hinge")
         Which loss function to use. Following losses can be used:
-            'squared_hinge'
-            'logistic'
+
+        - 'squared_hinge'
+
+        - 'logistic'
 
     C : double (default=1.0)
         Weight of loss term.
@@ -162,7 +166,9 @@ class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):
     Subhransu Maji, Alexander C. Berg.
     In ICCV 2009.
     (http://acberg.com/papers/mb09iccv.pdf)
+
     """
+
     LOSSES = {
         'squared_hinge': SquaredHinge(),
         'logistic': Logistic(),
@@ -193,7 +199,8 @@ class SparseMBRegressor(BaseSparseMBEstimator, LinearRegressorMixin):
 
     loss : str (default="squared")
         Which loss function to use. Following losses can be used:
-            'squared'
+
+        - 'squared'
 
     C : double (default=1.0)
         Weight of loss term.

@@ -112,6 +112,7 @@ class BaseAdaGradEstimator(BaseLinear):
 
 class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
     """AdaGrad solver for linear classifier with random feature maps.
+
     Random feature mapping is computed just before computing prediction and
     gradient.
     minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
@@ -128,9 +129,12 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
 
     loss : str (default="squared_hinge")
         Which loss function to use. Following losses can be used:
-            'squared_hinge'
-            'hinge'
-            'logistic'
+
+        - 'squared_hinge'
+
+        - 'hinge'
+
+        - 'logistic'
 
     C : double (default=1.0)
         Weight of the loss term.
@@ -142,9 +146,12 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
         Ratio of L1 regularizer.
         Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
         is 0.5 * alpha * (1-l1_ratio).
-        If l1_ratio = 0 : Ridge.
-        else If l1_ratio = 1 : Lasso.
-        else : Elastic Net.
+
+        - l1_ratio = 0 : Ridge.
+
+        - l1_ratio = 1 : Lasso.
+
+        - Otherwise : Elastic Net.
 
     intercept_decay : double (default=0.1)
         Weight of the penalty term for intercept.
@@ -201,7 +208,7 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
 
     self.acc_grad_intercept_, self.acc_grad_intercept_norm :
      array, shape (n_components, )
-        The sum of gradients and sum of norm of gradient for intercept_.
+        The sum of gradients and sum of norm of gradient for intercept.
         They are used in adagrad.
 
     self.mean_, self.var_ : array or None, shape (n_components, )
@@ -217,7 +224,9 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
     Optimization.
     Jonh Duchi, Elad Hazan, and Yoram Singer.
     JMLR 2011 (vol 12), pp. 2121--2159.
+
     """
+
     LOSSES = {
         'squared_hinge': SquaredHinge(),
         'logistic': Logistic(),
@@ -239,6 +248,7 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
 
 class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
     """AdaGrad solver for linear regression with random feature maps.
+
     Random feature mapping is computed just before computing prediction and
     gradient.
     minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
@@ -255,7 +265,8 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
 
     loss : str (default="squared")
         Which loss function to use. Following losses can be used:
-            'squared'
+
+        - 'squared'
 
     C : double (default=1.0)
         Weight of the loss term.
@@ -267,9 +278,12 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
         Ratio of L1 regularizer.
         Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
         is 0.5 * alpha * (1-l1_ratio).
-        If l1_ratio = 0 : Ridge.
-        else If l1_ratio = 1 : Lasso.
-        else : Elastic Net.
+
+        - l1_ratio = 0 : Ridge.
+
+        - If l1_ratio = 1 : Lasso.
+
+        - Elastic Net.
 
     intercept_decay : double (default=0.1)
         Weight of the penalty term for intercept.
@@ -326,7 +340,7 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
 
     self.acc_grad_intercept_, self.acc_grad_intercept_norm :
      array, shape (n_components, )
-        The sum of gradients and sum of norm of gradient for intercept_.
+        The sum of gradients and sum of norm of gradient for intercept.
         They are used in adagrad.
 
     self.mean_, self.var_ : array or None, shape (n_components, )
@@ -342,7 +356,9 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
     Optimization.
     Jonh Duchi, Elad Hazan, and Yoram Singer.
     JMLR 2011 (vol 12), pp. 2121--2159.
+
     """
+
     LOSSES = {
         'squared': Squared(),
     }
