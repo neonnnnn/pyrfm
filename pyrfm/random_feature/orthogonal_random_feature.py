@@ -23,7 +23,7 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-        n_components : int (default=100)
+    n_components : int (default=100)
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
         If n_components is not a n-tuple of n_features, it is automatically
@@ -57,11 +57,10 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         If None, the random number generator is the RandomState instance used
         by `np.random`.
 
-
     Attributes
     ----------
-    random_weights_ : array, shape (n_features, n_components) (use_offset=True)
-                                   or (n_components/2, n_features) (otherwise)
+    random_weights_ : array, shape (n_features, n_components) (use_offset=True) 
+    or (n_components/2, n_features) (otherwise)
         The sampled basis.
 
     random_offset_ : array or None, shape (n_components, )
@@ -74,6 +73,7 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
     Daniel Holtmann-Rice Sanjiv Kumar
     In NIPS 2016.
     (https://arxiv.org/pdf/1610.09072.pdf)
+
     """
     def __init__(self, n_components=100,  gamma=0.5, distribution="gaussian",
                  random_fourier=True, random_state=None):
@@ -84,6 +84,19 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         self.random_state = random_state
 
     def fit(self, X, y=None):
+        """Generate random weights according to n_features.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            Training data, where n_samples in the number of samples
+            and n_features is the number of features.
+
+        Returns
+        -------
+        self : object
+            Returns the transformer.
+        """
         random_state = check_random_state(self.random_state)
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
@@ -122,6 +135,18 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        """Apply the approximate feature map to X.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            New data, where n_samples in the number of samples
+            and n_features is the number of features.
+
+        Returns
+        -------
+        X_new : array-like, shape (n_samples, n_components)
+        """
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=True)
         output = safe_sparse_dot(X, self.random_weights_, True)
@@ -137,7 +162,7 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-        n_components : int (default=100)
+    n_components : int (default=100)
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
         If n_components is not a n-tuple of n_features, it is automatically
@@ -174,8 +199,8 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    random_weights_ : array, shape (n_components, n_features) (use_offset=True)
-                                   or (n_components/2, n_features) (otherwise)
+    random_weights_ : array, shape (n_components, n_features) (use_offset=True) 
+    or (n_components/2, n_features) (otherwise)
         The sampled basis.
 
     random_offset_ : array or None, shape (n_components, )
@@ -188,6 +213,7 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
     Daniel Holtmann-Rice Sanjiv Kumar
     In NIPS 2016.
     (https://arxiv.org/pdf/1610.09072.pdf)
+
     """
     def __init__(self, n_components=100,  gamma=0.5, distribution="rademacher",
                  random_fourier=True, random_state=None):
@@ -238,6 +264,18 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        """Apply the approximate feature map to X.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            New data, where n_samples in the number of samples
+            and n_features is the number of features.
+
+        Returns
+        -------
+        X_new : array-like, shape (n_samples, n_components)
+        """
         from .random_features_fast import transform_all_fast
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=True)

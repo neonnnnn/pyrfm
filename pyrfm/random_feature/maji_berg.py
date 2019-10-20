@@ -28,6 +28,7 @@ class MB(BaseEstimator, TransformerMixin):
     Subhransu Maji, Alexander C. Berg.
     In ICCV 2009.
     (http://acberg.com/papers/mb09iccv.pdf)
+
     """
     def __init__(self, n_components=1000):
         self.n_components = n_components

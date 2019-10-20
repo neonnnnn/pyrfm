@@ -14,11 +14,13 @@ def _get_random_matrix(distribution):
 
 class SubsampledRandomHadamard(BaseEstimator, TransformerMixin):
     """Approximates feature maps of the product between random matrix and
-    feature vectors by Subsampled Randomized Hadamard Transform that uses
-    diagonal matrices, the Walsh-Hadamard matrix, and submatrix of the
-    identity matrix.
+    feature vectors by Subsampled Randomized Hadamard Transform
+
     This class can be used as a sub-routine for approximating the product
     between random matrix and feature vectors in some random features.
+    Subsampled Randomized Hadamard Transform uses diagonal matrices, the
+    Walsh-Hadamard matrix, and submatrix of the identity matrix for
+    approximating the matrix-vector product.
 
     Parameters
     ----------
@@ -57,6 +59,7 @@ class SubsampledRandomHadamard(BaseEstimator, TransformerMixin):
     Joel A Tropp.
     Advances in Adaptive Data Analysis,
     (https://arxiv.org/pdf/1011.1595.pdf)
+
     """
 
     def __init__(self, n_components=100,  gamma=0.5, distribution="rademacher",

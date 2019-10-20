@@ -88,6 +88,7 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
     Purushottam Kar and Harish Karnick.
     In AISTATS 2012.
     (http://proceedings.mlr.press/v22/kar12/kar12.pdf)
+
     """
     def __init__(self, n_components=100, p=10, kernel='poly', degree=2,
                  distribution='rademacher', gamma='auto', bias=0., coefs=None,

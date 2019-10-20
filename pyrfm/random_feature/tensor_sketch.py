@@ -74,6 +74,7 @@ class TensorSketch(BaseEstimator, TransformerMixin):
     Ninh Pham and Rasmus Pagh.
     In KDD 2013.
     (http://chbrown.github.io/kdd-2013-usb/kdd/p239.pdf)
+
     """
     def __init__(self, n_components=100, degree=2, random_state=None):
         self.n_components = n_components

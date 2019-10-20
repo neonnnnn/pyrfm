@@ -41,6 +41,7 @@ class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
     Kyohei Atarashi, Subhransu Maji, and Satoshi Oyama
     In AAAI 2019.
     (https://www.aaai.org/ojs/index.php/AAAI/article/view/4188)
+
     """
     def __init__(self, n_components, kernel='anova', degree=2,
                  random_state=None):

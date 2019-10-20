@@ -18,6 +18,7 @@ def _get_random_matrix(distribution):
 class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
     """Approximates feature maps of the product between random matrix and
     feature vectors by signed circulant random matrix.
+
     This class can be used not only for approximating RBF kernel but
     also as a sub-routine for approximating the product between random matrix
     and feature vectors in some random features.
@@ -76,6 +77,7 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
     Chang Feng, Qinghua Hu, and Shizhong Liao.
     In IJCAI 2015.
     (https://www.ijcai.org/Proceedings/15/Papers/491.pdf)
+
     """
 
     def __init__(self, n_components=100,  gamma=0.5, distribution="gaussian",
