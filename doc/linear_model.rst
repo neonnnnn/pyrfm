@@ -19,3 +19,4 @@ Linear models
    SGDRegressor
    SparseMBClassifier
    SparseMBRegressor
+

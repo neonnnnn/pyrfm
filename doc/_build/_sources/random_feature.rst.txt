@@ -19,5 +19,6 @@ Random features
    SignedCirculantRandomMatrix
    StructuredOrthogonalRandomFeature
    SubsampledRandomHadamard
+   SubfeatureRandomKernel
    TensorSketch
 

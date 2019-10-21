@@ -313,20 +313,70 @@
         <span class="k">return</span> <span class="n">output</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">RandomSubsetKernel</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+<div class="viewcode-block" id="SubfeatureRandomKernel"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.SubfeatureRandomKernel.html#pyrfm.random_feature.SubfeatureRandomKernel">[docs]</a><span class="k">class</span> <span class="nc">SubfeatureRandomKernel</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Approximates feature map of the ANOVA/all-subsets kernel by Monte Carlo</span>
+<span class="sd">    approximation by Subfeature Random Kernel Feature map.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n_components : int (default=100)</span>
+<span class="sd">        Number of Monte Carlo samples per original features.</span>
+<span class="sd">        Equals the dimensionality of the computed (mapped) feature space.</span>
+
+<span class="sd">    n_sub_features : int (default=5)</span>
+<span class="sd">        Number of subfeatures.</span>
+
+<span class="sd">    kernel : str (default=&quot;anova&quot;)</span>
+<span class="sd">        Kernel to be approximated.</span>
+<span class="sd">        &quot;anova&quot;, &quot;anova_cython&quot;, &quot;all-subsets&quot;, &quot;dot&quot;, or &quot;pairwise&quot;</span>
+<span class="sd">        can be used.</span>
+
+<span class="sd">    degree : int (default=2)</span>
+<span class="sd">        Parameter of the ANOVA kernel.</span>
+
+<span class="sd">    distribution : str, (default=&quot;rademacher&quot;)</span>
+<span class="sd">        Distribution for random_weights_.</span>
+<span class="sd">        &quot;rademacher&quot;, &quot;gaussian&quot;, &quot;laplace&quot;, &quot;uniform&quot;, or &quot;sparse_rademacher&quot;</span>
+<span class="sd">        can be used.</span>
+
+<span class="sd">    dense_output : bool (default=False)</span>
+<span class="sd">        Whether randomized feature matrix is dense or sparse.</span>
+<span class="sd">        For kernel=&#39;anova&#39;, if dense_output = False,</span>
+<span class="sd">        distribution=&#39;sparse_rademacher&#39;, and X is sparse matrix, output random</span>
+<span class="sd">        feature matrix will become sparse matrix.</span>
+<span class="sd">        For kernel=&#39;anova_cython&#39;, if dense_output=False, output random feature</span>
+<span class="sd">        matrix will become sparse matrix.</span>
+
+<span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
+<span class="sd">        If int, random_state is the seed used by the random number generator;</span>
+<span class="sd">        If RandomState instance, random_state is the random number generator;</span>
+<span class="sd">        If None, the random number generator is the RandomState instance used</span>
+<span class="sd">        by `np.random`.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    random_weights_ : array, shape (n_features, n_components)</span>
+<span class="sd">        The sampled basis.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    [1] Sparse Random Feature Maps for the Item-multiset Kernel.</span>
+<span class="sd">    Kyohei Atarashi, Satoshi Oyama, and Masahito Kurihara.</span>
+<span class="sd">    To appear.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">n_sub_features</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s1">&#39;anova&#39;</span><span class="p">,</span>
-                 <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">distribution</span><span class="o">=</span><span class="s1">&#39;rademacher&#39;</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">distribution</span><span class="o">=</span><span class="s1">&#39;rademacher&#39;</span><span class="p">,</span>
                  <span class="n">dense_output</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="n">n_components</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_sub_features</span> <span class="o">=</span> <span class="n">n_sub_features</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">=</span> <span class="n">degree</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span> <span class="o">=</span> <span class="n">distribution</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">symmetric</span> <span class="o">=</span> <span class="n">symmetric</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dense_output</span> <span class="o">=</span> <span class="n">dense_output</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span>
 
-    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="SubfeatureRandomKernel.fit"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.SubfeatureRandomKernel.html#pyrfm.random_feature.SubfeatureRandomKernel.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Generate random weights according to n_features.</span>
 
 <span class="sd">        Parameters</span>
@@ -359,9 +409,9 @@
         <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">n_features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">((</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">)),</span>
                                           <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
 
-    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+<div class="viewcode-block" id="SubfeatureRandomKernel.transform"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.SubfeatureRandomKernel.html#pyrfm.random_feature.SubfeatureRandomKernel.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Apply the approximate feature map to X.</span>
 
 <span class="sd">        Parameters</span>
@@ -408,7 +458,7 @@
         <span class="n">output</span> <span class="o">=</span> <span class="n">kernel_</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">dense_output</span><span class="p">)</span>
         <span class="n">output</span> <span class="o">/=</span> <span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)</span>
         <span class="n">output</span> <span class="o">*=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">const</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">output</span>
+        <span class="k">return</span> <span class="n">output</span></div></div>
 </pre></div>
 
            </div>
