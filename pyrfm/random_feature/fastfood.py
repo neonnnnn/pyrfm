@@ -81,7 +81,7 @@ class FastFood(BaseEstimator, TransformerMixin):
 
     References
     ----------
-    [1] Fastfood — Approximating Kernel Expansions in Loglinear Time
+    [1] Fastfood — Approximating Kernel Expansions in Loglinear Time.
     Quoc Le, Tam´as Sarl´os, and Alex Smola.
     In ICML 2013.
     (http://proceedings.mlr.press/v28/le13-supp.pdf)

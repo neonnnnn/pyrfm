@@ -73,7 +73,7 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
 
     References
     ----------
-    [1] Random Feature Mapping with Signed Circulant Matrix Projection
+    [1] Random Feature Mapping with Signed Circulant Matrix Projection.
     Chang Feng, Qinghua Hu, and Shizhong Liao.
     In IJCAI 2015.
     (https://www.ijcai.org/Proceedings/15/Papers/491.pdf)

@@ -38,7 +38,7 @@ class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
     References
     ----------
     [1] Random Feature Maps for the Itemset Kernel.
-    Kyohei Atarashi, Subhransu Maji, and Satoshi Oyama
+    Kyohei Atarashi, Subhransu Maji, and Satoshi Oyama.
     In AAAI 2019.
     (https://www.aaai.org/ojs/index.php/AAAI/article/view/4188)
 

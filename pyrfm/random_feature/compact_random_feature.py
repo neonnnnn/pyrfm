@@ -67,14 +67,15 @@ class CompactRandomFeature(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    random_weights_ : array, shape (n_components, transformer.n_components) 
+    random_weights_ : array, shape (n_components, transformer.n_components)
     or (transformer.n_components)
         The sampled basis for down projection.
 
     References
     ----------
-    [1] Compact Random Feature Maps. Raffay Hamid, Ying Xiao, Alex Gittens,
-    and Dennis DeCoste. In ICML 2014.
+    [1] Compact Random Feature Maps.
+    Raffay Hamid, Ying Xiao, Alex Gittens, and Dennis DeCoste.
+    In ICML 2014.
     (http://proceedings.mlr.press/v32/hamid14.pdf)
 
     """

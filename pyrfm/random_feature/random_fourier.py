@@ -44,13 +44,13 @@ class RandomFourier(BaseEstimator, TransformerMixin):
         The sampled basis.
 
     random_offset_ : array or None, shape (n_components, )
-        The sampled offset vector. If use_offset=False, offset_=None.
+        The sampled offset vector. If use_offset=False, random_offset_=None.
 
     References
     ----------
-    [1] Random Features for Large-Scale Kernel Machines
-    Ali Rahimi and Ben Recht
-    In NIPS 2007
+    [1] Random Features for Large-Scale Kernel Machines.
+    Ali Rahimi and Ben Recht.
+    In NIPS 2007.
     (https://people.eecs.berkeley.edu/~brecht/papers/07.rah.rec.nips.pdf)
 
     """

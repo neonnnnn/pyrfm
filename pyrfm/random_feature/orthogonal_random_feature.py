@@ -64,13 +64,13 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         The sampled basis.
 
     random_offset_ : array or None, shape (n_components, )
-        The sampled offset vector. If use_offset=False, offset_=None.
+        The sampled offset vector. If use_offset=False, random_offset_=None.
 
     References
     ----------
-    [1] Orthogonal Random Features
-    Felix Xinnan Yu Ananda Theertha Suresh Krzysztof Choromanski
-    Daniel Holtmann-Rice Sanjiv Kumar
+    [1] Orthogonal Random Features.
+    Felix Xinnan Yu, Ananda Theertha Suresh, Krzysztof Choromanski,
+    Daniel Holtmann-Rice, and Sanjiv Kumar.
     In NIPS 2016.
     (https://arxiv.org/pdf/1610.09072.pdf)
 
@@ -204,13 +204,13 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         The sampled basis.
 
     random_offset_ : array or None, shape (n_components, )
-        The sampled offset vector. If use_offset=False, offset_=None.
+        The sampled offset vector. If use_offset=False, random_offset_=None.
 
     References
     ----------
-    [1] Orthogonal Random Features
-    Felix Xinnan Yu Ananda Theertha Suresh Krzysztof Choromanski
-    Daniel Holtmann-Rice Sanjiv Kumar
+    [1] Orthogonal Random Features.
+    Felix Xinnan Yu, Ananda Theertha Suresh, Krzysztof Choromanski,
+    Daniel Holtmann-Rice, and Sanjiv Kumar.
     In NIPS 2016.
     (https://arxiv.org/pdf/1610.09072.pdf)
 
