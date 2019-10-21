@@ -18,7 +18,7 @@ from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
                FastFood, SubsampledRandomHadamard, CompactRandomFeature,
                RandomProjection, OrthogonalRandomFeature,
                StructuredOrthogonalRandomFeature,
-               SignedCirculantRandomMatrix, RandomSubsetKernel)
+               SignedCirculantRandomMatrix, SubfeatureRandomKernel)
 from .fht_fast cimport _fwht1d_fast
 from libcpp.vector cimport vector
 from scipy.sparse import csc_matrix, csr_matrix
@@ -38,7 +38,7 @@ RANDOMFEATURES = {
     OrthogonalRandomFeature: CRandomFourier,
     StructuredOrthogonalRandomFeature: CStructuredOrthogonalRandomFeature,
     SignedCirculantRandomMatrix: CSignedCirculantRandomMatrix,
-    RandomSubsetKernel: CRandomSubsetKernel
+    SubfeatureRandomKernel: CSubfeatureRandomKernel
 }
 
 
@@ -249,7 +249,7 @@ cdef class CRandomKernel(BaseCRandomFeature):
             z[i] /= self.scale
 
 
-cdef class CRandomSubsetKernel(BaseCRandomFeature):
+cdef class CSubfeatureRandomKernel(BaseCRandomFeature):
     def __init__(self, transformer):
         self.n_components = transformer.n_components
         self.n_sub_features = transformer.n_sub_features
