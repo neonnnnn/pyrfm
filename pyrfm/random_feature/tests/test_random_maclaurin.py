@@ -93,9 +93,8 @@ def test_random_maclaurin_exp():
     # compute exact kernel
     kernel = exp_kernel(X, Y, 0.1)
     # approximate kernel mapping
-    rm_transform = RandomMaclaurin(n_components=6000,
-                                   random_state=rng, kernel='exp',
-                                   gamma=0.1)
+    rm_transform = RandomMaclaurin(n_components=6000, random_state=rng,
+                                   kernel='exp', gamma=0.1)
 
     X_trans = rm_transform.fit_transform(X)
     Y_trans = rm_transform.transform(Y)
