@@ -49,7 +49,7 @@ def anova(X, P, degree, dense_output=True):
         Feature matrix.
 
     P : {array-like, sparse matrix} shape (n_samples2, n_features)
-        Feature Matrix.
+        Feature matrix.
 
     degree : int
         Degree of the ANOVA kernel (m in above equation).
@@ -113,7 +113,7 @@ def pairwise(X, P, dense_output=True, symmetric=False):
         Feature matrix.
 
     P : {array-like, sparse matrix} shape (n_samples2, n_features)
-        Feature Matrix.
+        Feature matrix.
 
     dense_output : bool (default=True)
         Whether to output np.ndarray or not (csr_matrix).
@@ -153,7 +153,7 @@ def hellinger(X, P):
         Feature matrix.
 
     P : {array-like, sparse matrix} shape (n_samples2, n_features)
-        Feature Matrix.
+        Feature matrix.
 
     Returns
     -------
@@ -178,7 +178,7 @@ def all_subsets(X, P, dense_output=True):
         Feature matrix.
 
     P : {array-like, sparse matrix} shape (n_samples2, n_features)
-        Feature Matrix.
+        Feature matrix.
 
     Returns
     -------
@@ -204,7 +204,7 @@ def anova_fast(X, P, degree, dense_output=True):
         Feature matrix.
 
     P : {array-like, sparse matrix} shape (n_samples2, n_features)
-        Feature Matrix.
+        Feature matrix.
 
     degree : int
         Degree of the ANOVA kernel (m in above equation).
@@ -236,7 +236,7 @@ def intersection(X, P):
         Feature matrix.
 
     P : {array-like, sparse matrix} shape (n_samples2, n_features)
-        Feature Matrix.
+        Feature matrix.
 
     Returns
     -------
@@ -261,7 +261,7 @@ def chi_square(X, P):
         Feature matrix.
 
     P : {array-like, sparse matrix} shape (n_samples2, n_features)
-        Feature Matrix.
+        Feature matrix.
 
     Returns
     -------
