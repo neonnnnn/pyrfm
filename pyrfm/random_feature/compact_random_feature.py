@@ -10,13 +10,16 @@ from . import RandomMaclaurin
 class CompactRandomFeature(BaseEstimator, TransformerMixin):
     """Approximates feature map of the RBF kernel by Monte Carlo
     approximation by Random Fourier Feature map.
+
     You can construct (the simplest) CompactRandomFeature by combining random
     features and sklearn.random_projection, e.g.,
-        trans_up = RandomMaclaurin(n_components=n_components_up)
-        trans_down = SparseRandomProjecion(n_components=n_components.
+
+        >>> trans_up = RandomMaclaurin(n_components=n_components_up)
+        >>> trans_down = SparseRandomProjecion(n_components=n_components.
                                            density=1)
-        X_trans_up = trans_up.fit_transform(X)
-        X_trans_down = trans_down.fit_transform(X_trans_down)
+        >>> X_trans_up = trans_up.fit_transform(X)
+        >>> X_trans_down = trans_down.fit_transform(X_trans_down)
+
     The advantages of this CompactRandomFeature is its memory efficiency.
     Above-mentioned combinatorial approach might occur the memory error in
     the up projection when the size of the original feature matrix is large.
@@ -48,7 +51,6 @@ class CompactRandomFeature(BaseEstimator, TransformerMixin):
         It corresponds to D in original paper [1].
         It is used when transformer = "random_maclaurin" or "tensor_sketch"
 
-
     degree : int (default=2)
         Degree of polynomial kernel.
         This argument is used when transformer = None.
@@ -66,15 +68,16 @@ class CompactRandomFeature(BaseEstimator, TransformerMixin):
     Attributes
     ----------
     random_weights_ : array, shape (n_components, transformer.n_components)
-                                or (transformer.n_components)
+    or (transformer.n_components)
         The sampled basis for down projection.
 
     References
     ----------
-    [1] Compact Random Feature Maps
+    [1] Compact Random Feature Maps.
     Raffay Hamid, Ying Xiao, Alex Gittens, and Dennis DeCoste.
-    In ICMl 2014.
+    In ICML 2014.
     (http://proceedings.mlr.press/v32/hamid14.pdf)
+
     """
 
     def __init__(self, transformer_up=None, transformer_down=None,

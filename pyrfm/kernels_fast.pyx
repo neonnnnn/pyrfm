@@ -128,7 +128,7 @@ cdef _canova_sparse(RowDataset X,
                                                        dtype=np.int32)
     cdef np.ndarray[np.int32_t, ndim=1] col = np.empty(n_nz_all,
                                                        dtype=np.int32)
-    
+
     for i1 in range(n_nz_all):
         data[i1] = data_vec[i1]
         row[i1] = row_vec[i1]
@@ -282,8 +282,10 @@ def _chi_square(X, P):
 
 
 def score(X, K, loss='l2', mean=True, return_max=False):
-    """
-    Compute the approximation error of X:
+    """ Compute the approximation error of X
+
+    .. math::
+
         \sum_{i=1}^{n}\sum_{j=i}^{n} loss(dot(X[i], X[j]), K[i,j]) / (n(n+1)/2)
 
     Parameters
@@ -302,6 +304,7 @@ def score(X, K, loss='l2', mean=True, return_max=False):
 
     return_max : bool
         Whether return the max error or not.
+
     Returns
     -------
     error : double

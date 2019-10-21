@@ -53,6 +53,7 @@ class RandomProjection(BaseEstimator, TransformerMixin):
     Ping Li, T. Hastie, and K. W. Church.
     In KDD 2006.
     (https://web.stanford.edu/~hastie/Papers/Ping/KDD06_rp.pdf)
+
     """
 
     def __init__(self, n_components=100, distribution="rademacher",

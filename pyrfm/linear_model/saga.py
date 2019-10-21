@@ -137,13 +137,8 @@ class BaseSAGAEstimator(BaseLinear):
 
 
 class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
-    LOSSES = {
-        'squared_hinge': SquaredHinge(),
-        'logistic': Logistic(),
-        'hinge': Hinge(),
-        'log': Logistic()
-    }
     """SAGA solver for linear classifier with random feature maps.
+
     Random feature mapping is computed just before computing prediction and
     gradient.
     minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
@@ -160,9 +155,12 @@ class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
 
     loss : str (default="squared_hinge")
         Which loss function to use. Following losses can be used:
-            'squared_hinge'
-            'hinge'
-            'logistic'
+
+        - 'squared_hinge'
+
+        - 'hinge'
+
+        - 'logistic'
 
     C : double (default=1.0)
         Weight of the loss term.
@@ -174,13 +172,16 @@ class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
         Ratio of L1 regularizer.
         Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
         is 0.5 * alpha * (1-l1_ratio).
-        If l1_ratio = 0 : Ridge.
-        else If l1_ratio = 1 : Lasso.
-        else : Elastic Net.
-        
+
+        - l1_ratio = 0 : Ridge.
+
+        - l1_ratio = 1 : Lasso.
+
+        - Otherwise : Elastic Net.
+
     intercept_decay : double (default=0.1)
         Weight of the penalty term for intercept.
-    
+
     normalize : bool (default=False)
         Whether normalize random features or not.
         If true, the SAGA solver computes running mean and variance
@@ -241,7 +242,7 @@ class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
         The averaged gradient of intercept.
 
     self.dloss : array, shape (n_samples, )
-        The gradient of loss for each samples.    
+        The gradient of loss for each samples.
 
     self.mean_, self.var_ : array or None, shape (n_components, )
         The running mean and variances of random feature vectors.
@@ -257,12 +258,20 @@ class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
     Aaron Defazo, Francis Bach, and Simon Lacoste-Julien.
     In Proc. NIPS 2014.
     (https://arxiv.org/pdf/1407.0202.pdf)
-    
+
     [2] Minimizing Finite Sums with the Stochastic Average Gradient.
-    Mark Schmidt, Nicolas Le Roux, and Francis Bach. 
+    Mark Schmidt, Nicolas Le Roux, and Francis Bach.
     Mathematical Programming Vol 162, 2017.
     (https://arxiv.org/pdf/1309.2388.pdf)
+
     """
+    LOSSES = {
+        'squared_hinge': SquaredHinge(),
+        'logistic': Logistic(),
+        'hinge': Hinge(),
+        'log': Logistic()
+    }
+
     def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared_hinge',
                  C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
@@ -277,10 +286,8 @@ class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
 
 
 class SAGARegressor(BaseSAGAEstimator, LinearRegressorMixin):
-    LOSSES = {
-        'squared': Squared(),
-    }
-    """SAGA solver for linear classifier with random feature maps.
+    """SAGA solver for linear regression with random feature maps.
+
     Random feature mapping is computed just before computing prediction and
     gradient.
     minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
@@ -297,7 +304,8 @@ class SAGARegressor(BaseSAGAEstimator, LinearRegressorMixin):
 
     loss : str (default="squared")
         Which loss function to use. Following losses can be used:
-            'squared'
+
+        - 'squared'
 
     C : double (default=1.0)
         Weight of the loss term.
@@ -309,13 +317,16 @@ class SAGARegressor(BaseSAGAEstimator, LinearRegressorMixin):
         Ratio of L1 regularizer.
         Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
         is 0.5 * alpha * (1-l1_ratio).
-        If l1_ratio = 0 : Ridge.
-        else If l1_ratio = 1 : Lasso.
-        else : Elastic Net.
-        
+
+        - l1_ratio = 0 : Ridge.
+
+        - l1_ratio = 1 : Lasso.
+
+        - Otherwise : Elastic Net.
+
     intercept_decay : double (default=0.1)
         Weight of the penalty term for intercept.
-    
+
     normalize : bool (default=False)
         Whether normalize random features or not.
         If true, the SAGA solver computes running mean and variance
@@ -392,12 +403,17 @@ class SAGARegressor(BaseSAGAEstimator, LinearRegressorMixin):
     Aaron Defazo, Francis Bach, and Simon Lacoste-Julien.
     In Proc. NIPS 2014.
     (https://arxiv.org/pdf/1407.0202.pdf)
-    
+
     [2] Minimizing Finite Sums with the Stochastic Average Gradient.
     Mark Schmidt, Nicolas Le Roux, and Francis Bach. 
     Mathematical Programming Vol 162, 2017.
     (https://arxiv.org/pdf/1309.2388.pdf)
+
     """
+    LOSSES = {
+        'squared': Squared(),
+    }
+
     def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
@@ -409,3 +425,4 @@ class SAGARegressor(BaseSAGAEstimator, LinearRegressorMixin):
             normalize, fit_intercept, max_iter, tol, learning_rate, power_t,
             is_saga, warm_start, random_state, verbose, fast_solver, shuffle
         )
+

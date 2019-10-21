@@ -80,9 +80,10 @@ class RandomKernel(BaseEstimator, TransformerMixin):
     References
     ----------
     [1] Random Feature Maps for the Itemset Kernel.
-    Kyohei Atarashi, Subhransu Maji, and Satoshi Oyama
+    Kyohei Atarashi, Subhransu Maji, and Satoshi Oyama.
     In AAAI 2019.
     (https://www.aaai.org/ojs/index.php/AAAI/article/view/4188)
+
     """
     def __init__(self, n_components=100, kernel='anova', degree=2,
                  distribution='rademacher', dense_output=True, p_sparse=0.,
@@ -163,16 +164,66 @@ class RandomKernel(BaseEstimator, TransformerMixin):
         return output
 
 
-class RandomSubsetKernel(BaseEstimator, TransformerMixin):
+class SubfeatureRandomKernel(BaseEstimator, TransformerMixin):
+    """Approximates feature map of the ANOVA/all-subsets kernel by Monte Carlo
+    approximation by Subfeature Random Kernel Feature map.
+
+    Parameters
+    ----------
+    n_components : int (default=100)
+        Number of Monte Carlo samples per original features.
+        Equals the dimensionality of the computed (mapped) feature space.
+
+    n_sub_features : int (default=5)
+        Number of subfeatures.
+
+    kernel : str (default="anova")
+        Kernel to be approximated.
+        "anova", "anova_cython", "all-subsets", "dot", or "pairwise"
+        can be used.
+
+    degree : int (default=2)
+        Parameter of the ANOVA kernel.
+
+    distribution : str, (default="rademacher")
+        Distribution for random_weights_.
+        "rademacher", "gaussian", "laplace", "uniform", or "sparse_rademacher"
+        can be used.
+
+    dense_output : bool (default=False)
+        Whether randomized feature matrix is dense or sparse.
+        For kernel='anova', if dense_output = False,
+        distribution='sparse_rademacher', and X is sparse matrix, output random
+        feature matrix will become sparse matrix.
+        For kernel='anova_cython', if dense_output=False, output random feature
+        matrix will become sparse matrix.
+
+    random_state : int, RandomState instance or None, optional (default=None)
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+
+    Attributes
+    ----------
+    random_weights_ : array, shape (n_features, n_components)
+        The sampled basis.
+
+    References
+    ----------
+    [1] Sparse Random Feature Maps for the Item-multiset Kernel.
+    Kyohei Atarashi, Satoshi Oyama, and Masahito Kurihara.
+    To appear.
+
+    """
     def __init__(self, n_components=100, n_sub_features=5, kernel='anova',
-                 degree=2, distribution='rademacher', symmetric=False,
+                 degree=2, distribution='rademacher',
                  dense_output=False, random_state=None):
         self.n_components = n_components
         self.n_sub_features = n_sub_features
         self.degree = degree
         self.kernel = kernel
         self.distribution = distribution
-        self.symmetric = symmetric
         self.dense_output = dense_output
         self.random_state = random_state
 

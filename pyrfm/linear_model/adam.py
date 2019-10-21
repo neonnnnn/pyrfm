@@ -123,6 +123,7 @@ class BaseAdamEstimator(BaseLinear):
 
 class AdamClassifier(BaseAdamEstimator, LinearClassifierMixin):
     """Adam solver for linear classifier with random feature maps.
+
     Random feature mapping is computed just before computing prediction and
     gradient.
     minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
@@ -145,9 +146,12 @@ class AdamClassifier(BaseAdamEstimator, LinearClassifierMixin):
 
     loss : str (default="squared_hinge")
         Which loss function to use. Following losses can be used:
-            'squared_hinge'
-            'hinge'
-            'logistic'
+
+        - 'squared_hinge'
+
+        - 'hinge'
+
+        - 'logistic'
 
     C : double (default=1.0)
         Weight of the loss term.
@@ -159,9 +163,12 @@ class AdamClassifier(BaseAdamEstimator, LinearClassifierMixin):
         Ratio of L1 regularizer.
         Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
         is 0.5 * alpha * (1-l1_ratio).
-        If l1_ratio = 0 : Ridge.
-        else If l1_ratio = 1 : Lasso.
-        else : Elastic Net.
+
+        - l1_ratio = 0 : Ridge.
+
+        - l1_ratio = 1 : Lasso.
+
+        - Otherwise : Elastic Net.
 
     intercept_decay : double (default=0.1)
         Weight of the penalty term for intercept.
@@ -233,7 +240,9 @@ class AdamClassifier(BaseAdamEstimator, LinearClassifierMixin):
     [1] Adam: A Method for Stochastic Optimization.
     Diederik P. Kingma and Jimmy Lei Ba.
     In Proc ICLR 2015.
+
     """
+
     LOSSES = {
         'squared_hinge': SquaredHinge(),
         'logistic': Logistic(),
@@ -256,6 +265,7 @@ class AdamClassifier(BaseAdamEstimator, LinearClassifierMixin):
 
 class AdamRegressor(BaseAdamEstimator, LinearRegressorMixin):
     """Adam solver for linear regression with random feature maps.
+
     Random feature mapping is computed just before computing prediction and
     gradient.
     minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
@@ -278,7 +288,8 @@ class AdamRegressor(BaseAdamEstimator, LinearRegressorMixin):
 
     loss : str (default="squared")
         Which loss function to use. Following losses can be used:
-            'squared'
+
+        - 'squared'
 
     C : double (default=1.0)
         Weight of the loss term.
@@ -290,9 +301,12 @@ class AdamRegressor(BaseAdamEstimator, LinearRegressorMixin):
         Ratio of L1 regularizer.
         Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
         is 0.5 * alpha * (1-l1_ratio).
-        If l1_ratio = 0 : Ridge.
-        else If l1_ratio = 1 : Lasso.
-        else : Elastic Net.
+
+        - l1_ratio = 0 : Ridge.
+
+        - l1_ratio = 1 : Lasso.
+
+        - Otherwise: Elastic Net.
 
     intercept_decay : double (default=0.1)
         Weight of the penalty term for intercept.
@@ -364,6 +378,7 @@ class AdamRegressor(BaseAdamEstimator, LinearRegressorMixin):
     [1] Adam: A Method for Stochastic Optimization.
     Diederik P. Kingma and Jimmy Lei Ba.
     In Proc ICLR 2015.
+
     """
 
     LOSSES = {

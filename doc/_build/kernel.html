@@ -1,0 +1,364 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Kernel functions &mdash; pyrfm 0.1.0dev documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="pyrfm.random_feature.TensorSketch" href="generated/pyrfm.random_feature.TensorSketch.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> pyrfm
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">API-References</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linear_model.html">Linear models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="random_feature.html">Random features</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Kernel functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyrfm</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Kernel functions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/kernel.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-pyrfm.kernels">
+<span id="kernel-functions"></span><h1>Kernel functions<a class="headerlink" href="#module-pyrfm.kernels" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="pyrfm.kernels.all_subsets">
+<code class="sig-prename descclassname">pyrfm.kernels.</code><code class="sig-name descname">all_subsets</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">P</em>, <em class="sig-param">dense_output=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/kernels.html#all_subsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.kernels.all_subsets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute all-subsets kernel.</p>
+<div class="math notranslate nohighlight">
+\[k(x, y) = \prod_{j=1}^d (1+x_jy_j)\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples1</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+<li><p><strong>P</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples2</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>gram_matrix</strong></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array-like, shape (n_samples1, n_samples2)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyrfm.kernels.anova">
+<code class="sig-prename descclassname">pyrfm.kernels.</code><code class="sig-name descname">anova</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">P</em>, <em class="sig-param">degree</em>, <em class="sig-param">dense_output=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/kernels.html#anova"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.kernels.anova" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute ANOVA kernel by pure numpy.</p>
+<div class="math notranslate nohighlight">
+\[k(x, y) = \sum_{j_1 &lt; \cdots &lt; j_m} x_{j_1}p_{j_1}\cdots x_{j_m}p_{j_m}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples1</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+<li><p><strong>P</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples2</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+<li><p><strong>degree</strong> (<em>int</em>) – Degree of the ANOVA kernel (m in above equation).</p></li>
+<li><p><strong>dense_output</strong> (<em>bool</em><em> (</em><em>default=True</em><em>)</em>) – Whether to output np.ndarray or not (csr_matrix).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>gram_matrix</strong></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array-like, shape (n_samples1, n_samples2)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyrfm.kernels.anova_fast">
+<code class="sig-prename descclassname">pyrfm.kernels.</code><code class="sig-name descname">anova_fast</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">P</em>, <em class="sig-param">degree</em>, <em class="sig-param">dense_output=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/kernels.html#anova_fast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.kernels.anova_fast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute ANOVA kernel by Cython implementation.</p>
+<div class="math notranslate nohighlight">
+\[k(x, y) = \sum_{j_1 &lt; \cdots &lt; j_m} x_{j_1}p_{j_1}\cdots x_{j_m}p_{j_m}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples1</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+<li><p><strong>P</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples2</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+<li><p><strong>degree</strong> (<em>int</em>) – Degree of the ANOVA kernel (m in above equation).</p></li>
+<li><p><strong>dense_output</strong> (<em>bool</em><em> (</em><em>default=True</em><em>)</em>) – Whether to output np.ndarray or not (csr_matrix).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>gram_matrix</strong></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array-like, shape (n_samples1, n_samples2)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyrfm.kernels.chi_square">
+<code class="sig-prename descclassname">pyrfm.kernels.</code><code class="sig-name descname">chi_square</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">P</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/kernels.html#chi_square"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.kernels.chi_square" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute chi squared kernel.</p>
+<div class="math notranslate nohighlight">
+\[k(x,y) = \sum_{i=1}^{n}2x_iy_i/(x_i + y_i)\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples1</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+<li><p><strong>P</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples2</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>gram_matrix</strong></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array-like, shape (n_samples1, n_samples2)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyrfm.kernels.hellinger">
+<code class="sig-prename descclassname">pyrfm.kernels.</code><code class="sig-name descname">hellinger</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">P</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/kernels.html#hellinger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.kernels.hellinger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute hellinger kernel.</p>
+<div class="math notranslate nohighlight">
+\[k(x, y) = \sum_{j=1}^d \sqrt{x_j}\sqrt{y_j}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples1</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+<li><p><strong>P</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples2</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>gram_matrix</strong></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array-like, shape (n_samples1, n_samples2)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyrfm.kernels.intersection">
+<code class="sig-prename descclassname">pyrfm.kernels.</code><code class="sig-name descname">intersection</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">P</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/kernels.html#intersection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.kernels.intersection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute intersection kernel.</p>
+<div class="math notranslate nohighlight">
+\[k(x, y) = \sum_{j=1}^{d} \min (x_j, y_j)\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples1</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+<li><p><strong>P</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples2</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>gram_matrix</strong></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array-like, shape (n_samples1, n_samples2)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyrfm.kernels.pairwise">
+<code class="sig-prename descclassname">pyrfm.kernels.</code><code class="sig-name descname">pairwise</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">P</em>, <em class="sig-param">dense_output=True</em>, <em class="sig-param">symmetric=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/kernels.html#pairwise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.kernels.pairwise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute pairwise kernel.</p>
+<div class="math notranslate nohighlight">
+\[k((x, a), (y, b)) = \sum_{t=1}^{m-1} \mathrm{ANOVA}^t(x, y)\mathrm{ANOVA}^{t-m}}a, b)\]</div>
+<p>Now only degree (m) = 2 supported.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples1</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+<li><p><strong>P</strong> (<em>{array-like</em><em>, </em><em>sparse matrix} shape</em><em> (</em><em>n_samples2</em><em>, </em><em>n_features</em><em>)</em>) – Feature matrix.</p></li>
+<li><p><strong>dense_output</strong> (<em>bool</em><em> (</em><em>default=True</em><em>)</em>) – Whether to output np.ndarray or not (csr_matrix).</p></li>
+<li><p><strong>symmetric</strong> (<em>bool</em><em> (</em><em>default=False</em><em>)</em>) – Whether to symmetrize or not.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>gram_matrix</strong></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array-like, shape (n_samples1, n_samples2)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="generated/pyrfm.random_feature.TensorSketch.html" class="btn btn-neutral float-left" title="pyrfm.random_feature.TensorSketch" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Kyohei Atarashi
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

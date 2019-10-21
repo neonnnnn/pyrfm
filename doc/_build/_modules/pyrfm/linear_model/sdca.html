@@ -1,0 +1,524 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>pyrfm.linear_model.sdca &mdash; pyrfm 0.1.0dev documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> pyrfm
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">API-References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../linear_model.html">Linear models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../random_feature.html">Random features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kernel.html">Kernel functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyrfm</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>pyrfm.linear_model.sdca</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyrfm.linear_model.sdca</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Author: Kyohei Atarashi</span>
+<span class="c1"># License: BSD-2-Clause</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">sparse</span>
+<span class="kn">from</span> <span class="nn">sklearn.utils</span> <span class="k">import</span> <span class="n">check_random_state</span>
+<span class="kn">from</span> <span class="nn">.loss_fast</span> <span class="k">import</span> <span class="n">Squared</span><span class="p">,</span> <span class="n">SquaredHinge</span><span class="p">,</span> <span class="n">Logistic</span><span class="p">,</span> <span class="n">Hinge</span>
+<span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">BaseLinear</span><span class="p">,</span> <span class="n">LinearClassifierMixin</span><span class="p">,</span> <span class="n">LinearRegressorMixin</span>
+<span class="kn">from</span> <span class="nn">sklearn.kernel_approximation</span> <span class="k">import</span> <span class="n">RBFSampler</span>
+<span class="kn">from</span> <span class="nn">.sdca_fast</span> <span class="k">import</span> <span class="n">_sdca_fast</span>
+<span class="kn">from</span> <span class="nn">..dataset_fast</span> <span class="k">import</span> <span class="n">get_dataset</span>
+<span class="kn">from</span> <span class="nn">..random_feature.random_features_fast</span> <span class="k">import</span> <span class="n">get_fast_random_feature</span>
+
+
+<span class="k">class</span> <span class="nc">BaseSDCAEstimator</span><span class="p">(</span><span class="n">BaseLinear</span><span class="p">):</span>
+    <span class="n">LOSSES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;squared&#39;</span><span class="p">:</span> <span class="n">Squared</span><span class="p">(),</span>
+        <span class="s1">&#39;squared_hinge&#39;</span><span class="p">:</span> <span class="n">SquaredHinge</span><span class="p">(),</span>
+        <span class="s1">&#39;logistic&#39;</span><span class="p">:</span> <span class="n">Logistic</span><span class="p">(),</span>
+        <span class="s1">&#39;hinge&#39;</span><span class="p">:</span> <span class="n">Hinge</span><span class="p">()</span>
+    <span class="p">}</span>
+    <span class="n">stochastic</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transformer</span><span class="o">=</span><span class="n">RBFSampler</span><span class="p">(),</span> <span class="n">loss</span><span class="o">=</span><span class="s1">&#39;squared_hinge&#39;</span><span class="p">,</span>
+                 <span class="n">C</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">intercept_decay</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                 <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fit_intercept</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+                 <span class="n">warm_start</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">fast_solver</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span> <span class="o">=</span> <span class="n">transformer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">C</span> <span class="o">=</span> <span class="n">C</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intercept_decay</span> <span class="o">=</span> <span class="n">intercept_decay</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">l1_ratio</span> <span class="o">=</span> <span class="n">l1_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit_intercept</span> <span class="o">=</span> <span class="n">fit_intercept</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">warm_start</span> <span class="o">=</span> <span class="n">warm_start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fast_solver</span> <span class="o">=</span> <span class="n">fast_solver</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shuffle</span> <span class="o">=</span> <span class="n">shuffle</span>
+
+    <span class="k">def</span> <span class="nf">_valid_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BaseSDCAEstimator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_valid_params</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">l1_ratio</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;alpha*(1-l1_ratio)/C = 0. SDCA needs a strongly&quot;</span>
+                             <span class="s2">&quot;convex regularizer (alpha*(1-l1_ration)/C must&quot;</span>
+                             <span class="s2">&quot;be bigger than 0).&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fit model according to X and y.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like, shape = [n_samples, n_features]</span>
+<span class="sd">            Training vectors, where n_samples is the number of samples</span>
+<span class="sd">            and n_features is the number of features.</span>
+<span class="sd">        y : array-like, shape = [n_samples]</span>
+<span class="sd">            Target values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : classifier</span>
+<span class="sd">            Returns self.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_X_y</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;csr&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">warm_start</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+        <span class="n">n_samples</span><span class="p">,</span> <span class="n">n_features</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">n_components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="o">.</span><span class="n">n_components</span>
+        <span class="c1"># init primal parameters, mean/var vectors and t_</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_valid_params</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_params</span><span class="p">(</span><span class="n">n_components</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dual_coef_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LOSSES</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">]</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span>
+        <span class="n">intercept_decay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">intercept_decay</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span>
+        <span class="n">random_state</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+
+        <span class="n">is_sparse</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">it</span> <span class="o">=</span> <span class="n">_sdca_fast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coef_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dual_coef_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">intercept_</span><span class="p">,</span>
+                        <span class="n">get_dataset</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;c&#39;</span><span class="p">),</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">mean_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">var_</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">intercept_decay</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">l1_ratio</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">,</span>
+                        <span class="n">is_sparse</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_intercept</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">shuffle</span><span class="p">,</span> <span class="n">random_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="p">,</span>
+                        <span class="n">get_fast_random_feature</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t_</span> <span class="o">+=</span> <span class="n">n_samples</span><span class="o">*</span><span class="p">(</span><span class="n">it</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span>
+
+
+<div class="viewcode-block" id="SDCAClassifier"><a class="viewcode-back" href="../../../generated/pyrfm.linear_model.SDCAClassifier.html#pyrfm.linear_model.SDCAClassifier">[docs]</a><span class="k">class</span> <span class="nc">SDCAClassifier</span><span class="p">(</span><span class="n">BaseSDCAEstimator</span><span class="p">,</span> <span class="n">LinearClassifierMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Stochastic dual coordinate ascent solver for linear classifier with</span>
+<span class="sd">    random feature maps.</span>
+
+<span class="sd">    Random feature mapping is computed just before computing prediction and</span>
+<span class="sd">    gradient.</span>
+<span class="sd">    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    transformer : scikit-learn Transformer object (default=RBFSampler())</span>
+<span class="sd">        A scikit-learn TransformerMixin object.</span>
+<span class="sd">        transformer must have (1) n_components attribute, (2) fit(X, y),</span>
+<span class="sd">        and (3) transform(X) methods.</span>
+
+<span class="sd">    loss : str (default=&quot;squared_hinge&quot;)</span>
+<span class="sd">        Which loss function to use. Following losses can be used:</span>
+
+<span class="sd">        - &#39;squared_hinge&#39;</span>
+
+<span class="sd">        - &#39;hinge&#39;</span>
+
+<span class="sd">        - &#39;logistic&#39;</span>
+
+<span class="sd">    C : double (default=1.0)</span>
+<span class="sd">        Weight of the loss term.</span>
+
+<span class="sd">    alpha : double (default=1.0)</span>
+<span class="sd">        Weight of the penalty term.</span>
+
+<span class="sd">    intercept_decay : double (default=1e-1)</span>
+<span class="sd">        Weight of the penalty term for intercept.</span>
+
+<span class="sd">    l1_ratio : double (default=0)</span>
+<span class="sd">        Ratio of L1 regularizer.</span>
+<span class="sd">        Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer</span>
+<span class="sd">        is 0.5 * alpha * (1-l1_ratio).</span>
+
+<span class="sd">        - l1_ratio = 0 : Ridge.</span>
+
+<span class="sd">        - l1_ratio = 1 : Lasso.</span>
+
+<span class="sd">        - Otherwise : Elastic Net.</span>
+
+<span class="sd">    normalize : bool (default=False)</span>
+<span class="sd">        Whether normalize random features or not.</span>
+<span class="sd">        If true, the adam solver computes running mean and variance</span>
+<span class="sd">        at learning, and uses them for inference.</span>
+
+<span class="sd">    fit_intercept : bool (default=True)</span>
+<span class="sd">        Whether to fit intercept (bias term) or not.</span>
+
+<span class="sd">    max_iter : int (default=100)</span>
+<span class="sd">        Maximum number of iterations.</span>
+
+<span class="sd">    tol : double (default=1e-6)</span>
+<span class="sd">        Tolerance of stopping criterion.</span>
+<span class="sd">        If sum of absolute val of update in one epoch is lower than tol,</span>
+<span class="sd">        the adam solver stops learning.</span>
+
+<span class="sd">    warm_start : bool (default=False)</span>
+<span class="sd">        Whether to activate warm-start or not.</span>
+
+<span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
+<span class="sd">        If int, random_state is the seed used by the random number generator;</span>
+<span class="sd">        If RandomState instance, random_state is the random number generator;</span>
+<span class="sd">        If None, the random number generator is the RandomState instance used</span>
+<span class="sd">        by `np.random`.</span>
+
+<span class="sd">    verbose : bool (default=True)</span>
+<span class="sd">        Verbose mode or not.</span>
+
+<span class="sd">    fast_solver : bool (default=True)</span>
+<span class="sd">        Use cython fast solver or not. This argument is valid when transformer</span>
+<span class="sd">        is implemented in random_features_fast.pyx/pxd</span>
+
+<span class="sd">    shuffle : bool (default=True)</span>
+<span class="sd">        Whether to shuffle data before each epoch or not.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    self.coef_ : array, shape (n_components, )</span>
+<span class="sd">        The learned coefficients of the linear model.</span>
+
+<span class="sd">    self.dual_coef_ : array, shape (n_samples, )</span>
+
+<span class="sd">    self.intercept_ : array, shape (1, )</span>
+<span class="sd">        The learned intercept (bias) of the linear model.</span>
+
+<span class="sd">    self.mean_, self.var_ : array or None, shape (n_components, )</span>
+<span class="sd">        The running mean and variances of random feature vectors.</span>
+<span class="sd">        They are used if normalize=True (they are None if False).</span>
+
+<span class="sd">    self.t_ : int</span>
+<span class="sd">        The number of iteration.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ---------</span>
+<span class="sd">    [1] Stochastic Dual Coordinate Ascent Methods for Regularized Loss</span>
+<span class="sd">    Minimization.</span>
+<span class="sd">    Shai Shalev-Schwartz and Tong Zhang.</span>
+<span class="sd">    JMLR 2013 (vol 14), pp. 567-599.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">LOSSES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;squared_hinge&#39;</span><span class="p">:</span> <span class="n">SquaredHinge</span><span class="p">(),</span>
+        <span class="s1">&#39;logistic&#39;</span><span class="p">:</span> <span class="n">Logistic</span><span class="p">(),</span>
+        <span class="s1">&#39;hinge&#39;</span><span class="p">:</span> <span class="n">Hinge</span><span class="p">(),</span>
+        <span class="s1">&#39;log&#39;</span><span class="p">:</span> <span class="n">Logistic</span><span class="p">()</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transformer</span><span class="o">=</span><span class="n">RBFSampler</span><span class="p">(),</span> <span class="n">loss</span><span class="o">=</span><span class="s1">&#39;squared_hinge&#39;</span><span class="p">,</span>
+                 <span class="n">C</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">intercept_decay</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span>
+                 <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fit_intercept</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+                 <span class="n">warm_start</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">fast_solver</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SDCAClassifier</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">transformer</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="p">,</span> <span class="n">intercept_decay</span><span class="p">,</span> <span class="n">normalize</span><span class="p">,</span>
+            <span class="n">fit_intercept</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">warm_start</span><span class="p">,</span> <span class="n">random_state</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span>
+            <span class="n">fast_solver</span><span class="p">,</span> <span class="n">shuffle</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SDCARegressor"><a class="viewcode-back" href="../../../generated/pyrfm.linear_model.SDCARegressor.html#pyrfm.linear_model.SDCARegressor">[docs]</a><span class="k">class</span> <span class="nc">SDCARegressor</span><span class="p">(</span><span class="n">BaseSDCAEstimator</span><span class="p">,</span> <span class="n">LinearRegressorMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Stochastic dual coordinate ascent solver for linear regression with</span>
+<span class="sd">    random feature maps.</span>
+
+<span class="sd">    Random feature mapping is computed just before computing prediction and</span>
+<span class="sd">    gradient.</span>
+<span class="sd">    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    transformer : scikit-learn Transformer object (default=RBFSampler())</span>
+<span class="sd">        A scikit-learn TransformerMixin object.</span>
+<span class="sd">        transformer must have (1) n_components attribute, (2) fit(X, y),</span>
+<span class="sd">        and (3) transform(X) methods.</span>
+
+<span class="sd">    loss : str (default=&quot;squared&quot;)</span>
+<span class="sd">        Which loss function to use. Following losses can be used:</span>
+
+<span class="sd">        - &#39;squared&#39;</span>
+
+<span class="sd">    C : double (default=1.0)</span>
+<span class="sd">        Weight of the loss term.</span>
+
+<span class="sd">    alpha : double (default=1.0)</span>
+<span class="sd">        Weight of the penalty term.</span>
+
+<span class="sd">    intercept_decay : double (default=1e-1)</span>
+<span class="sd">        Weight of the penalty term for intercept.</span>
+
+<span class="sd">    l1_ratio : double (default=0)</span>
+<span class="sd">        Ratio of L1 regularizer.</span>
+<span class="sd">        Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer</span>
+<span class="sd">        is 0.5 * alpha * (1-l1_ratio).</span>
+
+<span class="sd">        - l1_ratio = 0 : Ridge.</span>
+
+<span class="sd">        - l1_ratio = 1 : Lasso.</span>
+
+<span class="sd">        - Otherwise : Elastic Net.</span>
+
+<span class="sd">    normalize : bool (default=False)</span>
+<span class="sd">        Whether normalize random features or not.</span>
+<span class="sd">        If true, the adam solver computes running mean and variance</span>
+<span class="sd">        at learning, and uses them for inference.</span>
+
+<span class="sd">    fit_intercept : bool (default=True)</span>
+<span class="sd">        Whether to fit intercept (bias term) or not.</span>
+
+<span class="sd">    max_iter : int (default=100)</span>
+<span class="sd">        Maximum number of iterations.</span>
+
+<span class="sd">    tol : double (default=1e-6)</span>
+<span class="sd">        Tolerance of stopping criterion.</span>
+<span class="sd">        If sum of absolute val of update in one epoch is lower than tol,</span>
+<span class="sd">        the adam solver stops learning.</span>
+
+<span class="sd">    warm_start : bool (default=False)</span>
+<span class="sd">        Whether to activate warm-start or not.</span>
+
+<span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
+<span class="sd">        If int, random_state is the seed used by the random number generator;</span>
+<span class="sd">        If RandomState instance, random_state is the random number generator;</span>
+<span class="sd">        If None, the random number generator is the RandomState instance used</span>
+<span class="sd">        by `np.random`.</span>
+
+<span class="sd">    verbose : bool (default=True)</span>
+<span class="sd">        Verbose mode or not.</span>
+
+<span class="sd">    fast_solver : bool (default=True)</span>
+<span class="sd">        Use cython fast solver or not. This argument is valid when transformer</span>
+<span class="sd">        is implemented in random_features_fast.pyx/pxd</span>
+
+<span class="sd">    shuffle : bool (default=True)</span>
+<span class="sd">        Whether to shuffle data before each epoch or not.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    self.coef_ : array, shape (n_components, )</span>
+<span class="sd">        The learned coefficients of the linear model.</span>
+
+<span class="sd">    self.dual_coef_ : array, shape (n_samples, )</span>
+
+<span class="sd">    self.intercept_ : array, shape (1, )</span>
+<span class="sd">        The learned intercept (bias) of the linear model.</span>
+
+<span class="sd">    self.mean_, self.var_ : array or None, shape (n_components, )</span>
+<span class="sd">        The running mean and variances of random feature vectors.</span>
+<span class="sd">        They are used if normalize=True (they are None if False).</span>
+
+<span class="sd">    self.t_ : int</span>
+<span class="sd">        The number of iteration.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ---------</span>
+<span class="sd">    [1] Stochastic Dual Coordinate Ascent Methods for Regularized Loss</span>
+<span class="sd">    Minimization.</span>
+<span class="sd">    Shai Shalev-Schwartz and Tong Zhang.</span>
+<span class="sd">    JMLR 2013 (vol 14), pp. 567-599.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">LOSSES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;squared&#39;</span><span class="p">:</span> <span class="n">Squared</span><span class="p">(),</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transformer</span><span class="o">=</span><span class="n">RBFSampler</span><span class="p">(),</span> <span class="n">loss</span><span class="o">=</span><span class="s1">&#39;squared&#39;</span><span class="p">,</span>
+                 <span class="n">C</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">intercept_decay</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span>
+                 <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fit_intercept</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+                 <span class="n">warm_start</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">fast_solver</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SDCARegressor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">transformer</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">l1_ratio</span><span class="p">,</span> <span class="n">intercept_decay</span><span class="p">,</span> <span class="n">normalize</span><span class="p">,</span>
+            <span class="n">fit_intercept</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">warm_start</span><span class="p">,</span> <span class="n">random_state</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span>
+            <span class="n">fast_solver</span><span class="p">,</span> <span class="n">shuffle</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Kyohei Atarashi
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

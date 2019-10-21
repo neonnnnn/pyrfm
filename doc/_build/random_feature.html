@@ -1,0 +1,272 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Random features &mdash; pyrfm 0.1.0dev documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="pyrfm.random_feature.CompactRandomFeature" href="generated/pyrfm.random_feature.CompactRandomFeature.html" />
+    <link rel="prev" title="pyrfm.linear_model.SparseMBRegressor" href="generated/pyrfm.linear_model.SparseMBRegressor.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> pyrfm
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">API-References</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linear_model.html">Linear models</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Random features</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.CompactRandomFeature.html">pyrfm.random_feature.CompactRandomFeature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.FastFood.html">pyrfm.random_feature.FastFood</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.MB.html">pyrfm.random_feature.MB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.OrthogonalRandomFeature.html">pyrfm.random_feature.OrthogonalRandomFeature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.RandomFourier.html">pyrfm.random_feature.RandomFourier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.RandomKernel.html">pyrfm.random_feature.RandomKernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.RandomMaclaurin.html">pyrfm.random_feature.RandomMaclaurin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.RandomProjection.html">pyrfm.random_feature.RandomProjection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.SignedCirculantRandomKernel.html">pyrfm.random_feature.SignedCirculantRandomKernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.SignedCirculantRandomMatrix.html">pyrfm.random_feature.SignedCirculantRandomMatrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.StructuredOrthogonalRandomFeature.html">pyrfm.random_feature.StructuredOrthogonalRandomFeature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.SubsampledRandomHadamard.html">pyrfm.random_feature.SubsampledRandomHadamard</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.SubfeatureRandomKernel.html">pyrfm.random_feature.SubfeatureRandomKernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.TensorSketch.html">pyrfm.random_feature.TensorSketch</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kernel.html">Kernel functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyrfm</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Random features</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/random_feature.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="random-features">
+<h1>Random features<a class="headerlink" href="#random-features" title="Permalink to this headline">¶</a></h1>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.CompactRandomFeature.html#pyrfm.random_feature.CompactRandomFeature" title="pyrfm.random_feature.CompactRandomFeature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CompactRandomFeature</span></code></a>([transformer_up, …])</p></td>
+<td><p>Approximates feature map of the RBF kernel by Monte Carlo approximation by Random Fourier Feature map.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.FastFood.html#pyrfm.random_feature.FastFood" title="pyrfm.random_feature.FastFood"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FastFood</span></code></a>([n_components, gamma, …])</p></td>
+<td><p>Approximates feature maps of the product between random matrix and feature vectors by FastFood.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.MB.html#pyrfm.random_feature.MB" title="pyrfm.random_feature.MB"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MB</span></code></a>([n_components])</p></td>
+<td><p>Approximates feature map of the intersection (min) kernel by explicit feature map, which is proposed by S.Maji and A.C.Berg.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.OrthogonalRandomFeature.html#pyrfm.random_feature.OrthogonalRandomFeature" title="pyrfm.random_feature.OrthogonalRandomFeature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OrthogonalRandomFeature</span></code></a>([n_components, …])</p></td>
+<td><p>Approximates feature map of the RBF or dot kernel by Monte Carlo approximation by Orthogonal Random Feature map.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.RandomFourier.html#pyrfm.random_feature.RandomFourier" title="pyrfm.random_feature.RandomFourier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomFourier</span></code></a>([n_components, kernel, gamma, …])</p></td>
+<td><p>Approximates feature map of the RBF kernel by Monte Carlo approximation by Random Fourier Feature map.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.RandomKernel.html#pyrfm.random_feature.RandomKernel" title="pyrfm.random_feature.RandomKernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomKernel</span></code></a>([n_components, kernel, degree, …])</p></td>
+<td><p>Approximates feature map of the ANOVA/all-subsets kernel by Monte Carlo approximation by Random Kernel Feature map.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.RandomMaclaurin.html#pyrfm.random_feature.RandomMaclaurin" title="pyrfm.random_feature.RandomMaclaurin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomMaclaurin</span></code></a>([n_components, p, kernel, …])</p></td>
+<td><p>Approximates feature map of a dot product kernel by Monte Carlo approximation of its Maclaurin expansion.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.RandomProjection.html#pyrfm.random_feature.RandomProjection" title="pyrfm.random_feature.RandomProjection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomProjection</span></code></a>([n_components, …])</p></td>
+<td><p>Approximates feature map of the dot product kernel by Monte Carlo approximation by Random Projection`.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SignedCirculantRandomKernel.html#pyrfm.random_feature.SignedCirculantRandomKernel" title="pyrfm.random_feature.SignedCirculantRandomKernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SignedCirculantRandomKernel</span></code></a>(n_components[, …])</p></td>
+<td><p>Approximates feature map of the ANOVA kernel by Monte Carlo approximation by Signed Circulant Random Kernel map.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SignedCirculantRandomMatrix.html#pyrfm.random_feature.SignedCirculantRandomMatrix" title="pyrfm.random_feature.SignedCirculantRandomMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SignedCirculantRandomMatrix</span></code></a>([n_components, …])</p></td>
+<td><p>Approximates feature maps of the product between random matrix and feature vectors by signed circulant random matrix.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.StructuredOrthogonalRandomFeature.html#pyrfm.random_feature.StructuredOrthogonalRandomFeature" title="pyrfm.random_feature.StructuredOrthogonalRandomFeature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StructuredOrthogonalRandomFeature</span></code></a>([…])</p></td>
+<td><p>Approximates feature map of the RBF or dot kernel by Monte Carlo approximation by Structured Orthogonal Random Fourier Feature map.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SubsampledRandomHadamard.html#pyrfm.random_feature.SubsampledRandomHadamard" title="pyrfm.random_feature.SubsampledRandomHadamard"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SubsampledRandomHadamard</span></code></a>([n_components, …])</p></td>
+<td><p>Approximates feature maps of the product between random matrix and feature vectors by Subsampled Randomized Hadamard Transform</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SubfeatureRandomKernel.html#pyrfm.random_feature.SubfeatureRandomKernel" title="pyrfm.random_feature.SubfeatureRandomKernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SubfeatureRandomKernel</span></code></a>([n_components, …])</p></td>
+<td><p>Approximates feature map of the ANOVA/all-subsets kernel by Monte Carlo approximation by Subfeature Random Kernel Feature map.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.TensorSketch.html#pyrfm.random_feature.TensorSketch" title="pyrfm.random_feature.TensorSketch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorSketch</span></code></a>([n_components, degree, …])</p></td>
+<td><p>Approximates feature map of a polynomial kernel by Monte Carlo approximation by using Tensor Sketch.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="generated/pyrfm.random_feature.CompactRandomFeature.html" class="btn btn-neutral float-right" title="pyrfm.random_feature.CompactRandomFeature" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="generated/pyrfm.linear_model.SparseMBRegressor.html" class="btn btn-neutral float-left" title="pyrfm.linear_model.SparseMBRegressor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Kyohei Atarashi
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -97,6 +97,7 @@ class BaseSDCAEstimator(BaseLinear):
 class SDCAClassifier(BaseSDCAEstimator, LinearClassifierMixin):
     """Stochastic dual coordinate ascent solver for linear classifier with
     random feature maps.
+
     Random feature mapping is computed just before computing prediction and
     gradient.
     minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
@@ -110,9 +111,12 @@ class SDCAClassifier(BaseSDCAEstimator, LinearClassifierMixin):
 
     loss : str (default="squared_hinge")
         Which loss function to use. Following losses can be used:
-            'squared_hinge'
-            'hinge'
-            'logistic'
+
+        - 'squared_hinge'
+
+        - 'hinge'
+
+        - 'logistic'
 
     C : double (default=1.0)
         Weight of the loss term.
@@ -127,9 +131,12 @@ class SDCAClassifier(BaseSDCAEstimator, LinearClassifierMixin):
         Ratio of L1 regularizer.
         Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
         is 0.5 * alpha * (1-l1_ratio).
-        If l1_ratio = 0 : Ridge.
-        else If l1_ratio = 1 : Lasso.
-        else : Elastic Net.
+
+        - l1_ratio = 0 : Ridge.
+
+        - l1_ratio = 1 : Lasso.
+
+        - Otherwise : Elastic Net.
 
     normalize : bool (default=False)
         Whether normalize random features or not.
@@ -189,6 +196,7 @@ class SDCAClassifier(BaseSDCAEstimator, LinearClassifierMixin):
     Minimization.
     Shai Shalev-Schwartz and Tong Zhang.
     JMLR 2013 (vol 14), pp. 567-599.
+
     """
     LOSSES = {
         'squared_hinge': SquaredHinge(),
@@ -212,6 +220,7 @@ class SDCAClassifier(BaseSDCAEstimator, LinearClassifierMixin):
 class SDCARegressor(BaseSDCAEstimator, LinearRegressorMixin):
     """Stochastic dual coordinate ascent solver for linear regression with
     random feature maps.
+
     Random feature mapping is computed just before computing prediction and
     gradient.
     minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
@@ -225,7 +234,8 @@ class SDCARegressor(BaseSDCAEstimator, LinearRegressorMixin):
 
     loss : str (default="squared")
         Which loss function to use. Following losses can be used:
-            'squared'
+
+        - 'squared'
 
     C : double (default=1.0)
         Weight of the loss term.
@@ -240,9 +250,12 @@ class SDCARegressor(BaseSDCAEstimator, LinearRegressorMixin):
         Ratio of L1 regularizer.
         Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
         is 0.5 * alpha * (1-l1_ratio).
-        If l1_ratio = 0 : Ridge.
-        else If l1_ratio = 1 : Lasso.
-        else : Elastic Net.
+
+        - l1_ratio = 0 : Ridge.
+
+        - l1_ratio = 1 : Lasso.
+
+        - Otherwise : Elastic Net.
 
     normalize : bool (default=False)
         Whether normalize random features or not.
@@ -302,6 +315,7 @@ class SDCARegressor(BaseSDCAEstimator, LinearRegressorMixin):
     Minimization.
     Shai Shalev-Schwartz and Tong Zhang.
     JMLR 2013 (vol 14), pp. 567-599.
+
     """
     LOSSES = {
         'squared': Squared(),

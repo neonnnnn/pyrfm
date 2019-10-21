@@ -17,8 +17,8 @@ def _get_random_matrix(distribution):
 
 class FastFood(BaseEstimator, TransformerMixin):
     """Approximates feature maps of the product between random matrix and
-    feature vectors by FastFood that use diagonal matrices, the Walsh-Hadamard
-    matrix, and permutation matrix.
+    feature vectors by FastFood.
+
     This class can be used not only for approximating RBF kernel but
     also as a sub-routine for approximating the product between random matrix
     and feature vectors in some random features.
@@ -44,7 +44,7 @@ class FastFood(BaseEstimator, TransformerMixin):
         Its arguments must be random_state and size.
         For str, "gaussian" (or "normal"), "rademacher", "laplace", or
         "uniform" can be used.
-        
+
     random_fourier : boolean (default=True)
         Approximate RBF kernel or not.
         If True, Fastfood samples random_offset_ in the fit method and computes
@@ -81,10 +81,11 @@ class FastFood(BaseEstimator, TransformerMixin):
 
     References
     ----------
-    [1] Fastfood — Approximating Kernel Expansions in Loglinear Time
+    [1] Fastfood — Approximating Kernel Expansions in Loglinear Time.
     Quoc Le, Tam´as Sarl´os, and Alex Smola.
     In ICML 2013.
     (http://proceedings.mlr.press/v28/le13-supp.pdf)
+
     """
 
     def __init__(self, n_components=100,  gamma=0.5, distribution="gaussian",

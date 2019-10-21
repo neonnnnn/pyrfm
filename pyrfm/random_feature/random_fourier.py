@@ -29,7 +29,7 @@ class RandomFourier(BaseEstimator, TransformerMixin):
     use_offset : bool (default=False)
         If True, Z(x) = (cos(w_1x+b_1), cos(w_2x+b_2), ... , cos(w_Dx+b_D),
         where w is random_weights and b is offset (D=n_components).
-        If False, Z(x) = (cos(w1x), ..., cos(w_{D/2}x), sin(w_1x), ...,
+        If False, Z(x) = (cos(w_1x), ..., cos(w_{D/2}x), sin(w_1x), ...,
         sin(w_{D/2}x)).
 
     random_state : int, RandomState instance or None, optional (default=None)
@@ -40,19 +40,19 @@ class RandomFourier(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    random_weights_ : array, shape (n_features, n_components) (use_offset=True)
-                                   or (n_features, n_components/2) (otherwise)
+    random_weights_ : array, shape (n_features, n_components) (use_offset=True) or (n_features, n_components/2) (otherwise)
         The sampled basis.
 
     random_offset_ : array or None, shape (n_components, )
-        The sampled offset vector. If use_offset=False, offset_=None.
+        The sampled offset vector. If use_offset=False, random_offset_=None.
 
     References
     ----------
-    [1] Random Features for Large-Scale Kernel Machines
-    Ali Rahimi and Ben Recht
-    In NIPS 2007
+    [1] Random Features for Large-Scale Kernel Machines.
+    Ali Rahimi and Ben Recht.
+    In NIPS 2007.
     (https://people.eecs.berkeley.edu/~brecht/papers/07.rah.rec.nips.pdf)
+
     """
     def __init__(self, n_components=100, kernel='rbf', gamma='auto',
                  use_offset=False, random_state=None):

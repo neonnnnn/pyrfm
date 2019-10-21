@@ -69,7 +69,7 @@ class BaseSGDEstimator(BaseLinear):
 
         if not isinstance(self.average, bool):
             raise ValueError("average is not bool.")
-        
+
         if self.learning_rate == 'pegasos':
             if not (self.l1_ratio < 1):
                 raise ValueError("1 - l1_ratio must be > 0 when "
@@ -78,14 +78,14 @@ class BaseSGDEstimator(BaseLinear):
             if not (self.alpha / self.C > 0):
                 raise ValueError("alpha / C must be > 0 when "
                                  "learning_rate = 'pegasos'.")
-            
+
             if not (self.intercept_decay / self.C > 0):
                 raise ValueError("intercept_decay / C must be > 0 when "
                                  "learning_rate = 'pegasos'.")
-        
+
         if not (0 <= self.power_t):
-            raise ValueError("power_t < 0.")    
-            
+            raise ValueError("power_t < 0.")
+
     def fit(self, X, y):
         """Fit model according to X and y.
 
@@ -133,13 +133,8 @@ class BaseSGDEstimator(BaseLinear):
 
 
 class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
-    LOSSES = {
-        'squared_hinge': SquaredHinge(),
-        'logistic': Logistic(),
-        'hinge': Hinge(),
-        'log': Logistic()
-    }
     """SGD solver for linear classifier with random feature maps.
+
     Random feature mapping is computed just before computing prediction and
     gradient.
     minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
@@ -156,9 +151,12 @@ class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
 
     loss : str (default="squared_hinge")
         Which loss function to use. Following losses can be used:
-            'squared_hinge' (for classification)
-            'hinge' (for classification)
-            'logistic' (for classification)
+
+        - 'squared_hinge' (for classification)
+
+        - 'hinge' (for classification)
+
+        - 'logistic' (for classification)
 
     C : double (default=1.0)
         Weight of the loss term.
@@ -170,9 +168,12 @@ class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
         Ratio of L1 regularizer.
         Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
         is 0.5 * alpha * (1-l1_ratio).
-        If l1_ratio = 0 : Ridge.
-        else If l1_ratio = 1 : Lasso.
-        else : Elastic Net.
+
+        - l1_ratio = 0 : Ridge.
+
+        - l1_ratio = 1 : Lasso.
+
+        - Otherwise : Elastic Net.
 
     intercept_decay : double (default=0.1)
         Weight of the penalty term for intercept.
@@ -194,16 +195,15 @@ class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
         the SGD solver stops learning.
 
     learning_rate : str (default='optimal')
-        The method for learning rate decay. 
-        'constant':
-            eta = eta0
-        'pegasos':
-            eta = 1.0 / (alpha * (1-l1_ratio) * t)
-        'inv_scaling':
-            eta = eta0 / pow(t, power_t)
-        'optimal':
-            eta = eta0 / pow(1 + alpha*(1-l1_ratio)*t, power_t)
-        are supported now.
+        The method for learning rate decay.
+
+        - 'constant': eta = eta0
+
+        - 'pegasos': eta = 1.0 / (alpha * (1-l1_ratio) * t)
+
+        - 'inv_scaling': eta = eta0 / pow(t, power_t)
+
+        - 'optimal': eta = eta0 / pow(1 + alpha*(1-l1_ratio)*t, power_t)
 
     power_t : double (default=0.5)
         The parameter for learning_rate 'inv_scaling'.
@@ -228,7 +228,7 @@ class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
     fast_solver : bool (default=True)
         Use cython fast solver or not. This argument is valid when transformer
         is implemented in random_features_fast.pyx/pxd
-    
+
     shuffle : bool (default=True)
         Whether to shuffle data before each epoch or not.
 
@@ -255,7 +255,7 @@ class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
         The number of iteration.
 
     References
-    ---------
+    ----------
     [1] Large-Scale Machine Learning with Stochastic Gradient Descent.
     Leon Bottou.
     In Proc. COMPSTAT'2010.
@@ -263,10 +263,19 @@ class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
 
     [2] Stochastic Gradient Descent Tricks.
     Leon Bottou.
-    Neural Networks, Tricks of the Trade, Reloaded, 430–445, 
+    Neural Networks, Tricks of the Trade, Reloaded, 430–445,
     Lecture Notes in Computer Science (LNCS 7700), Springer, 2012
     (https://link.springer.com/content/pdf/10.1007%2F978-3-642-35289-8_25.pdf)
+
     """
+
+    LOSSES = {
+        'squared_hinge': SquaredHinge(),
+        'logistic': Logistic(),
+        'hinge': Hinge(),
+        'log': Logistic()
+    }
+
     def __init__(self, transformer=RBFSampler(), eta0=0.01,
                  loss='squared_hinge', C=1.0, alpha=1.0, l1_ratio=0.,
                  intercept_decay=0.1, normalize=False, fit_intercept=True,
@@ -281,10 +290,8 @@ class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
 
 
 class SGDRegressor(BaseSGDEstimator, LinearRegressorMixin):
-    LOSSES = {
-        'squared': Squared(),
-    }
     """SGD solver for linear regression with random feature maps.
+
     Random feature mapping is computed just before computing prediction and
     gradient.
     minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
@@ -301,7 +308,8 @@ class SGDRegressor(BaseSGDEstimator, LinearRegressorMixin):
 
     loss : str (default="squared")
         Which loss function to use. Following losses can be used:
-            'squared'
+
+        - 'squared'
 
     C : double (default=1.0)
         Weight of the loss term.
@@ -313,9 +321,12 @@ class SGDRegressor(BaseSGDEstimator, LinearRegressorMixin):
         Ratio of L1 regularizer.
         Weight of L1 regularizer is alpha * l1_ratio and that of L2 regularizer
         is 0.5 * alpha * (1-l1_ratio).
-        If l1_ratio = 0 : Ridge.
-        else If l1_ratio = 1 : Lasso.
-        else : Elastic Net.
+
+        - l1_ratio = 0 : Ridge.
+
+        - l1_ratio = 1 : Lasso.
+
+        - Otherwise : Elastic Net.
 
     intercept_decay : double (default=0.1)
         Weight of the penalty term for intercept.
@@ -337,16 +348,15 @@ class SGDRegressor(BaseSGDEstimator, LinearRegressorMixin):
         the SGD solver stops learning.
 
     learning_rate : str (default='optimal')
-        The method for learning rate decay. 
-        'constant':
-            eta = eta0
-        'pegasos':
-            eta = 1.0 / (alpha * (1-l1_ratio) * t)
-        'inv_scaling':
-            eta = eta0 / pow(t, power_t)
-        'optimal':
-            eta = eta0 / pow(1 + alpha*(1-l1_ratio)*t, power_t)
-        are supported now.
+        The method for learning rate decay.
+
+        - 'constant': eta = eta0
+
+        - 'pegasos': eta = 1.0 / (alpha * (1-l1_ratio) * t)
+
+        - 'inv_scaling': eta = eta0 / pow(t, power_t)
+
+        - 'optimal': eta = eta0 / pow(1 + alpha*(1-l1_ratio)*t, power_t)
 
     power_t : double (default=0.5)
         The parameter for learning_rate 'inv_scaling'.
@@ -398,7 +408,7 @@ class SGDRegressor(BaseSGDEstimator, LinearRegressorMixin):
         The number of iteration.
 
     References
-    ---------
+    ----------
     [1] Large-Scale Machine Learning with Stochastic Gradient Descent.
     Leon Bottou.
     In Proc. COMPSTAT'2010.
@@ -409,7 +419,12 @@ class SGDRegressor(BaseSGDEstimator, LinearRegressorMixin):
     Neural Networks, Tricks of the Trade, Reloaded, 430–445, 
     Lecture Notes in Computer Science (LNCS 7700), Springer, 2012
     (https://link.springer.com/content/pdf/10.1007%2F978-3-642-35289-8_25.pdf)
+
     """
+    LOSSES = {
+        'squared': Squared(),
+    }
+
     def __init__(self, transformer=RBFSampler(), eta0=0.001, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
