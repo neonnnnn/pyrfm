@@ -14,6 +14,8 @@ help:
 
 .PHONY: help Makefile
 
+html:
+	@cd ..; python setup.py build_ext --inplace
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
