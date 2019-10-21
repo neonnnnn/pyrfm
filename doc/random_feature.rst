@@ -20,5 +20,6 @@ Random features
    StructuredOrthogonalRandomFeature
    SubsampledRandomHadamard
    SubfeatureRandomKernel
+   SubfeatureRandomMaclaurin
    TensorSketch
 

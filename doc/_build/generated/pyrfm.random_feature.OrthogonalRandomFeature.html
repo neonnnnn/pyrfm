@@ -98,6 +98,7 @@
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.StructuredOrthogonalRandomFeature.html">pyrfm.random_feature.StructuredOrthogonalRandomFeature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.SubsampledRandomHadamard.html">pyrfm.random_feature.SubsampledRandomHadamard</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.SubfeatureRandomKernel.html">pyrfm.random_feature.SubfeatureRandomKernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.SubfeatureRandomMaclaurin.html">pyrfm.random_feature.SubfeatureRandomMaclaurin</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.TensorSketch.html">pyrfm.random_feature.TensorSketch</a></li>
 </ul>
 </li>
@@ -225,7 +226,7 @@ by <cite>np.random</cite>.</p></li>
 <dl class="attribute">
 <dt id="pyrfm.random_feature.OrthogonalRandomFeature.random_offset_">
 <code class="sig-name descname">random_offset_</code><a class="headerlink" href="#pyrfm.random_feature.OrthogonalRandomFeature.random_offset_" title="Permalink to this definition">¶</a></dt>
-<dd><p>The sampled offset vector. If use_offset=False, offset_=None.</p>
+<dd><p>The sampled offset vector. If use_offset=False, random_offset_=None.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
 <dd class="field-odd"><p>array or None, shape (n_components, )</p>
@@ -234,9 +235,9 @@ by <cite>np.random</cite>.</p></li>
 </dd></dl>
 
 <p class="rubric">References</p>
-<p>[1] Orthogonal Random Features
-Felix Xinnan Yu Ananda Theertha Suresh Krzysztof Choromanski
-Daniel Holtmann-Rice Sanjiv Kumar
+<p>[1] Orthogonal Random Features.
+Felix Xinnan Yu, Ananda Theertha Suresh, Krzysztof Choromanski,
+Daniel Holtmann-Rice, and Sanjiv Kumar.
 In NIPS 2016.
 (<a class="reference external" href="https://arxiv.org/pdf/1610.09072.pdf">https://arxiv.org/pdf/1610.09072.pdf</a>)</p>
 <dl class="method">
