@@ -59,7 +59,7 @@ def anova(X, P, degree, dense_output=True):
 
     Returns
     -------
-    gram_matrix : array-like, shape (n_samples1, n_samles2)
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
 
     """
     X = check_array(X, True)
@@ -123,7 +123,7 @@ def pairwise(X, P, dense_output=True, symmetric=False):
 
     Returns
     -------
-    gram_matrix : array-like, shape (n_samples1, n_samles2)
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
 
     """
     if X.shape[1] % 2 != 0:
@@ -157,7 +157,7 @@ def hellinger(X, P):
 
     Returns
     -------
-    gram_matrix : array-like, shape (n_samples1, n_samles2)
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
 
     """
 
@@ -182,7 +182,7 @@ def all_subsets(X, P, dense_output=True):
 
     Returns
     -------
-    gram_matrix : array-like, shape (n_samples1, n_samles2)
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
 
     """
 
@@ -214,7 +214,7 @@ def anova_fast(X, P, degree, dense_output=True):
 
     Returns
     -------
-    gram_matrix : array-like, shape (n_samples1, n_samles2)
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
 
     """
 
@@ -240,7 +240,7 @@ def intersection(X, P):
 
     Returns
     -------
-    gram_matrix : array-like, shape (n_samples1, n_samles2)
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
 
     """
     X = check_array(X, True)
@@ -265,7 +265,7 @@ def chi_square(X, P):
 
     Returns
     -------
-    gram_matrix : array-like, shape (n_samples1, n_samles2)
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
 
     """
     X = check_array(X, True)
