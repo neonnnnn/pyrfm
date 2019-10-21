@@ -1,5 +1,5 @@
-from .random_feature import (RandomSubsetKernel, RandomMaclaurin,
-                             RandomKernel, RandomFourier,
+from .random_feature import (RandomFourier, RandomMaclaurin,
+                             RandomKernel, SubfeatureRandomKernel,
                              SignedCirculantRandomKernel,
                              TensorSketch, MB, SparseMB, RandomProjection,
                              FastFood, SubsampledRandomHadamard,
@@ -19,7 +19,7 @@ from .linear_model import (AdaGradRegressor, AdaGradClassifier,
                            SAGARegressor, SAGAClassifier)
 
 
-__all__ = ['RandomKernel', 'RandomSubsetKernel', 'RandomFourier',
+__all__ = ['RandomKernel', 'SubfeatureRandomKernel', 'RandomFourier',
            'TensorSketch', 'RandomMaclaurin', 'MB', 'SparseMB',
            'RandomProjection', 'FastFood', 'CompactRandomFeature',
            'SubsampledRandomHadamard', 'SignedCirculantRandomMatrix',
