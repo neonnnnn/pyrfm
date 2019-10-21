@@ -260,7 +260,7 @@ class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
     (https://arxiv.org/pdf/1407.0202.pdf)
 
     [2] Minimizing Finite Sums with the Stochastic Average Gradient.
-    Mark Schmidt, Nicolas Le Roux, and Francis Bach. 
+    Mark Schmidt, Nicolas Le Roux, and Francis Bach.
     Mathematical Programming Vol 162, 2017.
     (https://arxiv.org/pdf/1309.2388.pdf)
 

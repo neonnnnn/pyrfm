@@ -162,8 +162,8 @@ class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):
 
     References
     ----------
-    [1] Max-Margin Additive Classifiers for Detection
-    Subhransu Maji, Alexander C. Berg.
+    [1] Max-Margin Additive Classifiers for Detection.
+    Subhransu Maji and Alexander C. Berg.
     In ICCV 2009.
     (http://acberg.com/papers/mb09iccv.pdf)
 
