@@ -206,7 +206,7 @@ class SubfeatureRandomKernel(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    random_weights_ : array, shape (n_features, n_components)
+    random_weights_ : csr_matrix, shape (n_features, n_components)
         The sampled basis.
 
     References
