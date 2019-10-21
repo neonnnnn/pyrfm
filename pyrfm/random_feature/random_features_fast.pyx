@@ -17,7 +17,7 @@ from cython.view cimport array
 from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
                FastFood, SubsampledRandomHadamard, CompactRandomFeature,
                RandomProjection, OrthogonalRandomFeature,
-               StructuredOrthogonalRandomFeature,
+               SubfeatureRandomMaclaurin, StructuredOrthogonalRandomFeature,
                SignedCirculantRandomMatrix, SubfeatureRandomKernel)
 from .fht_fast cimport _fwht1d_fast
 from libcpp.vector cimport vector
@@ -29,6 +29,7 @@ RANDOMFEATURES = {
     RandomFourier: CRandomFourier,
     RandomKernel: CRandomKernel,
     RandomMaclaurin: CRandomMaclaurin,
+    SubfeatureRandomMaclaurin: CSubfeatureRandomMaclaurin,
     TensorSketch: CTensorSketch,
     RBFSampler: CRBFSampler,
     FastFood: CFastFood,
@@ -166,6 +167,47 @@ cdef class CRandomMaclaurin(BaseCRandomFeature):
             z[i] *= sqrt(self.coefs[deg]/self.p_choice[deg])
             z[i] /= self.scale
 
+
+cdef class CSubfeatureRandomMaclaurin(BaseCRandomFeature):
+    def __init__(self, transformer):
+        self.n_components = transformer.n_components
+        self.n_features = transformer.random_weights_.shape[0]
+        self.n_sub_features = transformer.n_sub_features
+        self.random_weights = get_dataset(transformer.random_weights_,
+                                          order='c')
+        self.orders = transformer.orders_
+        self.p_choice = transformer.p_choice
+        self.coefs = transformer.coefs
+        self.cache = array((transformer.random_weights_.shape[1], ),
+                           sizeof(double), format='d')
+        self.scale = sqrt(self.n_components)
+        # scale_comb = \sqrt{comb(d, k) / comb(d-1, k-1)} = \sqrt{d/k}
+        self.scale_comb = sqrt((self.n_features*1.0) / self.n_sub_features)
+
+    cdef void transform(self,
+                        double* z,
+                        double* data,
+                        int* indices,
+                        int n_nz):
+        cdef Py_ssize_t i, ii, k, offset, deg, n_basis
+        cdef double* weigths
+        cdef int* indices_w
+        cdef int n_nz_w
+
+        n_basis = self.random_weights.get_n_features()
+        dot_all(&self.cache[0], data, indices, n_nz, self.random_weights,
+                n_basis)
+
+        offset = 0
+        for i in range(self.n_components):
+            z[i] = 1.
+            deg = self.orders[i]
+            for k in range(deg):
+                z[i] *= self.cache[offset]
+                z[i] *= self.scale_comb
+                offset += 1
+            z[i] *= sqrt(self.coefs[deg]/self.p_choice[deg])
+            z[i] /= self.scale
 
 cdef class CTensorSketch(BaseCRandomFeature):
     def __init__(self, transformer):

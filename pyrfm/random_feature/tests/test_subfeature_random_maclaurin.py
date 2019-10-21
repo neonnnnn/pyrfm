@@ -5,7 +5,7 @@ from scipy.sparse import csr_matrix
 from sklearn.utils.testing import assert_less_equal
 from sklearn.utils.testing import assert_allclose_dense_sparse
 from sklearn.utils.extmath import safe_sparse_dot
-from pyrfm import RandomMaclaurin
+from pyrfm import SubfeatureRandomMaclaurin
 
 
 def polynomial(X, Y, degree, bias=0):
@@ -25,13 +25,13 @@ Y /= np.sum(Y, axis=1, keepdims=True)
 X_sp = csr_matrix(X)
 
 
-def test_random_maclaurin_polynomial():
+def test_subfeature_random_maclaurin_polynomial():
     # compute exact kernel
     for degree in range(2, 5):
         kernel = polynomial(X, Y, degree)
         # approximate kernel mapping
-        rm_transform = RandomMaclaurin(n_components=100, degree=degree,
-                                       random_state=rng, kernel='poly')
+        rm_transform = SubfeatureRandomMaclaurin(n_components=500, degree=degree,
+                                                 random_state=rng, kernel='poly')
         X_trans = rm_transform.fit_transform(X)
         Y_trans = rm_transform.transform(Y)
         kernel_approx = np.dot(X_trans, Y_trans.T)
@@ -44,16 +44,17 @@ def test_random_maclaurin_polynomial():
         assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
 
-def test_random_maclaurin_polynomial_bias():
+def test_subfeature_random_maclaurin_polynomial_bias():
     # compute exact kernel
     for bias in [0.01, 0.1, 1]:
         for degree in range(2, 5):
             print('bias: {} degree: {}'.format(bias, degree))
             kernel = polynomial(X, Y, degree, bias=bias)
             # approximate kernel mapping
-            rm_transform = RandomMaclaurin(n_components=4000, degree=degree,
-                                           random_state=rng, kernel='poly',
-                                           bias=bias)
+            rm_transform = SubfeatureRandomMaclaurin(n_components=4000, degree=degree,
+                                                     n_sub_features=10,
+                                                     random_state=rng, kernel='poly',
+                                                     bias=bias)
             X_trans = rm_transform.fit_transform(X)
             Y_trans = rm_transform.transform(Y)
             kernel_approx = np.dot(X_trans, Y_trans.T)
@@ -66,7 +67,7 @@ def test_random_maclaurin_polynomial_bias():
             assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
 
-def test_random_maclaurin_polynomial_bias_h01():
+def test_subfeature_random_maclaurin_polynomial_bias_h01():
     # compute exact kernel
     for bias in [0.01, 0.1, 1]:
 
@@ -74,9 +75,10 @@ def test_random_maclaurin_polynomial_bias_h01():
             kernel = polynomial(X, Y, degree, bias=bias)
             # approximate kernel mapping
             print('bias: {} degree: {}'.format(bias, degree))
-            rm_transform = RandomMaclaurin(n_components=4000, degree=degree,
-                                           random_state=rng, kernel='poly',
-                                           bias=bias, h01=True)
+            rm_transform = SubfeatureRandomMaclaurin(n_components=4000, degree=degree,
+                                                     n_sub_features=10,
+                                                     random_state=rng, kernel='poly',
+                                                     bias=bias, h01=True)
             X_trans = rm_transform.fit_transform(X)
             Y_trans = rm_transform.transform(Y)
             kernel_approx = np.dot(X_trans, Y_trans.T)
@@ -89,12 +91,13 @@ def test_random_maclaurin_polynomial_bias_h01():
             assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
 
-def test_random_maclaurin_exp():
+def test_subfeature_random_maclaurin_exp():
     # compute exact kernel
     kernel = exp_kernel(X, Y, 0.1)
     # approximate kernel mapping
-    rm_transform = RandomMaclaurin(n_components=6000, random_state=rng,
-                                   kernel='exp', gamma=0.1)
+    rm_transform = SubfeatureRandomMaclaurin(n_components=6000, n_sub_features=10,
+                                             random_state=rng, kernel='exp',
+                                             gamma=0.1)
 
     X_trans = rm_transform.fit_transform(X)
     Y_trans = rm_transform.transform(Y)

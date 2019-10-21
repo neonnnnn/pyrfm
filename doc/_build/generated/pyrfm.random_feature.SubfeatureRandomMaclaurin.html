@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>pyrfm.random_feature.StructuredOrthogonalRandomFeature &mdash; pyrfm 0.1.0dev documentation</title>
+  <title>pyrfm.random_feature.SubfeatureRandomMaclaurin &mdash; pyrfm 0.1.0dev documentation</title>
   
 
   
@@ -36,8 +36,8 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="pyrfm.random_feature.SubsampledRandomHadamard" href="pyrfm.random_feature.SubsampledRandomHadamard.html" />
-    <link rel="prev" title="pyrfm.random_feature.SignedCirculantRandomMatrix" href="pyrfm.random_feature.SignedCirculantRandomMatrix.html" /> 
+    <link rel="next" title="pyrfm.random_feature.TensorSketch" href="pyrfm.random_feature.TensorSketch.html" />
+    <link rel="prev" title="pyrfm.random_feature.SubfeatureRandomKernel" href="pyrfm.random_feature.SubfeatureRandomKernel.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -95,10 +95,10 @@
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.RandomProjection.html">pyrfm.random_feature.RandomProjection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.SignedCirculantRandomKernel.html">pyrfm.random_feature.SignedCirculantRandomKernel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.SignedCirculantRandomMatrix.html">pyrfm.random_feature.SignedCirculantRandomMatrix</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">pyrfm.random_feature.StructuredOrthogonalRandomFeature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.StructuredOrthogonalRandomFeature.html">pyrfm.random_feature.StructuredOrthogonalRandomFeature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.SubsampledRandomHadamard.html">pyrfm.random_feature.SubsampledRandomHadamard</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.SubfeatureRandomKernel.html">pyrfm.random_feature.SubfeatureRandomKernel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.SubfeatureRandomMaclaurin.html">pyrfm.random_feature.SubfeatureRandomMaclaurin</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">pyrfm.random_feature.SubfeatureRandomMaclaurin</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.TensorSketch.html">pyrfm.random_feature.TensorSketch</a></li>
 </ul>
 </li>
@@ -150,13 +150,13 @@
         
           <li><a href="../random_feature.html">Random features</a> &raquo;</li>
         
-      <li>pyrfm.random_feature.StructuredOrthogonalRandomFeature</li>
+      <li>pyrfm.random_feature.SubfeatureRandomMaclaurin</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/pyrfm.random_feature.StructuredOrthogonalRandomFeature.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/generated/pyrfm.random_feature.SubfeatureRandomMaclaurin.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -169,81 +169,86 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="pyrfm-random-feature-structuredorthogonalrandomfeature">
-<h1>pyrfm.random_feature.StructuredOrthogonalRandomFeature<a class="headerlink" href="#pyrfm-random-feature-structuredorthogonalrandomfeature" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="pyrfm-random-feature-subfeaturerandommaclaurin">
+<h1>pyrfm.random_feature.SubfeatureRandomMaclaurin<a class="headerlink" href="#pyrfm-random-feature-subfeaturerandommaclaurin" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
-<dt id="pyrfm.random_feature.StructuredOrthogonalRandomFeature">
-<em class="property">class </em><code class="sig-prename descclassname">pyrfm.random_feature.</code><code class="sig-name descname">StructuredOrthogonalRandomFeature</code><span class="sig-paren">(</span><em class="sig-param">n_components=100</em>, <em class="sig-param">gamma=0.5</em>, <em class="sig-param">distribution='rademacher'</em>, <em class="sig-param">random_fourier=True</em>, <em class="sig-param">random_state=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyrfm/random_feature/orthogonal_random_feature.html#StructuredOrthogonalRandomFeature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.random_feature.StructuredOrthogonalRandomFeature" title="Permalink to this definition">¶</a></dt>
+<dt id="pyrfm.random_feature.SubfeatureRandomMaclaurin">
+<em class="property">class </em><code class="sig-prename descclassname">pyrfm.random_feature.</code><code class="sig-name descname">SubfeatureRandomMaclaurin</code><span class="sig-paren">(</span><em class="sig-param">n_components=100</em>, <em class="sig-param">n_sub_features=5</em>, <em class="sig-param">p=10</em>, <em class="sig-param">kernel='poly'</em>, <em class="sig-param">degree=2</em>, <em class="sig-param">distribution='rademacher'</em>, <em class="sig-param">gamma='auto'</em>, <em class="sig-param">bias=0.0</em>, <em class="sig-param">coefs=None</em>, <em class="sig-param">max_expansion=50</em>, <em class="sig-param">h01=False</em>, <em class="sig-param">dense_output=True</em>, <em class="sig-param">p_sparse=0.0</em>, <em class="sig-param">random_state=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyrfm/random_feature/random_maclaurin.html#SubfeatureRandomMaclaurin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.random_feature.SubfeatureRandomMaclaurin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.base.BaseEstimator</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.base.TransformerMixin</span></code></p>
-<p>Approximates feature map of the RBF or dot kernel by Monte Carlo
-approximation by Structured Orthogonal Random Fourier Feature map.</p>
+<p>Approximates feature map of a dot product kernel by Monte Carlo
+approximation of its Maclaurin expansion with only sub features.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>n_components</strong> (<em>int</em><em> (</em><em>default=100</em><em>)</em>) – Number of Monte Carlo samples per original features.
-Equals the dimensionality of the computed (mapped) feature space.
-If n_components is not a n-tuple of n_features, it is automatically
-changed to the smallest n-tuple of the n_features that is bigger than
-n_features, which is bigger than n_components.
-That is, ceil(n_components/n_features)*n_features.</p></li>
-<li><p><strong>gamma</strong> (<em>float</em><em> (</em><em>default=0.5</em><em>)</em>) – Band width parameter. gamma = 1/2sigma^2, where sigma is a std
-parameter for gaussian distribution.</p></li>
-<li><p><strong>distribution</strong> (<em>str</em><em> or </em><em>function</em><em> (</em><em>default=&quot;rademacher&quot;</em><em>)</em>) – A function for sampling random basis whose arguments
-are random_state and size.
-Its arguments must be random_state and size.
-For str, “gaussian” (or “normal”), “rademacher”, “laplace”, or
-“uniform” can be used.</p></li>
-<li><p><strong>random_fourier</strong> (<em>boolean</em><em> (</em><em>default=True</em><em>)</em>) – Approximate RBF kernel or not.
-If True, Fastfood samples <a href="#id1"><span class="problematic" id="id2">random_offset_</span></a> in the fit method and computes
-the cosine of structured_matrix-feature_vector product + <a href="#id3"><span class="problematic" id="id4">random_offset_</span></a>
-in transform.
-If False, Fastfood does not sample it and computes just
-structured_matrix-feature_vector product (i.e., approximates dot product
-kernel).</p></li>
+Equals the dimensionality of the computed (mapped) feature space.</p></li>
+<li><p><strong>n_sub_features</strong> (<em>int</em><em> (</em><em>default=5</em><em>)</em>) – Number of sub features.</p></li>
+<li><p><strong>p</strong> (<em>int</em><em> (</em><em>default=10</em><em>)</em>) – Parameter of the distribution that determines which components of the
+Maclaurin series are approximated.</p></li>
+<li><p><strong>kernel</strong> (<em>str</em><em> or </em><em>callable</em><em> (</em><em>default=&quot;poly&quot;</em><em>)</em>) – Type of kernel function. ‘poly’, ‘exp’, or callable are accepted.
+If callable, its arguments are two numpy-like objects, and return a
+numpy-like object.
+if str, only ‘poly’ or ‘exp’ is acceptable.</p></li>
+<li><p><strong>degree</strong> (<em>int</em><em> (</em><em>default=2</em><em>)</em>) – Parameter of the polynomial product kernel.</p></li>
+<li><p><strong>distribution</strong> (<em>str</em><em>, </em><em>(</em><em>default=&quot;rademacher&quot;</em><em>)</em>) – Distribution for <a href="#id1"><span class="problematic" id="id2">random_weights_</span></a>.
+“rademacher”, “gaussian”, “laplace”, “uniform”, or “sparse_rademacher”
+can be used.</p></li>
+<li><p><strong>gamma</strong> (<em>float</em><em> or </em><em>str</em><em> (</em><em>default=&quot;auto&quot;</em><em>)</em>) – Parameter of the exponential kernel.</p></li>
+<li><p><strong>bias</strong> (<em>float</em><em> (</em><em>default=0</em><em>)</em>) – Parameter of the polynomial kernel.</p></li>
+<li><p><strong>coefs</strong> (<em>list-like</em><em> (</em><em>default=None</em><em>)</em>) – list of coefficients of Maclaurin expansion.</p></li>
+<li><p><strong>max_expansion</strong> (<em>int</em><em> (</em><em>default=50</em><em>)</em>) – Threshold of Maclaurin expansion.</p></li>
+<li><p><strong>h01</strong> (<em>bool</em><em> (</em><em>default=False</em><em>)</em>) – Use h01 heuristic or not. See [1].</p></li>
+<li><p><strong>dense_output</strong> (<em>bool</em><em> (</em><em>default=False</em><em>)</em>) – Whether randomized feature matrix is dense or sparse.
+For kernel=’anova’, if dense_output = False,
+distribution=’sparse_rademacher’, and X is sparse matrix, output random
+feature matrix will become sparse matrix.
+For kernel=’anova_cython’, if dense_output=False, output random feature
+matrix will become sparse matrix.</p></li>
+<li><p><strong>p_sparse</strong> (<em>float</em><em> (</em><em>default=0.</em><em>)</em>) – Sparsity parameter for “sparse_rademacher” distribution.
+If p_sparse = 0, “sparse_rademacher” is equivalent to “rademacher”.</p></li>
 <li><p><strong>random_state</strong> (<em>int</em><em>, </em><em>RandomState instance</em><em> or </em><em>None</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – If int, random_state is the seed used by the random number generator;
-If np.RandomState instance, random_state is the random number generator;
+If RandomState instance, random_state is the random number generator;
 If None, the random number generator is the RandomState instance used
 by <cite>np.random</cite>.</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="attribute">
-<dt id="pyrfm.random_feature.StructuredOrthogonalRandomFeature.random_weights_">
-<code class="sig-name descname">random_weights_</code><a class="headerlink" href="#pyrfm.random_feature.StructuredOrthogonalRandomFeature.random_weights_" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dt id="pyrfm.random_feature.SubfeatureRandomMaclaurin.orders_">
+<code class="sig-name descname">orders_</code><a class="headerlink" href="#pyrfm.random_feature.SubfeatureRandomMaclaurin.orders_" title="Permalink to this definition">¶</a></dt>
+<dd><p>The sampled orders of the Maclaurin expansion.
+The j-th components of random feature approximates orders_[j]-th order
+of the Maclaurin expansion.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>array, shape (n_components, n_features) (use_offset=True)</p>
+<dd class="field-odd"><p>array, shape (n_components, )</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="pyrfm.random_feature.StructuredOrthogonalRandomFeature.or">
-<code class="sig-name descname">or</code><span class="sig-paren">(</span><em class="sig-param">n_components/2</em>, <em class="sig-param">n_features) (otherwise</em><span class="sig-paren">)</span><a class="headerlink" href="#pyrfm.random_feature.StructuredOrthogonalRandomFeature.or" title="Permalink to this definition">¶</a></dt>
+<dt id="pyrfm.random_feature.SubfeatureRandomMaclaurin.random_weights_">
+<code class="sig-name descname">random_weights_</code><a class="headerlink" href="#pyrfm.random_feature.SubfeatureRandomMaclaurin.random_weights_" title="Permalink to this definition">¶</a></dt>
 <dd><p>The sampled basis.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="pyrfm.random_feature.StructuredOrthogonalRandomFeature.random_offset_">
-<code class="sig-name descname">random_offset_</code><a class="headerlink" href="#pyrfm.random_feature.StructuredOrthogonalRandomFeature.random_offset_" title="Permalink to this definition">¶</a></dt>
-<dd><p>The sampled offset vector. If use_offset=False, random_offset_=None.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>array or None, shape (n_components, )</p>
+<dd class="field-odd"><p>csr_matrix, shape (n_features, np.sum(<a href="#id3"><span class="problematic" id="id4">orders_</span></a>))</p>
 </dd>
 </dl>
 </dd></dl>
 
 <p class="rubric">References</p>
-<p>[1] Orthogonal Random Features.
-Felix Xinnan Yu, Ananda Theertha Suresh, Krzysztof Choromanski,
-Daniel Holtmann-Rice, and Sanjiv Kumar.
-In NIPS 2016.
-(<a class="reference external" href="https://arxiv.org/pdf/1610.09072.pdf">https://arxiv.org/pdf/1610.09072.pdf</a>)</p>
+<p>[1] Random Feature Maps for Dot Product Kernels.
+Purushottam Kar and Harish Karnick.
+In AISTATS 2012.
+(<a class="reference external" href="http://proceedings.mlr.press/v22/kar12/kar12.pdf">http://proceedings.mlr.press/v22/kar12/kar12.pdf</a>)</p>
+<p>[2] Sparse Random Feature Maps for the item-multiset Kernel.
+Kyohei Atarashi, Satoshi Oyama and Masahito Kurihara.
+To appear.</p>
 <dl class="method">
-<dt id="pyrfm.random_feature.StructuredOrthogonalRandomFeature.fit">
-<code class="sig-name descname">fit</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyrfm/random_feature/orthogonal_random_feature.html#StructuredOrthogonalRandomFeature.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.random_feature.StructuredOrthogonalRandomFeature.fit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate random weights according to n_features.</p>
+<dt id="pyrfm.random_feature.SubfeatureRandomMaclaurin.fit">
+<code class="sig-name descname">fit</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">y=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyrfm/random_feature/random_maclaurin.html#SubfeatureRandomMaclaurin.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.random_feature.SubfeatureRandomMaclaurin.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate random weights and orders according to n_features.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>X</strong> (<em>{array-like</em><em>, </em><em>sparse matrix}</em><em>, </em><em>shape</em><em> (</em><em>n_samples</em><em>, </em><em>n_features</em><em>)</em>) – Training data, where n_samples in the number of samples
@@ -259,8 +264,8 @@ and n_features is the number of features.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pyrfm.random_feature.StructuredOrthogonalRandomFeature.fit_transform">
-<code class="sig-name descname">fit_transform</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">**fit_params</em><span class="sig-paren">)</span><a class="headerlink" href="#pyrfm.random_feature.StructuredOrthogonalRandomFeature.fit_transform" title="Permalink to this definition">¶</a></dt>
+<dt id="pyrfm.random_feature.SubfeatureRandomMaclaurin.fit_transform">
+<code class="sig-name descname">fit_transform</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">y=None</em>, <em class="sig-param">**fit_params</em><span class="sig-paren">)</span><a class="headerlink" href="#pyrfm.random_feature.SubfeatureRandomMaclaurin.fit_transform" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fit to data, then transform it.</p>
 <p>Fits transformer to X and y with optional parameters fit_params
 and returns a transformed version of X.</p>
@@ -281,8 +286,8 @@ and returns a transformed version of X.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pyrfm.random_feature.StructuredOrthogonalRandomFeature.get_params">
-<code class="sig-name descname">get_params</code><span class="sig-paren">(</span><em class="sig-param">deep=True</em><span class="sig-paren">)</span><a class="headerlink" href="#pyrfm.random_feature.StructuredOrthogonalRandomFeature.get_params" title="Permalink to this definition">¶</a></dt>
+<dt id="pyrfm.random_feature.SubfeatureRandomMaclaurin.get_params">
+<code class="sig-name descname">get_params</code><span class="sig-paren">(</span><em class="sig-param">deep=True</em><span class="sig-paren">)</span><a class="headerlink" href="#pyrfm.random_feature.SubfeatureRandomMaclaurin.get_params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get parameters for this estimator.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -299,8 +304,8 @@ contained subobjects that are estimators.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pyrfm.random_feature.StructuredOrthogonalRandomFeature.set_params">
-<code class="sig-name descname">set_params</code><span class="sig-paren">(</span><em class="sig-param">**params</em><span class="sig-paren">)</span><a class="headerlink" href="#pyrfm.random_feature.StructuredOrthogonalRandomFeature.set_params" title="Permalink to this definition">¶</a></dt>
+<dt id="pyrfm.random_feature.SubfeatureRandomMaclaurin.set_params">
+<code class="sig-name descname">set_params</code><span class="sig-paren">(</span><em class="sig-param">**params</em><span class="sig-paren">)</span><a class="headerlink" href="#pyrfm.random_feature.SubfeatureRandomMaclaurin.set_params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the parameters of this estimator.</p>
 <p>The method works on simple estimators as well as on nested objects
 (such as pipelines). The latter have parameters of the form
@@ -317,8 +322,8 @@ component of a nested object.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pyrfm.random_feature.StructuredOrthogonalRandomFeature.transform">
-<code class="sig-name descname">transform</code><span class="sig-paren">(</span><em class="sig-param">X</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyrfm/random_feature/orthogonal_random_feature.html#StructuredOrthogonalRandomFeature.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.random_feature.StructuredOrthogonalRandomFeature.transform" title="Permalink to this definition">¶</a></dt>
+<dt id="pyrfm.random_feature.SubfeatureRandomMaclaurin.transform">
+<code class="sig-name descname">transform</code><span class="sig-paren">(</span><em class="sig-param">X</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyrfm/random_feature/random_maclaurin.html#SubfeatureRandomMaclaurin.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.random_feature.SubfeatureRandomMaclaurin.transform" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply the approximate feature map to X.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -346,10 +351,10 @@ and n_features is the number of features.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="pyrfm.random_feature.SubsampledRandomHadamard.html" class="btn btn-neutral float-right" title="pyrfm.random_feature.SubsampledRandomHadamard" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="pyrfm.random_feature.TensorSketch.html" class="btn btn-neutral float-right" title="pyrfm.random_feature.TensorSketch" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="pyrfm.random_feature.SignedCirculantRandomMatrix.html" class="btn btn-neutral float-left" title="pyrfm.random_feature.SignedCirculantRandomMatrix" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="pyrfm.random_feature.SubfeatureRandomKernel.html" class="btn btn-neutral float-left" title="pyrfm.random_feature.SubfeatureRandomKernel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

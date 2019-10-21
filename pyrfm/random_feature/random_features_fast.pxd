@@ -31,6 +31,16 @@ cdef class CRandomMaclaurin(BaseCRandomFeature):
     cdef double[:] cache
 
 
+cdef class CSubfeatureRandomMaclaurin(BaseCRandomFeature):
+    cdef RowDataset random_weights
+    cdef int[:] orders
+    cdef double[:] p_choice
+    cdef double[:] coefs
+    cdef double[:] cache
+    cdef int n_sub_features
+    cdef double scale_comb
+
+
 cdef class CTensorSketch(BaseCRandomFeature):
     cdef int degree
     cdef int[:] hash_indices
@@ -46,7 +56,7 @@ cdef class CRandomKernel(BaseCRandomFeature):
     cdef double[:, ::1] anova
 
 
-cdef class CRandomSubsetKernel(BaseCRandomFeature):
+cdef class CSubfeatureRandomKernel(BaseCRandomFeature):
     cdef RowDataset random_weights
     cdef int degree
     cdef int kernel
