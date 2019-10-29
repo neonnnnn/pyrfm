@@ -11,6 +11,7 @@ from sklearn.utils import check_random_state
 import numpy as np
 cimport numpy as np
 from scipy.sparse import csr_matrix
+from libc.stdlib cimport rand, srand, RAND_MAX
 
 
 # efficient sampling algorithm for sparse rademacher matrix
@@ -38,8 +39,9 @@ def sparse_rademacher(rng, int[:] size, double p_sparse):
 
     # sampling nonzero row indices : O(\sum_{i=1}^{n_components} nnz_i=nnz)
     offset = 0
+    srand(rng.randint())
     for i in range(n_components):
-        fisher_yates_shuffle(arange, n_features, n_nzs[i], rng)
+        fisher_yates_shuffle(arange, n_features, n_nzs[i])
         n_nz_i = n_nzs[i]
         for j in range(n_nz_i):
             col_ind[offset+j] = i
@@ -51,12 +53,11 @@ def sparse_rademacher(rng, int[:] size, double p_sparse):
     return csr_matrix((data, (row_ind, col_ind)), shape=size)
 
 
-cdef inline void fisher_yates_shuffle(int[:] permutation, int length, int n,
-                                      rng):
+cdef inline void fisher_yates_shuffle(int[:] permutation, int length, int n):
     cdef Py_ssize_t i, j
     cdef int tmp
     for i in range(n):
-        j = rng.randint(0, length-i)
+        j = rand() % (length-i)
         tmp = permutation[i]
         permutation[i] = permutation[j+i]
         permutation[j+i] = tmp
@@ -72,6 +73,7 @@ cdef class Categorical:
     def __init__(self, frequent, random_state=None):
         self.n_categories = len(frequent)
         self.random_state = check_random_state(random_state)
+        srand(self.random_state.randint())
 
     def __cinit__(self, frequent, random_state=None):
         cdef int i, j, ii, n_overfull, n_underfull
@@ -126,7 +128,8 @@ cdef class Categorical:
         ret = np.zeros(_size, dtype=np.int32)
         for i in range(_size):
             u = self.random_state.uniform(0, self.sum)
-            j = self.random_state.randint(0, self.n_categories)
+            # j = self.random_state.randint(0, self.n_categories)
+            j = rand() % (self.n_categories)
             if u <= self.frequent[j]:
                 ret[i] = j
             else:
@@ -183,8 +186,9 @@ cdef inline void _get_subfeatures_indices(int[:] indices,
     cdef Py_ssize_t offset, i, j
     cdef int ii
     offset = 0
+    srand(rng.randint())
     for j in range(n_components):
-        fisher_yates_shuffle(perm, n_features, n_sub_features, rng)
+        fisher_yates_shuffle(perm, n_features, n_sub_features)
         for i in range(n_sub_features):
             indices[offset+i] = perm[i]
         offset += n_sub_features
