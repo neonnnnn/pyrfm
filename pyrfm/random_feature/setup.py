@@ -3,6 +3,7 @@ import numpy
 from os.path import join
 import os
 
+
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
 

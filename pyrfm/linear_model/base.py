@@ -69,7 +69,11 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
             raise ValueError("eta0 <= 0.")
 
     # for stochastic solver
-    def _init_params(self, n_components):
+    def _init_params(self, X):
+        if not (self.warm_start and hasattr(self.transformer, 'random_weights_')):
+            self.transformer.fit(X)
+        n_components = self.transformer.n_components
+
         if not (self.warm_start and hasattr(self, 'coef_')):
             self.coef_ = np.zeros(n_components)
 
