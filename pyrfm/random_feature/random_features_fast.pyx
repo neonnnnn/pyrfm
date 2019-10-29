@@ -660,11 +660,12 @@ cdef _transform_all_fast_sparse(RowDataset dataset,
     cdef int n_nz, n_nz_output
     cdef double[:] z = array((n_components,), sizeof(double), format='d')
     cdef vector[double] data_vec
-    cdef vector[int] row_vec
     cdef vector[int] col_vec
-    cdef double[:] data_arr
-    cdef unsigned int[:] row_indices
-    cdef unsigned int[:] col_indices
+    cdef np.ndarray[np.float64_t, ndim=1] data_arr
+    cdef np.ndarray[np.int32_t, ndim=1] indices_arr
+    cdef np.ndarray[np.int32_t, ndim=1] indptr
+
+    indptr = np.zeros(n_samples+1, dtpye=np.int32)
     n_nz_output = 0
     for i in range(n_samples):
         dataset.get_row_ptr(i, &indices, &data, &n_nz)
@@ -672,20 +673,17 @@ cdef _transform_all_fast_sparse(RowDataset dataset,
         for j in range(n_components):
             if z[j] != 0:
                 data_vec.push_back(z[j])
-                row_vec.push_back(i)
-                col_vec.push_back(j)
+                col_vec.push_back(i)
+                indptr[i+1] += 1
                 n_nz_output += 1
-    data_arr = array((n_nz_output, ), sizeof(double), format='d')
-    row_indices = array((n_nz_output, ), sizeof(unsigned int),
-                        format='ui')
-    col_indices = array((n_nz_output, ), sizeof(unsigned int),
-                        format='ui')
+        indptr[i+1] += indptr[i]
 
+    data_arr = np.empty((n_nz_output, ), dtype=np.float64)
+    indices_arr = np.empty((n_nz_output, ), dtype=np.int32)
     for j in range(n_nz_output):
         data_arr[j] = data_vec[j]
-        row_indices[j] = row_vec[j]
-        col_indices[j] = col_vec[j]
-    return csr_matrix((data_arr, (row_indices, col_indices)),
+        indices_arr[j] = col_vec[j]
+    return csr_matrix((data_arr, indices_arr, indptr),
                       shape=(n_samples, n_components))
 
 
