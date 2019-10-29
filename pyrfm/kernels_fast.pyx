@@ -89,12 +89,15 @@ cdef _canova_sparse(RowDataset X,
     cdef int x_n_nz, p_n_nz
     cdef unsigned long int n_nz_all_all
     cdef Py_ssize_t n_samples_x, n_samples_p, i1, ii2, i2, jj, j, t
-
-    cdef vector[double] data_vec
-    cdef vector[int] row_vec
-    cdef vector[int] col_vec
     n_samples_x = X.get_n_samples()
     n_samples_p = P.get_n_samples()
+
+    cdef vector[double] data_vec
+    cdef vector[int] col_vec
+    cdef np.ndarray[np.float64_t, ndim=1] data
+    cdef np.ndarray[np.int32_t, ndim=1] indptr
+    cdef np.ndarray[np.int32_t, ndim=1] indices
+    indptr = np.zeros(n_samples_x+1, dtype=np.int32)
 
     cdef double[:, ::1] a = array((n_samples_p, degree+1), sizeof(double), 'd')
     for i2 in range(n_samples_p):
@@ -117,24 +120,19 @@ cdef _canova_sparse(RowDataset X,
             if a[i2, degree] != 0:
                 n_nz_all += 1
                 data_vec.push_back(a[i2, degree])
-                row_vec.push_back(i1)
                 col_vec.push_back(i2)
+                indptr[i1+1] += 1
             for t in range(degree):
                 a[i2, 1+t] = 0
-
-    cdef np.ndarray[np.float64_t, ndim=1] data = np.empty(n_nz_all,
-                                                          dtype=np.float64)
-    cdef np.ndarray[np.int32_t, ndim=1] row = np.empty(n_nz_all,
-                                                       dtype=np.int32)
-    cdef np.ndarray[np.int32_t, ndim=1] col = np.empty(n_nz_all,
-                                                       dtype=np.int32)
+        indptr[i1+1] += indptr[i]
+    data = np.empty(n_nz_all, dtype=np.float64)
+    row = np.empty(n_nz_all, dtype=np.int32)
 
     for i1 in range(n_nz_all):
         data[i1] = data_vec[i1]
-        row[i1] = row_vec[i1]
-        col[i1] = col_vec[i1]
+        indices[i1] = col_vec[i1]
 
-    return csr_matrix((data, (row, col)),
+    return csr_matrix((data, indices, indptr),
                       shape=(n_samples_x, n_samples_p))
 
 
