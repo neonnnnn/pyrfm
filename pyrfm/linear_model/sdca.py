@@ -32,7 +32,7 @@ class BaseSDCAEstimator(BaseLinear):
         self.alpha = alpha
         self.intercept_decay = intercept_decay
         self.l1_ratio = l1_ratio
-        self.normalize = normalize
+        self.normalize= normalize
         self.fit_intercept = fit_intercept
         self.max_iter = max_iter
         self.tol = tol
@@ -70,10 +70,9 @@ class BaseSDCAEstimator(BaseLinear):
             self.transformer.fit(X)
 
         n_samples, n_features = X.shape
-        n_components = self.transformer.n_components
         # init primal parameters, mean/var vectors and t_
         self._valid_params()
-        self._init_params(n_components)
+        self._init_params(X)
 
         self.dual_coef_ = np.zeros(n_samples)
         loss = self.LOSSES[self.loss]

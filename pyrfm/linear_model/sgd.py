@@ -55,8 +55,9 @@ class BaseSGDEstimator(BaseLinear):
         self.fast_solver = fast_solver
         self.shuffle = shuffle
 
-    def _init_params(self, n_components):
-        super(BaseSGDEstimator, self)._init_params(n_components)
+    def _init_params(self, X):
+        super(BaseSGDEstimator, self)._init_params(X)
+        n_components = self.transformer.n_components
 
         if not (self.warm_start and hasattr(self, 'coef_cache_')):
             self.coef_cache_ = np.zeros(n_components)
@@ -104,14 +105,10 @@ class BaseSGDEstimator(BaseLinear):
         """
 
         X, y = self._check_X_y(X, y, accept_sparse=['csr'])
-        if not self.warm_start:
-            self.transformer.fit(X)
-
         n_samples, n_features = X.shape
-        n_components = self.transformer.n_components
         # valid hyper parameters and init parameters
         self._valid_params()
-        self._init_params(n_components)
+        self._init_params(X)
 
         loss = self.LOSSES[self.loss]
         alpha = self.alpha / self.C
