@@ -12,6 +12,7 @@ from .signed_circulant_random_projection import SignedCirculantRandomMatrix
 from .random_projection import RandomProjection
 from .orthogonal_random_feature import (OrthogonalRandomFeature,
                                         StructuredOrthogonalRandomFeature)
+from .additivechi2sampler import AdditiveChi2Sampler
 
 
 DOWNSAMPLES = {'srht': SubsampledRandomHadamard,
