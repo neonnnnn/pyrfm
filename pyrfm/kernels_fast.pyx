@@ -124,9 +124,9 @@ cdef _canova_sparse(RowDataset X,
                 indptr[i1+1] += 1
             for t in range(degree):
                 a[i2, 1+t] = 0
-        indptr[i1+1] += indptr[i]
+        indptr[i1+1] += indptr[i1]
     data = np.empty(n_nz_all, dtype=np.float64)
-    row = np.empty(n_nz_all, dtype=np.int32)
+    indices = np.empty(n_nz_all, dtype=np.int32)
 
     for i1 in range(n_nz_all):
         data[i1] = data_vec[i1]

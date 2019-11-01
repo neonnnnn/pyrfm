@@ -59,10 +59,10 @@ class BaseSparseMBEstimator(BaseLinear):
             Returns self.
         """
         X, y = self._check_X_y(X, y)
-        if not (self.warm_start and hasattr(self, 'transformer_')):
-            self.transformer_ = SparseMB(n_components=self.n_components)
-            self.transformer_.fit(X)
-        X_trans = self.transformer_.transform(X)
+        if not (self.warm_start and hasattr(self, 'transformer')):
+            self.transformer = SparseMB(n_components=self.n_components)
+            self.transformer.fit(X)
+        X_trans = self.transformer.transform(X)
         if not (self.warm_start and hasattr(self, 'coef_')):
             self.coef_ = np.zeros(self.n_components)
 
@@ -151,7 +151,7 @@ class SparseMBClassifier(BaseSparseMBEstimator, LinearClassifierMixin):
 
     Attributes
     ----------
-    self.transformer_ : scikit-learn TransformMixin object.
+    self.transformer : scikit-learn TransformMixin object.
         The learned transformer for random feature maps.
 
     self.coef_ : array, shape (n_components, )
@@ -239,7 +239,7 @@ class SparseMBRegressor(BaseSparseMBEstimator, LinearRegressorMixin):
 
     Attributes
     ----------
-    self.transformer_ : scikit-learn TransformMixin object.
+    self.transformer : scikit-learn TransformMixin object.
         The learned transformer for random feature maps.
 
     self.coef_ : array, shape (n_components, )

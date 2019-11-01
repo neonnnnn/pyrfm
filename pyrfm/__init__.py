@@ -7,7 +7,8 @@ from .random_feature import (RandomFourier, RandomMaclaurin,
                              SignedCirculantRandomMatrix,
                              CompactRandomFeature,
                              OrthogonalRandomFeature,
-                             StructuredOrthogonalRandomFeature)
+                             StructuredOrthogonalRandomFeature,
+                             AdditiveChi2Sampler)
 from .kernels import (anova, all_subsets, chi_square, hellinger,
                       intersection, anova_fast)
 from .kernels_fast import (_anova, _all_subsets, _chi_square,

@@ -6,11 +6,11 @@
 # Author: Kyohei Atarashi
 # License: BSD-2-Clause
 
-from libc.math cimport cos, sin, sqrt
+from libc.math cimport cos, sin, sqrt, cosh, pi, log
 from scipy.fftpack._fftpack import zfft
 import numpy as np
 cimport numpy as np
-from sklearn.kernel_approximation import RBFSampler
+from sklearn.kernel_approximation import (RBFSampler, SkewedChi2Sampler)
 from ..dataset_fast import get_dataset
 from ..dataset_fast cimport RowDataset, ColumnDataset
 from cython.view cimport array
@@ -18,7 +18,8 @@ from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
                FastFood, SubsampledRandomHadamard, CompactRandomFeature,
                RandomProjection, OrthogonalRandomFeature,
                SubfeatureRandomMaclaurin, StructuredOrthogonalRandomFeature,
-               SignedCirculantRandomMatrix, SubfeatureRandomKernel)
+               SignedCirculantRandomMatrix, SubfeatureRandomKernel,
+               AdditiveChi2Sampler)
 from .fht_fast cimport _fwht1d_fast
 from libcpp.vector cimport vector
 from scipy.sparse import csc_matrix, csr_matrix
@@ -32,6 +33,8 @@ RANDOMFEATURES = {
     SubfeatureRandomMaclaurin: CSubfeatureRandomMaclaurin,
     TensorSketch: CTensorSketch,
     RBFSampler: CRBFSampler,
+    AdditiveChi2Sampler: CAdditiveChi2Sampler,
+    SkewedChi2Sampler: CSkewedChi2Sampler,
     FastFood: CFastFood,
     SubsampledRandomHadamard: CSubsampledRandomHadamard,
     RandomProjection: CRandomProjection,
@@ -100,6 +103,73 @@ cdef class CRBFSampler(BaseCRandomFeature):
             z[i] = cos(z[i]) / self.scale
 
 
+cdef class CSkewedChi2Sampler(BaseCRandomFeature):
+    def __init__(self, transformer):
+        self.n_components = transformer.n_components
+        self.n_features = transformer.random_weights_.shape[0]
+        self.random_weights = transformer.random_weights_
+        self.random_offset = transformer.random_offset_
+        self.skewedness = transformer.skewedness
+        self.scale = sqrt(self.n_components/2.)
+
+    cdef void transform(self,
+                        double* z,
+                        double* data,
+                        int* indices,
+                        int n_nz):
+        cdef Py_ssize_t i, j, jj, n_samples
+        cdef double log_data_skewdness
+        # z = (cos, cos, ..., cos)
+        for i in range(self.n_components):
+            z[i] = self.random_offset[i]
+
+        for jj in range(n_nz):
+            j = indices[jj]
+            log_data_skewdness = log(data[jj]+self.skewedness)
+            for i in range(self.n_components):
+                z[i] += log_data_skewdness * self.random_weights[j, i]
+
+        for i in range(self.n_components):
+            z[i] = cos(z[i]) / self.scale
+
+
+cdef class CAdditiveChi2Sampler(BaseCRandomFeature):
+    def __init__(self, transformer):
+        self.n_features = transformer.n_features
+        self.sample_steps = transformer.sample_steps
+        if transformer.sample_interval is None:
+            self.sample_interval = transformer.sample_interval_
+        else:
+            self.sample_interval = transformer.sample_interval
+        self.n_components = transformer.n_components
+
+    cdef void transform(self,
+                        double* z,
+                        double* data,
+                        int* indices,
+                        int n_nz):
+        cdef Py_ssize_t i, j, jj
+        cdef Py_ssize_t offset = 0
+        cdef double factor_nz, step_nz, log_step_nz
+        for j in range(self.n_components):
+            z[j] = 0
+    
+        for jj in range(n_nz):
+            j = indices[jj]
+            z[j] = sqrt(data[jj]*self.sample_interval)
+
+        offset = self.n_features       
+        for jj in range(n_nz):
+            j = indices[jj]
+            if data[jj] != 0:
+                log_step_nz = self.sample_interval * log(data[jj])
+                step_nz = 2 * data[jj] * self.sample_interval
+                for i in range(1, self.sample_steps):
+                    factor_nz = sqrt(step_nz / cosh(pi * i * self.sample_interval))
+                    z[offset*(2*i-1)+j] = factor_nz * cos(i * log_step_nz) 
+                    z[offset*2*i+j] = factor_nz * sin(i * log_step_nz)
+
+        
 cdef class CRandomFourier(BaseCRandomFeature):
     def __init__(self, transformer):
         self.n_components = transformer.n_components
@@ -108,7 +178,6 @@ cdef class CRandomFourier(BaseCRandomFeature):
         self.random_offset = transformer.random_offset_
         self.use_offset = transformer.use_offset
         self.scale = sqrt(self.n_components/2.)
-
 
     cdef void transform(self,
                         double* z,
@@ -208,6 +277,7 @@ cdef class CSubfeatureRandomMaclaurin(BaseCRandomFeature):
                 offset += 1
             z[i] *= sqrt(self.coefs[deg]/self.p_choice[deg])
             z[i] /= self.scale
+
 
 cdef class CTensorSketch(BaseCRandomFeature):
     def __init__(self, transformer):
