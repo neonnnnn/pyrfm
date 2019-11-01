@@ -4,6 +4,7 @@
 import numpy as np
 from abc import ABCMeta
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
+from sklearn.base import TransformerMixin
 from sklearn.utils.extmath import safe_sparse_dot, softmax
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.utils import check_X_y
@@ -14,6 +15,8 @@ from ..random_feature.random_features_fast import get_fast_random_feature
 from ..dataset_fast import get_dataset
 from .stochastic_predict import _predict_fast
 from scipy import sparse
+from ..random_feature.maji_berg import MB
+from ..random_feature import AdditiveChi2Sampler
 
 
 def sigmoid(pred):
@@ -70,7 +73,7 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
 
     # for stochastic solver
     def _init_params(self, X):
-        if not (self.warm_start and hasattr(self.transformer, 'random_weights_')):
+        if not (self.warm_start and self._check_transformer_is_fitted()):
             self.transformer.fit(X)
         n_components = self.transformer.n_components
 
@@ -96,22 +99,32 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
             self.mean_ = None
             self.var_ = None
 
+    def _check_transformer_is_fitted(self):
+        if not isinstance(self.transformer, TransformerMixin):
+            raise ValueError("transformer is not an instance of TransformerMixin.")
+        if isinstance(self.transformer, AdditiveChi2Sampler):
+            if not hasattr(self.transformer, "sample_interval"):
+                return False
+        elif isinstance(self.transformer, MB):
+            if not hasattr(self.transformer, "n_grids_"):
+                return False
+        elif not hasattr(self.transformer, "random_weights_"):
+            return False
+        
+        return True
+
     def _predict(self, X):
         check_is_fitted(self, 'coef_')
-        if hasattr(self, "transformer_"):
-            transformer = self.transformer_
-        else:
-            transformer = self.transformer
         if getattr(self, 'stochastic', False):
             y_pred = np.zeros(X.shape[0])
             is_sparse = sparse.issparse(X)
-            transformer_fast = get_fast_random_feature(transformer)
+            transformer_fast = get_fast_random_feature(self.transformer)
             if transformer_fast is None or not self.fast_solver:
                 for i, xi in enumerate(X):
                     if is_sparse:
-                        xi_trans = transformer.transform(xi).ravel()
+                        xi_trans = self.transformer.transform(xi).ravel()
                     else:
-                        xi_trans = transformer.transform(
+                        xi_trans = self.transformer.transform(
                             np.atleast_2d(xi)).ravel()
 
                     if self.normalize:
@@ -124,7 +137,7 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
                 _predict_fast(self.coef_, get_dataset(X, order='c'), y_pred,
                               self.mean_, self.var_, transformer_fast)
         else:
-            X_trans = transformer.transform(X)
+            X_trans = self.transformer.transform(X)
             y_pred = safe_sparse_dot(X_trans, self.coef_.T)
 
         if self.fit_intercept and hasattr(self, 'intercept_'):
