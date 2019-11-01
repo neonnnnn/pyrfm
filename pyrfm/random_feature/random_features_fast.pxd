@@ -17,6 +17,17 @@ cdef class CRBFSampler(BaseCRandomFeature):
     cdef double[:] random_offset
 
 
+cdef class CAdditiveChi2Sampler(BaseCRandomFeature):
+    cdef Py_ssize_t sample_steps
+    cdef double sample_interval
+
+
+cdef class CSkewedChi2Sampler(BaseCRandomFeature):
+    cdef double[:, ::1] random_weights
+    cdef double[:] random_offset
+    cdef double skewedness
+
+
 cdef class CRandomFourier(BaseCRandomFeature):
     cdef RowDataset random_weights
     cdef double[:] random_offset
