@@ -13,6 +13,8 @@ from .random_projection import RandomProjection
 from .orthogonal_random_feature import (OrthogonalRandomFeature,
                                         StructuredOrthogonalRandomFeature)
 from .additivechi2sampler import AdditiveChi2Sampler
+from .learning_kernel_with_random_feature_fast import proj_l1ball, proj_l1ball_sort
+from .learning_kernel_with_random_feature import LearningKernelwithRandomFeature
 
 
 DOWNSAMPLES = {'srht': SubsampledRandomHadamard,
