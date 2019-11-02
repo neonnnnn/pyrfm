@@ -272,3 +272,21 @@ def chi_square(X, P):
     P = check_array(P, True)
     return _chi_square(X, P)
 
+
+def kernel_alignment(K, y):
+    """Compute kernel alignment.
+
+    Parameters
+    ----------
+    K : array, shape (n_sample, n_samples)
+        Gram matrix.
+
+    y : array, shape (n_samples, )
+        Label.
+    
+    Returns
+    -------
+    score : double
+
+    """
+    return np.dot(y, np.dot(K, y))
