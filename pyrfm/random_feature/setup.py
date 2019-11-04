@@ -28,6 +28,12 @@ def configuration(parent_package='', top_path=None):
                          sources=["utils_fast.pyx"],
                          language="c++",
                          include_dirs=[numpy.get_include()])
+    
+    config.add_extension("learning_kernel_with_random_feature_fast",
+                         sources=["learning_kernel_with_random_feature_fast.pyx"],
+                         language="c++",
+                         include_dirs=[numpy.get_include()])
+
 
     config.add_extension('fht_fast',
                          sources=["fht_fast.pyx",
@@ -37,6 +43,7 @@ def configuration(parent_package='', top_path=None):
                          depends=[join("src", "FFHT", "fht.h")],
                          )
 
+    
     maybe_cythonize_extensions(top_path, config)
     return config
 

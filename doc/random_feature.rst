@@ -7,6 +7,7 @@ Random features
    :toctree: generated/
    :template: class.rst
 
+   AdditiveChi2Sampler
    CompactRandomFeature
    FastFood
    MB
@@ -22,4 +23,5 @@ Random features
    SubfeatureRandomKernel
    SubfeatureRandomMaclaurin
    TensorSketch
+   LearningKernelwithRandomFeature
 

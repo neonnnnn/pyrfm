@@ -12,6 +12,7 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.externals import six
 from sklearn.utils.multiclass import type_of_target
 from ..random_feature.random_features_fast import get_fast_random_feature
+from ..random_feature import LearningKernelwithRandomFeature
 from ..dataset_fast import get_dataset
 from .stochastic_predict import _predict_fast
 from scipy import sparse
@@ -72,9 +73,9 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
             raise ValueError("eta0 <= 0.")
 
     # for stochastic solver
-    def _init_params(self, X):
+    def _init_params(self, X, y):
         if not (self.warm_start and self._check_transformer_is_fitted()):
-            self.transformer.fit(X)
+            self.transformer.fit(X, y)
         n_components = self.transformer.n_components
 
         if not (self.warm_start and hasattr(self, 'coef_')):
@@ -110,7 +111,10 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
                 return False
         elif not hasattr(self.transformer, "random_weights_"):
             return False
-        
+        if isinstance(self.transformer, LearningKernelwithRandomFeature):
+            if not hasattr(self.transformer, "importance_weights_"):
+                return False
+            
         return True
 
     def _predict(self, X):
