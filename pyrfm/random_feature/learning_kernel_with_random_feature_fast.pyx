@@ -87,44 +87,6 @@ cdef inline void _proj_l1ball(double[:] v,
             v[i] = 0
 
 
-def optimize_chi2(double[:] p,
-                  double[:] v,
-                  double lam,
-                  int n_components):
-    cdef Py_ssize_t i
-    for i in range(n_components):
-        p[i] = v[i]
-
-    _proj_l1ball(p, 2*lam*n_components, n_components)
-    for i in range(n_components):
-        p[i] /= 2*lam*n_components
-
-
-def optimize_kl(double[:] p,
-                double[:] v,
-                double lam,
-                int n_components):
-    cdef Py_ssize_t i
-    cdef double v_max, scale
-    v_max = v[0]
-    for i in range(1, n_components):
-        if v[i] > v_max:
-            v_max = v[i]
-    scale = 0
-    for i in range(n_components):
-        p[i] = exp((v[i] - v_max) / lam)
-        scale += p[i]
-    for i in range(n_components):
-        p[i] /= scale
-
-
-def optimize_tv(double[:] p,
-                double[:] v,
-                double lam,
-                int n_components):
-    raise NotImplementedError()
-
-
 def proj_l1ball(v, z):
     projed = np.array(v)
     _proj_l1ball(projed, z, len(projed))
