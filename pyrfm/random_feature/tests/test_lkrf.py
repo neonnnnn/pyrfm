@@ -12,14 +12,14 @@ y = data[1]
 y = 2*y-1
 
 
-def _test_learning_kernel_with_random_feature(divergence):
+def _test_learning_kernel_with_random_feature(divergence, rho=1):
     print(divergence)
     trans = RBFSampler(gamma=1, n_components=500, random_state=0)
     X_trans = trans.fit_transform(X)
     score = kernel_alignment(np.dot(X_trans, X_trans.T), y)
     lkrf = LearningKernelwithRandomFeature(trans, warm_start=True,
                                             divergence=divergence,
-                                            max_iter=10)
+                                            max_iter=100, rho=rho)
     X_trans = lkrf.fit_transform(X, y)
     score_lkrf = np.sum(np.dot(y, X_trans)**2)
     print(score_lkrf, score)
@@ -32,9 +32,24 @@ def _test_learning_kernel_with_random_feature(divergence):
 
 def test_lkrf_chi2():
     _test_learning_kernel_with_random_feature('chi2')
+    _test_learning_kernel_with_random_feature('chi2', rho=10)
+
+
+def test_lkrf_chi2_origin():
+    _test_learning_kernel_with_random_feature('chi2_origin')
+    _test_learning_kernel_with_random_feature('chi2', rho=10)
+
 
 def test_lkrf_kl():
     _test_learning_kernel_with_random_feature('kl')
+    _test_learning_kernel_with_random_feature('kl', 10)
+
 
 def test_lkrf_tv():
-    _test_learning_kernel_with_random_feature('tv')
+    _test_learning_kernel_with_random_feature('tv', 0.001)
+    _test_learning_kernel_with_random_feature('tv', 0.01)
+
+
+def test_lkrf_squared():
+    _test_learning_kernel_with_random_feature('squared', 0.001)
+    _test_learning_kernel_with_random_feature('squared', 0.0001)
