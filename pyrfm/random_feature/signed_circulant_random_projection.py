@@ -32,11 +32,11 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
         changed to the smallest n-tuple of the n_features.
 
     gamma : float (default=0.5)
-        Band width parameter. gamma = 1/2\sigma^2, where \sigma is a std
+        Bandwidth parameter. gamma = 1/2\sigma^2, where \sigma is a std
         parameter for gaussian distribution.
 
     random_fourier : boolean (default=True)
-        Approximate RBF kernel or not.
+        Whether to approximate the RBF kernel or not.
         If True, this class samples random_offset_ in the fit method and
         computes the cosine of structured_matrix-feature_vector product
         + random_offset_in transform.

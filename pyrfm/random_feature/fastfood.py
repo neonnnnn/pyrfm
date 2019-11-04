@@ -35,8 +35,8 @@ class FastFood(BaseEstimator, TransformerMixin):
         p = ceil(\log_2 (n_features)).
 
     gamma : float (default=0.5)
-        Band width parameter. gamma = 1/2\sigma^2, where \sigma is a std
-        parameter for gaussian distribution.
+        Bandwidth parameter. gamma = 1/2\sigma^2, where \sigma is a std
+        parameter for the Gaussian distribution.
 
     distribution : str or function (default="gaussian")
         A function for sampling random basis whose arguments
@@ -46,7 +46,7 @@ class FastFood(BaseEstimator, TransformerMixin):
         "uniform" can be used.
 
     random_fourier : boolean (default=True)
-        Approximate RBF kernel or not.
+        Whether to approximate the RBF kernel or not.
         If True, Fastfood samples random_offset_ in the fit method and computes
         the cosine of structured_matrix-feature_vector product + random_offset_
         in transform.
