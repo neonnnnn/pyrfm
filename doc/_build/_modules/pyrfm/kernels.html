@@ -421,6 +421,24 @@
     <span class="n">P</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_chi_square</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">P</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="kernel_alignment"><a class="viewcode-back" href="../../kernel.html#pyrfm.kernels.kernel_alignment">[docs]</a><span class="k">def</span> <span class="nf">kernel_alignment</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute kernel alignment.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    K : array, shape (n_sample, n_samples)</span>
+<span class="sd">        Gram matrix.</span>
+
+<span class="sd">    y : array, shape (n_samples, )</span>
+<span class="sd">        Label.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    score : double</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span></div>
 </pre></div>
 
            </div>

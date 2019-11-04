@@ -204,8 +204,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">fast_solver</span> <span class="o">=</span> <span class="n">fast_solver</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">shuffle</span> <span class="o">=</span> <span class="n">shuffle</span>
 
-    <span class="k">def</span> <span class="nf">_init_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">BaseSGDEstimator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init_params</span><span class="p">(</span><span class="n">n_components</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_init_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BaseSGDEstimator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init_params</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">n_components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="o">.</span><span class="n">n_components</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">warm_start</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;coef_cache_&#39;</span><span class="p">)):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">coef_cache_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_components</span><span class="p">)</span>
@@ -253,14 +254,10 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_X_y</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;csr&#39;</span><span class="p">])</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">warm_start</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
-
         <span class="n">n_samples</span><span class="p">,</span> <span class="n">n_features</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
-        <span class="n">n_components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="o">.</span><span class="n">n_components</span>
         <span class="c1"># valid hyper parameters and init parameters</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_valid_params</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_init_params</span><span class="p">(</span><span class="n">n_components</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_params</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
 
         <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LOSSES</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">]</span>
         <span class="n">alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span>

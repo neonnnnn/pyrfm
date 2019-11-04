@@ -36,7 +36,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="pyrfm.random_feature.CompactRandomFeature" href="generated/pyrfm.random_feature.CompactRandomFeature.html" />
+    <link rel="next" title="pyrfm.random_feature.AdditiveChi2Sampler" href="generated/pyrfm.random_feature.AdditiveChi2Sampler.html" />
     <link rel="prev" title="pyrfm.linear_model.SparseMBRegressor" href="generated/pyrfm.linear_model.SparseMBRegressor.html" /> 
 </head>
 
@@ -85,6 +85,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="linear_model.html">Linear models</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Random features</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.AdditiveChi2Sampler.html">pyrfm.random_feature.AdditiveChi2Sampler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.CompactRandomFeature.html">pyrfm.random_feature.CompactRandomFeature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.FastFood.html">pyrfm.random_feature.FastFood</a></li>
 <li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.MB.html">pyrfm.random_feature.MB</a></li>
@@ -100,6 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.SubfeatureRandomKernel.html">pyrfm.random_feature.SubfeatureRandomKernel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.SubfeatureRandomMaclaurin.html">pyrfm.random_feature.SubfeatureRandomMaclaurin</a></li>
 <li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.TensorSketch.html">pyrfm.random_feature.TensorSketch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generated/pyrfm.random_feature.LearningKernelwithRandomFeature.html">pyrfm.random_feature.LearningKernelwithRandomFeature</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="kernel.html">Kernel functions</a></li>
@@ -175,50 +177,56 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.CompactRandomFeature.html#pyrfm.random_feature.CompactRandomFeature" title="pyrfm.random_feature.CompactRandomFeature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CompactRandomFeature</span></code></a>([transformer_up, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.AdditiveChi2Sampler.html#pyrfm.random_feature.AdditiveChi2Sampler" title="pyrfm.random_feature.AdditiveChi2Sampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AdditiveChi2Sampler</span></code></a>([sample_steps, …])</p></td>
+<td><p>A wrapper of sklearn.kernel_approximation.AdditiveChi2Sampler.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.CompactRandomFeature.html#pyrfm.random_feature.CompactRandomFeature" title="pyrfm.random_feature.CompactRandomFeature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CompactRandomFeature</span></code></a>([transformer_up, …])</p></td>
 <td><p>Approximates feature map of the RBF kernel by Monte Carlo approximation by Random Fourier Feature map.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.FastFood.html#pyrfm.random_feature.FastFood" title="pyrfm.random_feature.FastFood"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FastFood</span></code></a>([n_components, gamma, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.FastFood.html#pyrfm.random_feature.FastFood" title="pyrfm.random_feature.FastFood"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FastFood</span></code></a>([n_components, gamma, …])</p></td>
 <td><p>Approximates feature maps of the product between random matrix and feature vectors by FastFood.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.MB.html#pyrfm.random_feature.MB" title="pyrfm.random_feature.MB"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MB</span></code></a>([n_components])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.MB.html#pyrfm.random_feature.MB" title="pyrfm.random_feature.MB"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MB</span></code></a>([n_components])</p></td>
 <td><p>Approximates feature map of the intersection (min) kernel by explicit feature map, which is proposed by S.Maji and A.C.Berg.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.OrthogonalRandomFeature.html#pyrfm.random_feature.OrthogonalRandomFeature" title="pyrfm.random_feature.OrthogonalRandomFeature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OrthogonalRandomFeature</span></code></a>([n_components, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.OrthogonalRandomFeature.html#pyrfm.random_feature.OrthogonalRandomFeature" title="pyrfm.random_feature.OrthogonalRandomFeature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OrthogonalRandomFeature</span></code></a>([n_components, …])</p></td>
 <td><p>Approximates feature map of the RBF or dot kernel by Monte Carlo approximation by Orthogonal Random Feature map.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.RandomFourier.html#pyrfm.random_feature.RandomFourier" title="pyrfm.random_feature.RandomFourier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomFourier</span></code></a>([n_components, kernel, gamma, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.RandomFourier.html#pyrfm.random_feature.RandomFourier" title="pyrfm.random_feature.RandomFourier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomFourier</span></code></a>([n_components, kernel, gamma, …])</p></td>
 <td><p>Approximates feature map of the RBF kernel by Monte Carlo approximation by Random Fourier Feature map.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.RandomKernel.html#pyrfm.random_feature.RandomKernel" title="pyrfm.random_feature.RandomKernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomKernel</span></code></a>([n_components, kernel, degree, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.RandomKernel.html#pyrfm.random_feature.RandomKernel" title="pyrfm.random_feature.RandomKernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomKernel</span></code></a>([n_components, kernel, degree, …])</p></td>
 <td><p>Approximates feature map of the ANOVA/all-subsets kernel by Monte Carlo approximation by Random Kernel Feature map.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.RandomMaclaurin.html#pyrfm.random_feature.RandomMaclaurin" title="pyrfm.random_feature.RandomMaclaurin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomMaclaurin</span></code></a>([n_components, p, kernel, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.RandomMaclaurin.html#pyrfm.random_feature.RandomMaclaurin" title="pyrfm.random_feature.RandomMaclaurin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomMaclaurin</span></code></a>([n_components, p, kernel, …])</p></td>
 <td><p>Approximates feature map of a dot product kernel by Monte Carlo approximation of its Maclaurin expansion.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.RandomProjection.html#pyrfm.random_feature.RandomProjection" title="pyrfm.random_feature.RandomProjection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomProjection</span></code></a>([n_components, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.RandomProjection.html#pyrfm.random_feature.RandomProjection" title="pyrfm.random_feature.RandomProjection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RandomProjection</span></code></a>([n_components, …])</p></td>
 <td><p>Approximates feature map of the dot product kernel by Monte Carlo approximation by Random Projection`.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SignedCirculantRandomKernel.html#pyrfm.random_feature.SignedCirculantRandomKernel" title="pyrfm.random_feature.SignedCirculantRandomKernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SignedCirculantRandomKernel</span></code></a>(n_components[, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SignedCirculantRandomKernel.html#pyrfm.random_feature.SignedCirculantRandomKernel" title="pyrfm.random_feature.SignedCirculantRandomKernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SignedCirculantRandomKernel</span></code></a>(n_components[, …])</p></td>
 <td><p>Approximates feature map of the ANOVA kernel by Monte Carlo approximation by Signed Circulant Random Kernel map.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SignedCirculantRandomMatrix.html#pyrfm.random_feature.SignedCirculantRandomMatrix" title="pyrfm.random_feature.SignedCirculantRandomMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SignedCirculantRandomMatrix</span></code></a>([n_components, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SignedCirculantRandomMatrix.html#pyrfm.random_feature.SignedCirculantRandomMatrix" title="pyrfm.random_feature.SignedCirculantRandomMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SignedCirculantRandomMatrix</span></code></a>([n_components, …])</p></td>
 <td><p>Approximates feature maps of the product between random matrix and feature vectors by signed circulant random matrix.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.StructuredOrthogonalRandomFeature.html#pyrfm.random_feature.StructuredOrthogonalRandomFeature" title="pyrfm.random_feature.StructuredOrthogonalRandomFeature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StructuredOrthogonalRandomFeature</span></code></a>([…])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.StructuredOrthogonalRandomFeature.html#pyrfm.random_feature.StructuredOrthogonalRandomFeature" title="pyrfm.random_feature.StructuredOrthogonalRandomFeature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StructuredOrthogonalRandomFeature</span></code></a>([…])</p></td>
 <td><p>Approximates feature map of the RBF or dot kernel by Monte Carlo approximation by Structured Orthogonal Random Fourier Feature map.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SubsampledRandomHadamard.html#pyrfm.random_feature.SubsampledRandomHadamard" title="pyrfm.random_feature.SubsampledRandomHadamard"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SubsampledRandomHadamard</span></code></a>([n_components, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SubsampledRandomHadamard.html#pyrfm.random_feature.SubsampledRandomHadamard" title="pyrfm.random_feature.SubsampledRandomHadamard"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SubsampledRandomHadamard</span></code></a>([n_components, …])</p></td>
 <td><p>Approximates feature maps of the product between random matrix and feature vectors by Subsampled Randomized Hadamard Transform</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SubfeatureRandomKernel.html#pyrfm.random_feature.SubfeatureRandomKernel" title="pyrfm.random_feature.SubfeatureRandomKernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SubfeatureRandomKernel</span></code></a>([n_components, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SubfeatureRandomKernel.html#pyrfm.random_feature.SubfeatureRandomKernel" title="pyrfm.random_feature.SubfeatureRandomKernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SubfeatureRandomKernel</span></code></a>([n_components, …])</p></td>
 <td><p>Approximates feature map of the ANOVA/all-subsets kernel by Monte Carlo approximation by Subfeature Random Kernel Feature map.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SubfeatureRandomMaclaurin.html#pyrfm.random_feature.SubfeatureRandomMaclaurin" title="pyrfm.random_feature.SubfeatureRandomMaclaurin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SubfeatureRandomMaclaurin</span></code></a>([n_components, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.SubfeatureRandomMaclaurin.html#pyrfm.random_feature.SubfeatureRandomMaclaurin" title="pyrfm.random_feature.SubfeatureRandomMaclaurin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SubfeatureRandomMaclaurin</span></code></a>([n_components, …])</p></td>
 <td><p>Approximates feature map of a dot product kernel by Monte Carlo approximation of its Maclaurin expansion with only sub features.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.TensorSketch.html#pyrfm.random_feature.TensorSketch" title="pyrfm.random_feature.TensorSketch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorSketch</span></code></a>([n_components, degree, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.TensorSketch.html#pyrfm.random_feature.TensorSketch" title="pyrfm.random_feature.TensorSketch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorSketch</span></code></a>([n_components, degree, …])</p></td>
 <td><p>Approximates feature map of a polynomial kernel by Monte Carlo approximation by using Tensor Sketch.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/pyrfm.random_feature.LearningKernelwithRandomFeature.html#pyrfm.random_feature.LearningKernelwithRandomFeature" title="pyrfm.random_feature.LearningKernelwithRandomFeature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LearningKernelwithRandomFeature</span></code></a>([…])</p></td>
+<td><p>Learnes importance weights for random features by maximizing the kernel alignment.</p></td>
 </tr>
 </tbody>
 </table>
@@ -232,7 +240,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="generated/pyrfm.random_feature.CompactRandomFeature.html" class="btn btn-neutral float-right" title="pyrfm.random_feature.CompactRandomFeature" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="generated/pyrfm.random_feature.AdditiveChi2Sampler.html" class="btn btn-neutral float-right" title="pyrfm.random_feature.AdditiveChi2Sampler" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="generated/pyrfm.linear_model.SparseMBRegressor.html" class="btn btn-neutral float-left" title="pyrfm.linear_model.SparseMBRegressor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

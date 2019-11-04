@@ -36,7 +36,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="pyrfm.random_feature.TensorSketch" href="generated/pyrfm.random_feature.TensorSketch.html" /> 
+    <link rel="prev" title="pyrfm.random_feature.LearningKernelwithRandomFeature" href="generated/pyrfm.random_feature.LearningKernelwithRandomFeature.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -288,6 +288,26 @@
 </dd></dl>
 
 <dl class="function">
+<dt id="pyrfm.kernels.kernel_alignment">
+<code class="sig-prename descclassname">pyrfm.kernels.</code><code class="sig-name descname">kernel_alignment</code><span class="sig-paren">(</span><em class="sig-param">K</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/kernels.html#kernel_alignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.kernels.kernel_alignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute kernel alignment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>K</strong> (<em>array</em><em>, </em><em>shape</em><em> (</em><em>n_sample</em><em>, </em><em>n_samples</em><em>)</em>) – Gram matrix.</p></li>
+<li><p><strong>y</strong> (<em>array</em><em>, </em><em>shape</em><em> (</em><em>n_samples</em><em>, </em><em>)</em>) – Label.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>score</strong></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>double</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="pyrfm.kernels.pairwise">
 <code class="sig-prename descclassname">pyrfm.kernels.</code><code class="sig-name descname">pairwise</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">P</em>, <em class="sig-param">dense_output=True</em>, <em class="sig-param">symmetric=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/kernels.html#pairwise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.kernels.pairwise" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute pairwise kernel.</p>
@@ -323,7 +343,7 @@
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
       
-        <a href="generated/pyrfm.random_feature.TensorSketch.html" class="btn btn-neutral float-left" title="pyrfm.random_feature.TensorSketch" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="generated/pyrfm.random_feature.LearningKernelwithRandomFeature.html" class="btn btn-neutral float-left" title="pyrfm.random_feature.LearningKernelwithRandomFeature" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

@@ -83,6 +83,10 @@ Furthermore, pyrfm **supports following structured random features**.
 These methods are faster and more memory-efficient than canonical random features such as random Fourier, random kernel, etc.
 We believe that you can use these structured random features as a subroutine of your proposed random features, and :class:`SignedCirculantRandomKernel` is an example of it (:class:`SignedCirculantRandomMatrix` is used as a subroutine).
 
+Moreover, following data-dependent random feature methods are supported:
+
+- :class:`LearningKernelwithRandomFeature` :cite:`sinha2016learning`
+
 Linear Models Implemented
 -------------------------
 

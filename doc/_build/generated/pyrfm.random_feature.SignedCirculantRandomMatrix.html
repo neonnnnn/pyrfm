@@ -85,6 +85,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../linear_model.html">Linear models</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../random_feature.html">Random features</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.AdditiveChi2Sampler.html">pyrfm.random_feature.AdditiveChi2Sampler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.CompactRandomFeature.html">pyrfm.random_feature.CompactRandomFeature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.FastFood.html">pyrfm.random_feature.FastFood</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.MB.html">pyrfm.random_feature.MB</a></li>
@@ -100,6 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.SubfeatureRandomKernel.html">pyrfm.random_feature.SubfeatureRandomKernel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.SubfeatureRandomMaclaurin.html">pyrfm.random_feature.SubfeatureRandomMaclaurin</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.TensorSketch.html">pyrfm.random_feature.TensorSketch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyrfm.random_feature.LearningKernelwithRandomFeature.html">pyrfm.random_feature.LearningKernelwithRandomFeature</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../kernel.html">Kernel functions</a></li>
@@ -187,9 +189,9 @@ and feature vectors in some random features.</p>
 Equals the dimensionality of the computed (mapped) feature space.
 If n_components is not a n-tuple of the n_features, it is automatically
 changed to the smallest n-tuple of the n_features.</p></li>
-<li><p><strong>gamma</strong> (<em>float</em><em> (</em><em>default=0.5</em><em>)</em>) – Band width parameter. gamma = 1/2sigma^2, where sigma is a std
+<li><p><strong>gamma</strong> (<em>float</em><em> (</em><em>default=0.5</em><em>)</em>) – Bandwidth parameter. gamma = 1/2sigma^2, where sigma is a std
 parameter for gaussian distribution.</p></li>
-<li><p><strong>random_fourier</strong> (<em>boolean</em><em> (</em><em>default=True</em><em>)</em>) – Approximate RBF kernel or not.
+<li><p><strong>random_fourier</strong> (<em>boolean</em><em> (</em><em>default=True</em><em>)</em>) – Whether to approximate the RBF kernel or not.
 If True, this class samples <a href="#id1"><span class="problematic" id="id2">random_offset_</span></a> in the fit method and
 computes the cosine of structured_matrix-feature_vector product
 + random_offset_in transform.

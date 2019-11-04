@@ -181,8 +181,8 @@
 <span class="sd">        That is, ceil(n_components/n_features)*n_features.</span>
 
 <span class="sd">    gamma : float (default=0.5)</span>
-<span class="sd">        Band width parameter. gamma = 1/2\sigma^2, where \sigma is a std</span>
-<span class="sd">        parameter for gaussian distribution.</span>
+<span class="sd">        Bandwidth parameter. gamma = 1/2\sigma^2, where \sigma is a std</span>
+<span class="sd">        parameter for the Gaussian distribution.</span>
 
 <span class="sd">    distribution : str or function (default=&quot;gaussian&quot;)</span>
 <span class="sd">        A function for sampling random basis whose arguments</span>
@@ -192,11 +192,11 @@
 <span class="sd">        &quot;uniform&quot; can be used.</span>
 
 <span class="sd">    random_fourier : boolean (default=True)</span>
-<span class="sd">        Approximate RBF kernel or not.</span>
-<span class="sd">        If True, Fastfood samples random_offset_ in the fit method and computes</span>
+<span class="sd">        Whether to approximate the RBF kernel or not.</span>
+<span class="sd">        If True, this class samples random_offset_ in the fit method and computes</span>
 <span class="sd">        the cosine of structured_matrix-feature_vector product + random_offset_</span>
 <span class="sd">        in transform.</span>
-<span class="sd">        If False, Fastfood does not sample it and computes just</span>
+<span class="sd">        If False, OrthogonalRandomFeature does not sample it and computes just</span>
 <span class="sd">        structured_matrix-feature_vector product (i.e., approximates dot product</span>
 <span class="sd">        kernel).</span>
 
@@ -320,8 +320,8 @@
 <span class="sd">        That is, ceil(n_components/n_features)*n_features.</span>
 
 <span class="sd">    gamma : float (default=0.5)</span>
-<span class="sd">        Band width parameter. gamma = 1/2\sigma^2, where \sigma is a std</span>
-<span class="sd">        parameter for gaussian distribution.</span>
+<span class="sd">        Bandwidth parameter. gamma = 1/2\sigma^2, where \sigma is a std</span>
+<span class="sd">        parameter for the Gaussian distribution.</span>
 
 <span class="sd">    distribution : str or function (default=&quot;rademacher&quot;)</span>
 <span class="sd">        A function for sampling random basis whose arguments</span>
@@ -331,13 +331,13 @@
 <span class="sd">        &quot;uniform&quot; can be used.</span>
 
 <span class="sd">    random_fourier : boolean (default=True)</span>
-<span class="sd">        Approximate RBF kernel or not.</span>
-<span class="sd">        If True, Fastfood samples random_offset_ in the fit method and computes</span>
+<span class="sd">        Whether to approximate the RBF kernel or not.</span>
+<span class="sd">        If True, this class samples random_offset_ in the fit method and computes</span>
 <span class="sd">        the cosine of structured_matrix-feature_vector product + random_offset_</span>
 <span class="sd">        in transform.</span>
-<span class="sd">        If False, Fastfood does not sample it and computes just</span>
-<span class="sd">        structured_matrix-feature_vector product (i.e., approximates dot product</span>
-<span class="sd">        kernel).</span>
+<span class="sd">        If False, StructuredOrthogonalRandomFeature does not sample it and </span>
+<span class="sd">        computes just structured_matrix-feature_vector product</span>
+<span class="sd">        (i.e., approximates dot product kernel).</span>
 
 <span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
 <span class="sd">        If int, random_state is the seed used by the random number generator;</span>

@@ -1,0 +1,819 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sklearn.kernel_approximation &mdash; pyrfm 0.1.0dev documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> pyrfm
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">API-References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../linear_model.html">Linear models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../random_feature.html">Random features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../kernel.html">Kernel functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pyrfm</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>sklearn.kernel_approximation</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for sklearn.kernel_approximation</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The :mod:`sklearn.kernel_approximation` module implements several</span>
+<span class="sd">approximate kernel feature maps base on Fourier transforms.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Author: Andreas Mueller &lt;amueller@ais.uni-bonn.de&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># License: BSD 3 clause</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.sparse</span> <span class="k">as</span> <span class="nn">sp</span>
+<span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="k">import</span> <span class="n">svd</span>
+
+<span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">BaseEstimator</span>
+<span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">TransformerMixin</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">check_array</span><span class="p">,</span> <span class="n">check_random_state</span><span class="p">,</span> <span class="n">as_float_array</span>
+<span class="kn">from</span> <span class="nn">.utils.extmath</span> <span class="k">import</span> <span class="n">safe_sparse_dot</span>
+<span class="kn">from</span> <span class="nn">.utils.validation</span> <span class="k">import</span> <span class="n">check_is_fitted</span>
+<span class="kn">from</span> <span class="nn">.metrics.pairwise</span> <span class="k">import</span> <span class="n">pairwise_kernels</span><span class="p">,</span> <span class="n">KERNEL_PARAMS</span>
+
+
+<span class="k">class</span> <span class="nc">RBFSampler</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Approximates feature map of an RBF kernel by Monte Carlo approximation</span>
+<span class="sd">    of its Fourier transform.</span>
+
+<span class="sd">    It implements a variant of Random Kitchen Sinks.[1]</span>
+
+<span class="sd">    Read more in the :ref:`User Guide &lt;rbf_kernel_approx&gt;`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gamma : float</span>
+<span class="sd">        Parameter of RBF kernel: exp(-gamma * x^2)</span>
+
+<span class="sd">    n_components : int</span>
+<span class="sd">        Number of Monte Carlo samples per original feature.</span>
+<span class="sd">        Equals the dimensionality of the computed feature space.</span>
+
+<span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
+<span class="sd">        If int, random_state is the seed used by the random number generator;</span>
+<span class="sd">        If RandomState instance, random_state is the random number generator;</span>
+<span class="sd">        If None, the random number generator is the RandomState instance used</span>
+<span class="sd">        by `np.random`.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from sklearn.kernel_approximation import RBFSampler</span>
+<span class="sd">    &gt;&gt;&gt; from sklearn.linear_model import SGDClassifier</span>
+<span class="sd">    &gt;&gt;&gt; X = [[0, 0], [1, 1], [1, 0], [0, 1]]</span>
+<span class="sd">    &gt;&gt;&gt; y = [0, 0, 1, 1]</span>
+<span class="sd">    &gt;&gt;&gt; rbf_feature = RBFSampler(gamma=1, random_state=1)</span>
+<span class="sd">    &gt;&gt;&gt; X_features = rbf_feature.fit_transform(X)</span>
+<span class="sd">    &gt;&gt;&gt; clf = SGDClassifier(max_iter=5, tol=1e-3)</span>
+<span class="sd">    &gt;&gt;&gt; clf.fit(X_features, y)</span>
+<span class="sd">    ... # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    SGDClassifier(alpha=0.0001, average=False, class_weight=None,</span>
+<span class="sd">           early_stopping=False, epsilon=0.1, eta0=0.0, fit_intercept=True,</span>
+<span class="sd">           l1_ratio=0.15, learning_rate=&#39;optimal&#39;, loss=&#39;hinge&#39;, max_iter=5,</span>
+<span class="sd">           n_iter_no_change=5, n_jobs=None, penalty=&#39;l2&#39;, power_t=0.5,</span>
+<span class="sd">           random_state=None, shuffle=True, tol=0.001, validation_fraction=0.1,</span>
+<span class="sd">           verbose=0, warm_start=False)</span>
+<span class="sd">    &gt;&gt;&gt; clf.score(X_features, y)</span>
+<span class="sd">    1.0</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    See &quot;Random Features for Large-Scale Kernel Machines&quot; by A. Rahimi and</span>
+<span class="sd">    Benjamin Recht.</span>
+
+<span class="sd">    [1] &quot;Weighted Sums of Random Kitchen Sinks: Replacing</span>
+<span class="sd">    minimization with randomization in learning&quot; by A. Rahimi and</span>
+<span class="sd">    Benjamin Recht.</span>
+<span class="sd">    (https://people.eecs.berkeley.edu/~brecht/papers/08.rah.rec.nips.pdf)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="n">n_components</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span>
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fit the model with X.</span>
+
+<span class="sd">        Samples random projection according to n_features.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : {array-like, sparse matrix}, shape (n_samples, n_features)</span>
+<span class="sd">            Training data, where n_samples in the number of samples</span>
+<span class="sd">            and n_features is the number of features.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : object</span>
+<span class="sd">            Returns the transformer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="s1">&#39;csr&#39;</span><span class="p">)</span>
+        <span class="n">random_state</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">n_features</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="p">)</span> <span class="o">*</span> <span class="n">random_state</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_offset_</span> <span class="o">=</span> <span class="n">random_state</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+                                                   <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply the approximate feature map to X.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : {array-like, sparse matrix}, shape (n_samples, n_features)</span>
+<span class="sd">            New data, where n_samples in the number of samples</span>
+<span class="sd">            and n_features is the number of features.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X_new : array-like, shape (n_samples, n_components)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">check_is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;random_weights_&#39;</span><span class="p">)</span>
+
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="s1">&#39;csr&#39;</span><span class="p">)</span>
+        <span class="n">projection</span> <span class="o">=</span> <span class="n">safe_sparse_dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span><span class="p">)</span>
+        <span class="n">projection</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_offset_</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">projection</span><span class="p">,</span> <span class="n">projection</span><span class="p">)</span>
+        <span class="n">projection</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">projection</span>
+
+
+<span class="k">class</span> <span class="nc">SkewedChi2Sampler</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Approximates feature map of the &quot;skewed chi-squared&quot; kernel by Monte</span>
+<span class="sd">    Carlo approximation of its Fourier transform.</span>
+
+<span class="sd">    Read more in the :ref:`User Guide &lt;skewed_chi_kernel_approx&gt;`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    skewedness : float</span>
+<span class="sd">        &quot;skewedness&quot; parameter of the kernel. Needs to be cross-validated.</span>
+
+<span class="sd">    n_components : int</span>
+<span class="sd">        number of Monte Carlo samples per original feature.</span>
+<span class="sd">        Equals the dimensionality of the computed feature space.</span>
+
+<span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
+<span class="sd">        If int, random_state is the seed used by the random number generator;</span>
+<span class="sd">        If RandomState instance, random_state is the random number generator;</span>
+<span class="sd">        If None, the random number generator is the RandomState instance used</span>
+<span class="sd">        by `np.random`.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from sklearn.kernel_approximation import SkewedChi2Sampler</span>
+<span class="sd">    &gt;&gt;&gt; from sklearn.linear_model import SGDClassifier</span>
+<span class="sd">    &gt;&gt;&gt; X = [[0, 0], [1, 1], [1, 0], [0, 1]]</span>
+<span class="sd">    &gt;&gt;&gt; y = [0, 0, 1, 1]</span>
+<span class="sd">    &gt;&gt;&gt; chi2_feature = SkewedChi2Sampler(skewedness=.01,</span>
+<span class="sd">    ...                                  n_components=10,</span>
+<span class="sd">    ...                                  random_state=0)</span>
+<span class="sd">    &gt;&gt;&gt; X_features = chi2_feature.fit_transform(X, y)</span>
+<span class="sd">    &gt;&gt;&gt; clf = SGDClassifier(max_iter=10, tol=1e-3)</span>
+<span class="sd">    &gt;&gt;&gt; clf.fit(X_features, y)  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    SGDClassifier(alpha=0.0001, average=False, class_weight=None,</span>
+<span class="sd">           early_stopping=False, epsilon=0.1, eta0=0.0, fit_intercept=True,</span>
+<span class="sd">           l1_ratio=0.15, learning_rate=&#39;optimal&#39;, loss=&#39;hinge&#39;, max_iter=10,</span>
+<span class="sd">           n_iter_no_change=5, n_jobs=None, penalty=&#39;l2&#39;, power_t=0.5,</span>
+<span class="sd">           random_state=None, shuffle=True, tol=0.001, validation_fraction=0.1,</span>
+<span class="sd">           verbose=0, warm_start=False)</span>
+<span class="sd">    &gt;&gt;&gt; clf.score(X_features, y)</span>
+<span class="sd">    1.0</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    See &quot;Random Fourier Approximations for Skewed Multiplicative Histogram</span>
+<span class="sd">    Kernels&quot; by Fuxin Li, Catalin Ionescu and Cristian Sminchisescu.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    AdditiveChi2Sampler : A different approach for approximating an additive</span>
+<span class="sd">        variant of the chi squared kernel.</span>
+
+<span class="sd">    sklearn.metrics.pairwise.chi2_kernel : The exact chi squared kernel.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skewedness</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skewedness</span> <span class="o">=</span> <span class="n">skewedness</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="n">n_components</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span>
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fit the model with X.</span>
+
+<span class="sd">        Samples random projection according to n_features.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like, shape (n_samples, n_features)</span>
+<span class="sd">            Training data, where n_samples in the number of samples</span>
+<span class="sd">            and n_features is the number of features.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : object</span>
+<span class="sd">            Returns the transformer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">random_state</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">n_features</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">uniform</span> <span class="o">=</span> <span class="n">random_state</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">))</span>
+        <span class="c1"># transform by inverse CDF of sech</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+                                <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">uniform</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_offset_</span> <span class="o">=</span> <span class="n">random_state</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+                                                   <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply the approximate feature map to X.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like, shape (n_samples, n_features)</span>
+<span class="sd">            New data, where n_samples in the number of samples</span>
+<span class="sd">            and n_features is the number of features. All values of X must be</span>
+<span class="sd">            strictly greater than &quot;-skewedness&quot;.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X_new : array-like, shape (n_samples, n_components)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">check_is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;random_weights_&#39;</span><span class="p">)</span>
+
+        <span class="n">X</span> <span class="o">=</span> <span class="n">as_float_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">X</span> <span class="o">&lt;=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">skewedness</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;X may not contain entries smaller than&quot;</span>
+                             <span class="s2">&quot; -skewedness.&quot;</span><span class="p">)</span>
+
+        <span class="n">X</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skewedness</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+        <span class="n">projection</span> <span class="o">=</span> <span class="n">safe_sparse_dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span><span class="p">)</span>
+        <span class="n">projection</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_offset_</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">projection</span><span class="p">,</span> <span class="n">projection</span><span class="p">)</span>
+        <span class="n">projection</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">projection</span>
+
+
+<span class="k">class</span> <span class="nc">AdditiveChi2Sampler</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Approximate feature map for additive chi2 kernel.</span>
+
+<span class="sd">    Uses sampling the fourier transform of the kernel characteristic</span>
+<span class="sd">    at regular intervals.</span>
+
+<span class="sd">    Since the kernel that is to be approximated is additive, the components of</span>
+<span class="sd">    the input vectors can be treated separately.  Each entry in the original</span>
+<span class="sd">    space is transformed into 2*sample_steps+1 features, where sample_steps is</span>
+<span class="sd">    a parameter of the method. Typical values of sample_steps include 1, 2 and</span>
+<span class="sd">    3.</span>
+
+<span class="sd">    Optimal choices for the sampling interval for certain data ranges can be</span>
+<span class="sd">    computed (see the reference). The default values should be reasonable.</span>
+
+<span class="sd">    Read more in the :ref:`User Guide &lt;additive_chi_kernel_approx&gt;`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sample_steps : int, optional</span>
+<span class="sd">        Gives the number of (complex) sampling points.</span>
+<span class="sd">    sample_interval : float, optional</span>
+<span class="sd">        Sampling interval. Must be specified when sample_steps not in {1,2,3}.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from sklearn.datasets import load_digits</span>
+<span class="sd">    &gt;&gt;&gt; from sklearn.linear_model import SGDClassifier</span>
+<span class="sd">    &gt;&gt;&gt; from sklearn.kernel_approximation import AdditiveChi2Sampler</span>
+<span class="sd">    &gt;&gt;&gt; X, y = load_digits(return_X_y=True)</span>
+<span class="sd">    &gt;&gt;&gt; chi2sampler = AdditiveChi2Sampler(sample_steps=2)</span>
+<span class="sd">    &gt;&gt;&gt; X_transformed = chi2sampler.fit_transform(X, y)</span>
+<span class="sd">    &gt;&gt;&gt; clf = SGDClassifier(max_iter=5, random_state=0, tol=1e-3)</span>
+<span class="sd">    &gt;&gt;&gt; clf.fit(X_transformed, y)  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    SGDClassifier(alpha=0.0001, average=False, class_weight=None,</span>
+<span class="sd">           early_stopping=False, epsilon=0.1, eta0=0.0, fit_intercept=True,</span>
+<span class="sd">           l1_ratio=0.15, learning_rate=&#39;optimal&#39;, loss=&#39;hinge&#39;, max_iter=5,</span>
+<span class="sd">           n_iter_no_change=5, n_jobs=None, penalty=&#39;l2&#39;, power_t=0.5,</span>
+<span class="sd">           random_state=0, shuffle=True, tol=0.001, validation_fraction=0.1,</span>
+<span class="sd">           verbose=0, warm_start=False)</span>
+<span class="sd">    &gt;&gt;&gt; clf.score(X_transformed, y) # doctest: +ELLIPSIS</span>
+<span class="sd">    0.9499...</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This estimator approximates a slightly different version of the additive</span>
+<span class="sd">    chi squared kernel then ``metric.additive_chi2`` computes.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    SkewedChi2Sampler : A Fourier-approximation to a non-additive variant of</span>
+<span class="sd">        the chi squared kernel.</span>
+
+<span class="sd">    sklearn.metrics.pairwise.chi2_kernel : The exact chi squared kernel.</span>
+
+<span class="sd">    sklearn.metrics.pairwise.additive_chi2_kernel : The exact additive chi</span>
+<span class="sd">        squared kernel.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    See `&quot;Efficient additive kernels via explicit feature maps&quot;</span>
+<span class="sd">    &lt;http://www.robots.ox.ac.uk/~vedaldi/assets/pubs/vedaldi11efficient.pdf&gt;`_</span>
+<span class="sd">    A. Vedaldi and A. Zisserman, Pattern Analysis and Machine Intelligence,</span>
+<span class="sd">    2011</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_steps</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">sample_interval</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_steps</span> <span class="o">=</span> <span class="n">sample_steps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval</span> <span class="o">=</span> <span class="n">sample_interval</span>
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the parameters</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like, shape (n_samples, n_features)</span>
+<span class="sd">            Training data, where n_samples in the number of samples</span>
+<span class="sd">            and n_features is the number of features.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : object</span>
+<span class="sd">            Returns the transformer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="s1">&#39;csr&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># See reference, figure 2 c)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_steps</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval_</span> <span class="o">=</span> <span class="mf">0.8</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_steps</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval_</span> <span class="o">=</span> <span class="mf">0.5</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_steps</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval_</span> <span class="o">=</span> <span class="mf">0.4</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;If sample_steps is not in [1, 2, 3],&quot;</span>
+                                 <span class="s2">&quot; you need to provide sample_interval&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+<div class="viewcode-block" id="AdditiveChi2Sampler.transform"><a class="viewcode-back" href="../../generated/pyrfm.random_feature.AdditiveChi2Sampler.html#pyrfm.random_feature.AdditiveChi2Sampler.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply approximate feature map to X.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : {array-like, sparse matrix}, shape = (n_samples, n_features)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X_new : {array, sparse matrix}, \</span>
+<span class="sd">               shape = (n_samples, n_features * (2*sample_steps + 1))</span>
+<span class="sd">            Whether the return value is an array of sparse matrix depends on</span>
+<span class="sd">            the type of the input X.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="si">%(name)s</span><span class="s2"> is not fitted. Call fit to set the parameters before&quot;</span>
+               <span class="s2">&quot; calling transform&quot;</span><span class="p">)</span>
+        <span class="n">check_is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;sample_interval_&quot;</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="s1">&#39;csr&#39;</span><span class="p">)</span>
+        <span class="n">sparse</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+        <span class="c1"># check if X has negative values. Doesn&#39;t play well with np.log.</span>
+        <span class="k">if</span> <span class="p">((</span><span class="n">X</span><span class="o">.</span><span class="n">data</span> <span class="k">if</span> <span class="n">sparse</span> <span class="k">else</span> <span class="n">X</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Entries of X must be non-negative.&quot;</span><span class="p">)</span>
+        <span class="c1"># zeroth component</span>
+        <span class="c1"># 1/cosh = sech</span>
+        <span class="c1"># cosh(0) = 1.0</span>
+
+        <span class="n">transf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_sparse</span> <span class="k">if</span> <span class="n">sparse</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_dense</span>
+        <span class="k">return</span> <span class="n">transf</span><span class="p">(</span><span class="n">X</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_transform_dense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="n">non_zero</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">X_nz</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">non_zero</span><span class="p">]</span>
+
+        <span class="n">X_step</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">X_step</span><span class="p">[</span><span class="n">non_zero</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">X_nz</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval_</span><span class="p">)</span>
+
+        <span class="n">X_new</span> <span class="o">=</span> <span class="p">[</span><span class="n">X_step</span><span class="p">]</span>
+
+        <span class="n">log_step_nz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval_</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">X_nz</span><span class="p">)</span>
+        <span class="n">step_nz</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">X_nz</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval_</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_steps</span><span class="p">):</span>
+            <span class="n">factor_nz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">step_nz</span> <span class="o">/</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">j</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval_</span><span class="p">))</span>
+
+            <span class="n">X_step</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+            <span class="n">X_step</span><span class="p">[</span><span class="n">non_zero</span><span class="p">]</span> <span class="o">=</span> <span class="n">factor_nz</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">j</span> <span class="o">*</span> <span class="n">log_step_nz</span><span class="p">)</span>
+            <span class="n">X_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X_step</span><span class="p">)</span>
+
+            <span class="n">X_step</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+            <span class="n">X_step</span><span class="p">[</span><span class="n">non_zero</span><span class="p">]</span> <span class="o">=</span> <span class="n">factor_nz</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">j</span> <span class="o">*</span> <span class="n">log_step_nz</span><span class="p">)</span>
+            <span class="n">X_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X_step</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">X_new</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_transform_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">indptr</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">indptr</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">data_step</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval_</span><span class="p">)</span>
+        <span class="n">X_step</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">((</span><span class="n">data_step</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">indptr</span><span class="p">),</span>
+                               <span class="n">shape</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">X_new</span> <span class="o">=</span> <span class="p">[</span><span class="n">X_step</span><span class="p">]</span>
+
+        <span class="n">log_step_nz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval_</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">step_nz</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">X</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval_</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_steps</span><span class="p">):</span>
+            <span class="n">factor_nz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">step_nz</span> <span class="o">/</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">j</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_interval_</span><span class="p">))</span>
+
+            <span class="n">data_step</span> <span class="o">=</span> <span class="n">factor_nz</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">j</span> <span class="o">*</span> <span class="n">log_step_nz</span><span class="p">)</span>
+            <span class="n">X_step</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">((</span><span class="n">data_step</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">indptr</span><span class="p">),</span>
+                                   <span class="n">shape</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">X_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X_step</span><span class="p">)</span>
+
+            <span class="n">data_step</span> <span class="o">=</span> <span class="n">factor_nz</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">j</span> <span class="o">*</span> <span class="n">log_step_nz</span><span class="p">)</span>
+            <span class="n">X_step</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">((</span><span class="n">data_step</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">indptr</span><span class="p">),</span>
+                                   <span class="n">shape</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">X_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X_step</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">sp</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">X_new</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_more_tags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;stateless&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+
+
+<span class="k">class</span> <span class="nc">Nystroem</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Approximate a kernel map using a subset of the training data.</span>
+
+<span class="sd">    Constructs an approximate feature map for an arbitrary kernel</span>
+<span class="sd">    using a subset of the data as basis.</span>
+
+<span class="sd">    Read more in the :ref:`User Guide &lt;nystroem_kernel_approx&gt;`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    kernel : string or callable, default=&quot;rbf&quot;</span>
+<span class="sd">        Kernel map to be approximated. A callable should accept two arguments</span>
+<span class="sd">        and the keyword arguments passed to this object as kernel_params, and</span>
+<span class="sd">        should return a floating point number.</span>
+
+<span class="sd">    gamma : float, default=None</span>
+<span class="sd">        Gamma parameter for the RBF, laplacian, polynomial, exponential chi2</span>
+<span class="sd">        and sigmoid kernels. Interpretation of the default value is left to</span>
+<span class="sd">        the kernel; see the documentation for sklearn.metrics.pairwise.</span>
+<span class="sd">        Ignored by other kernels.</span>
+
+<span class="sd">    coef0 : float, default=None</span>
+<span class="sd">        Zero coefficient for polynomial and sigmoid kernels.</span>
+<span class="sd">        Ignored by other kernels.</span>
+
+<span class="sd">    degree : float, default=None</span>
+<span class="sd">        Degree of the polynomial kernel. Ignored by other kernels.</span>
+
+<span class="sd">    kernel_params : mapping of string to any, optional</span>
+<span class="sd">        Additional parameters (keyword arguments) for kernel function passed</span>
+<span class="sd">        as callable object.</span>
+
+<span class="sd">    n_components : int</span>
+<span class="sd">        Number of features to construct.</span>
+<span class="sd">        How many data points will be used to construct the mapping.</span>
+
+<span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
+<span class="sd">        If int, random_state is the seed used by the random number generator;</span>
+<span class="sd">        If RandomState instance, random_state is the random number generator;</span>
+<span class="sd">        If None, the random number generator is the RandomState instance used</span>
+<span class="sd">        by `np.random`.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    components_ : array, shape (n_components, n_features)</span>
+<span class="sd">        Subset of training points used to construct the feature map.</span>
+
+<span class="sd">    component_indices_ : array, shape (n_components)</span>
+<span class="sd">        Indices of ``components_`` in the training set.</span>
+
+<span class="sd">    normalization_ : array, shape (n_components, n_components)</span>
+<span class="sd">        Normalization matrix needed for embedding.</span>
+<span class="sd">        Square root of the kernel matrix on ``components_``.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from sklearn import datasets, svm</span>
+<span class="sd">    &gt;&gt;&gt; from sklearn.kernel_approximation import Nystroem</span>
+<span class="sd">    &gt;&gt;&gt; digits = datasets.load_digits(n_class=9)</span>
+<span class="sd">    &gt;&gt;&gt; data = digits.data / 16.</span>
+<span class="sd">    &gt;&gt;&gt; clf = svm.LinearSVC()</span>
+<span class="sd">    &gt;&gt;&gt; feature_map_nystroem = Nystroem(gamma=.2,</span>
+<span class="sd">    ...                                 random_state=1,</span>
+<span class="sd">    ...                                 n_components=300)</span>
+<span class="sd">    &gt;&gt;&gt; data_transformed = feature_map_nystroem.fit_transform(data)</span>
+<span class="sd">    &gt;&gt;&gt; clf.fit(data_transformed, digits.target)</span>
+<span class="sd">    ... # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    LinearSVC(C=1.0, class_weight=None, dual=True, fit_intercept=True,</span>
+<span class="sd">         intercept_scaling=1, loss=&#39;squared_hinge&#39;, max_iter=1000,</span>
+<span class="sd">         multi_class=&#39;ovr&#39;, penalty=&#39;l2&#39;, random_state=None, tol=0.0001,</span>
+<span class="sd">         verbose=0)</span>
+<span class="sd">    &gt;&gt;&gt; clf.score(data_transformed, digits.target) # doctest: +ELLIPSIS</span>
+<span class="sd">    0.9987...</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    * Williams, C.K.I. and Seeger, M.</span>
+<span class="sd">      &quot;Using the Nystroem method to speed up kernel machines&quot;,</span>
+<span class="sd">      Advances in neural information processing systems 2001</span>
+
+<span class="sd">    * T. Yang, Y. Li, M. Mahdavi, R. Jin and Z. Zhou</span>
+<span class="sd">      &quot;Nystroem Method vs Random Fourier Features: A Theoretical and Empirical</span>
+<span class="sd">      Comparison&quot;,</span>
+<span class="sd">      Advances in Neural Information Processing Systems 2012</span>
+
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    RBFSampler : An approximation to the RBF kernel using random Fourier</span>
+<span class="sd">                 features.</span>
+
+<span class="sd">    sklearn.metrics.pairwise.kernel_metrics : List of built-in kernels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;rbf&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coef0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">kernel_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coef0</span> <span class="o">=</span> <span class="n">coef0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">=</span> <span class="n">degree</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel_params</span> <span class="o">=</span> <span class="n">kernel_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="n">n_components</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span>
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fit estimator to data.</span>
+
+<span class="sd">        Samples a subset of training points, computes kernel</span>
+<span class="sd">        on these and computes normalization matrix.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like, shape=(n_samples, n_feature)</span>
+<span class="sd">            Training data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="s1">&#39;csr&#39;</span><span class="p">)</span>
+        <span class="n">rnd</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">n_samples</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># get basis vectors</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">&gt;</span> <span class="n">n_samples</span><span class="p">:</span>
+            <span class="c1"># XXX should we just bail?</span>
+            <span class="n">n_components</span> <span class="o">=</span> <span class="n">n_samples</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;n_components &gt; n_samples. This is not possible.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                          <span class="s2">&quot;n_components was set to n_samples, which results&quot;</span>
+                          <span class="s2">&quot; in inefficient evaluation of the full kernel.&quot;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n_components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span>
+        <span class="n">n_components</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="n">n_components</span><span class="p">)</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">rnd</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>
+        <span class="n">basis_inds</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[:</span><span class="n">n_components</span><span class="p">]</span>
+        <span class="n">basis</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">basis_inds</span><span class="p">]</span>
+
+        <span class="n">basis_kernel</span> <span class="o">=</span> <span class="n">pairwise_kernels</span><span class="p">(</span><span class="n">basis</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">,</span>
+                                        <span class="n">filter_params</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_kernel_params</span><span class="p">())</span>
+
+        <span class="c1"># sqrt of kernel matrix on basis vectors</span>
+        <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">svd</span><span class="p">(</span><span class="n">basis_kernel</span><span class="p">)</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="mf">1e-12</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalization_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">U</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">S</span><span class="p">),</span> <span class="n">V</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">components_</span> <span class="o">=</span> <span class="n">basis</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_indices_</span> <span class="o">=</span> <span class="n">inds</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply feature map to X.</span>
+
+<span class="sd">        Computes an approximate feature map using the kernel</span>
+<span class="sd">        between some training points and X.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like, shape=(n_samples, n_features)</span>
+<span class="sd">            Data to transform.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X_transformed : array, shape=(n_samples, n_components)</span>
+<span class="sd">            Transformed data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">check_is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;components_&#39;</span><span class="p">)</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="s1">&#39;csr&#39;</span><span class="p">)</span>
+
+        <span class="n">kernel_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_kernel_params</span><span class="p">()</span>
+        <span class="n">embedded</span> <span class="o">=</span> <span class="n">pairwise_kernels</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">components_</span><span class="p">,</span>
+                                    <span class="n">metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">,</span>
+                                    <span class="n">filter_params</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                    <span class="o">**</span><span class="n">kernel_params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">embedded</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalization_</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_kernel_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_params</span>
+        <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="p">(</span><span class="n">KERNEL_PARAMS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">params</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">coef0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Don&#39;t pass gamma, coef0 or degree to &quot;</span>
+                                 <span class="s2">&quot;Nystroem if using a callable kernel.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">params</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Kyohei Atarashi
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
