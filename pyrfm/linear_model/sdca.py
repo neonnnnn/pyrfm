@@ -66,13 +66,10 @@ class BaseSDCAEstimator(BaseLinear):
             Returns self.
         """
         X, y = self._check_X_y(X, y, accept_sparse=['csr'])
-        if not self.warm_start:
-            self.transformer.fit(X)
-
         n_samples, n_features = X.shape
         # init primal parameters, mean/var vectors and t_
         self._valid_params()
-        self._init_params(X)
+        self._init_params(X, y)
 
         self.dual_coef_ = np.zeros(n_samples)
         loss = self.LOSSES[self.loss]

@@ -47,8 +47,8 @@ class BaseAdaGradEstimator(BaseLinear):
         self.fast_solver = fast_solver
         self.shuffle = shuffle
 
-    def _init_params(self, X):
-        super(BaseAdaGradEstimator, self)._init_params(X)
+    def _init_params(self, X, y):
+        super(BaseAdaGradEstimator, self)._init_params(X, y)
         n_components = self.transformer.n_components
         if not (self.warm_start and hasattr(self, 'acc_grad_')):
             self.acc_grad_ = np.zeros(n_components)

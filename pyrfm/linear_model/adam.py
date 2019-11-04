@@ -50,8 +50,8 @@ class BaseAdamEstimator(BaseLinear):
         self.fast_solver = fast_solver
         self.shuffle = shuffle
 
-    def _init_params(self, X):
-        super(BaseAdamEstimator, self)._init_params(X)
+    def _init_params(self, X, y):
+        super(BaseAdamEstimator, self)._init_params(X, y)
         n_components = self.transformer.n_components
         if not (self.warm_start and hasattr(self, 'mean_grad_')):
             self.mean_grad_ = np.zeros(n_components)
@@ -96,7 +96,7 @@ class BaseAdamEstimator(BaseLinear):
         n_samples, n_features = X.shape
         # valid hyper parameters and init parameters
         self._valid_params()
-        self._init_params(X)
+        self._init_params(X, y)
 
         loss = self.LOSSES[self.loss]
         alpha = self.alpha / self.C
