@@ -44,6 +44,10 @@ def test_lkrf_kl():
     _test_learning_kernel_with_random_feature('kl')
     _test_learning_kernel_with_random_feature('kl', 10)
 
+def test_lkrf_reverse_kl():
+    _test_learning_kernel_with_random_feature('reverse_kl')
+    _test_learning_kernel_with_random_feature('reverse_kl', 10)
+
 
 def test_lkrf_tv():
     _test_learning_kernel_with_random_feature('tv', 0.001)
