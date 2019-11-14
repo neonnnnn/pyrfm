@@ -11,7 +11,8 @@ from sklearn.utils import check_random_state
 import numpy as np
 cimport numpy as np
 from scipy.sparse import csr_matrix
-from libc.stdlib cimport rand, srand, RAND_MAX
+from libc.stdlib cimport rand, srand
+from libc.limits cimport UINT_MAX
 
 
 # efficient sampling algorithm for sparse rademacher matrix
@@ -39,7 +40,7 @@ def sparse_rademacher(rng, int[:] size, double p_sparse):
 
     # sampling nonzero row indices : O(\sum_{i=1}^{n_components} nnz_i=nnz)
     offset = 0
-    srand(rng.randint())
+    srand(rng.randint(UINT_MAX))
     for i in range(n_components):
         fisher_yates_shuffle(arange, n_features, n_nzs[i])
         n_nz_i = n_nzs[i]
@@ -73,7 +74,7 @@ cdef class Categorical:
     def __init__(self, frequent, random_state=None):
         self.n_categories = len(frequent)
         self.random_state = check_random_state(random_state)
-        srand(self.random_state.randint())
+        srand(self.random_state.randint(UINT_MAX))
 
     def __cinit__(self, frequent, random_state=None):
         cdef int i, j, ii, n_overfull, n_underfull
@@ -186,7 +187,7 @@ cdef inline void _get_subfeatures_indices(int[:] indices,
     cdef Py_ssize_t offset, i, j
     cdef int ii
     offset = 0
-    srand(rng.randint())
+    srand(rng.randint(UINT_MAX))
     for j in range(n_components):
         fisher_yates_shuffle(perm, n_features, n_sub_features)
         for i in range(n_sub_features):
