@@ -116,6 +116,13 @@ cdef class CSignedCirculantRandomMatrix(BaseCRandomFeature):
     cdef int n_stacks
 
 
+cdef class COrthogonalRandomFeature(BaseCRandomFeature):
+    cdef RowDataset random_weights
+    cdef double[:] random_offset
+    cdef bint use_offset
+    cdef bint random_fourier
+
+
 cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
     cdef double[:, ::1] random_weights
     cdef double[:] random_offset

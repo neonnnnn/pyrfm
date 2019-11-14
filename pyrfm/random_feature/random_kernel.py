@@ -102,7 +102,7 @@ class RandomKernel(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            Training data, where n_samples in the number of samples
+            Training data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -125,7 +125,7 @@ class RandomKernel(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            New data, where n_samples in the number of samples
+            New data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -162,6 +162,11 @@ class RandomKernel(BaseEstimator, TransformerMixin):
         output = kernel_(X, self.random_weights_.T, dense_output)
         output /= sqrt(self.n_components)
         return output
+
+    def _remove_bases(self, indices):
+        self.random_weights_ = np.delete(self.random_weights_, indices, axis=1)
+        self.n_components = self.random_weights_.shape[1]
+        return True
 
 
 class SubfeatureRandomKernel(BaseEstimator, TransformerMixin):
@@ -233,7 +238,7 @@ class SubfeatureRandomKernel(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            Training data, where n_samples in the number of samples
+            Training data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -268,7 +273,7 @@ class SubfeatureRandomKernel(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            New data, where n_samples in the number of samples
+            New data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -310,3 +315,8 @@ class SubfeatureRandomKernel(BaseEstimator, TransformerMixin):
         output /= sqrt(self.n_components)
         output *= sqrt(const)
         return output
+
+    def _remove_bases(self, indices):
+        self.random_weights_ = np.delete(self.random_weights_, indices, axis=1)
+        self.n_components = self.random_weights_.shape[1]
+        return True
