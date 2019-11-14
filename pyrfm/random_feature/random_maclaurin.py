@@ -118,7 +118,7 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            Training data, where n_samples in the number of samples
+            Training data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -186,7 +186,7 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            New data, where n_samples in the number of samples
+            New data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -220,6 +220,14 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
                 output = hstack((csr_matrix(dummy), output))
 
         return output
+
+    def _remove_bases(self, indices):
+        cumsum = np.append(0, np.cumsum(self.orders_))
+        self.orders_ = np.delete(self.orders_, indices)
+        ind = np.concatenate([[j for j in range(cumsum[i], cumsum[i+1])] for i in indices])
+        self.random_weights_ = np.delete(self.random_weights_, ind, axis=1)
+        self.n_components = self.orders_.shape[0]
+        return True
 
 
 class SubfeatureRandomMaclaurin(BaseEstimator, TransformerMixin):
@@ -335,7 +343,7 @@ class SubfeatureRandomMaclaurin(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            Training data, where n_samples in the number of samples
+            Training data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -410,7 +418,7 @@ class SubfeatureRandomMaclaurin(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            New data, where n_samples in the number of samples
+            New data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns

@@ -103,12 +103,13 @@ def test_anova_kernel_sparse_subset():
         for dist in distributions:
             # approximate kernel mapping
             rk_transform = SubfeatureRandomKernel(n_components=n_components,
-                                              random_state=rng,
-                                              kernel='anova', degree=degree,
-                                              distribution=dist,
-                                              n_sub_features=n_sub_features)
+                                                  random_state=rng,
+                                                  kernel='anova', degree=degree,
+                                                  distribution=dist,
+                                                  n_sub_features=n_sub_features)
             X_trans = rk_transform.fit_transform(X_sp)
             Y_trans = rk_transform.transform(Y_sp)
+            print(rk_transform.random_weights_.shape)
             assert_almost_equal(rk_transform.random_weights_.nnz,
                                 n_components*n_sub_features)
 

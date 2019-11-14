@@ -51,7 +51,7 @@ def test_subfeature_random_maclaurin_polynomial_bias():
             print('bias: {} degree: {}'.format(bias, degree))
             kernel = polynomial(X, Y, degree, bias=bias)
             # approximate kernel mapping
-            rm_transform = SubfeatureRandomMaclaurin(n_components=4000, degree=degree,
+            rm_transform = SubfeatureRandomMaclaurin(n_components=10000, degree=degree,
                                                      n_sub_features=10,
                                                      random_state=rng, kernel='poly',
                                                      bias=bias)
@@ -70,7 +70,6 @@ def test_subfeature_random_maclaurin_polynomial_bias():
 def test_subfeature_random_maclaurin_polynomial_bias_h01():
     # compute exact kernel
     for bias in [0.01, 0.1, 1]:
-
         for degree in range(2, 5):
             kernel = polynomial(X, Y, degree, bias=bias)
             # approximate kernel mapping
@@ -95,7 +94,7 @@ def test_subfeature_random_maclaurin_exp():
     # compute exact kernel
     kernel = exp_kernel(X, Y, 0.1)
     # approximate kernel mapping
-    rm_transform = SubfeatureRandomMaclaurin(n_components=6000, n_sub_features=10,
+    rm_transform = SubfeatureRandomMaclaurin(n_components=10000, n_sub_features=10,
                                              random_state=rng, kernel='exp',
                                              gamma=0.1)
 

@@ -7,6 +7,7 @@ from sklearn.utils import check_random_state, check_array
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
 from math import sqrt
+import warnings
 
 
 class RandomFourier(BaseEstimator, TransformerMixin):
@@ -68,7 +69,7 @@ class RandomFourier(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            Training data, where n_samples in the number of samples
+            Training data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -84,7 +85,11 @@ class RandomFourier(BaseEstimator, TransformerMixin):
             n_components = self.n_components
         else:
             n_components = int(self.n_components / 2)
-
+            if self.n_components % 2 != 0:
+                self.n_components = 2 * n_components
+                warnings.warn("n_components % 2 != 0. n_components is changed "
+                              " to {}.".format(self.n_components))
+        
         if self.gamma == 'auto':
             gamma = 1.0 / X.shape[1]
         else:
@@ -112,7 +117,7 @@ class RandomFourier(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            New data, where n_samples in the number of samples
+            New data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -128,3 +133,13 @@ class RandomFourier(BaseEstimator, TransformerMixin):
         else:
             output = np.hstack((np.cos(output), np.sin(output)))
         return sqrt(2./self.n_components) * output
+
+    def _remove_bases(self, indices):
+        if not self.use_offset:
+            warnings.warn("Bases are not removed when use_offset=False.")
+            return False
+        else:
+            self.random_weights_ = np.delete(self.random_weights_, indices, 1)
+            self.random_offset_ = np.delete(self.random_offset_, indices, 0)
+            self.n_components = len(self.random_offset_)
+            return True

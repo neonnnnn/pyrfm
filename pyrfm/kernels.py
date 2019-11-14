@@ -273,7 +273,7 @@ def chi_square(X, P):
     return _chi_square(X, P)
 
 
-def kernel_alignment(K, y):
+def kernel_alignment(K, y, scaling=True):
     """Compute kernel alignment.
 
     Parameters
@@ -284,9 +284,16 @@ def kernel_alignment(K, y):
     y : array, shape (n_samples, )
         Label.
     
+    scaling : bool (default=True)
+        Whether to scale or not.
+        If True, result is divided by \sqrt{KK}*n_samples
+
     Returns
     -------
     score : double
 
     """
-    return np.dot(y, np.dot(K, y))
+    score = np.dot(y, np.dot(K, y))
+    if scaling:
+        score /= (np.sqrt(np.sum(K**2))*len(y))
+    return score

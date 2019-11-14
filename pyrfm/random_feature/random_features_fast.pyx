@@ -39,7 +39,7 @@ RANDOMFEATURES = {
     SubsampledRandomHadamard: CSubsampledRandomHadamard,
     RandomProjection: CRandomProjection,
     CompactRandomFeature: CCompactRandomFeature,
-    OrthogonalRandomFeature: CRandomFourier,
+    OrthogonalRandomFeature: COrthogonalRandomFeature,
     StructuredOrthogonalRandomFeature: CStructuredOrthogonalRandomFeature,
     SignedCirculantRandomMatrix: CSignedCirculantRandomMatrix,
     SubfeatureRandomKernel: CSubfeatureRandomKernel
@@ -191,11 +191,11 @@ cdef class CRandomFourier(BaseCRandomFeature):
         if self.use_offset:
             for i in range(self.n_components):
                 z[i] += self.random_offset[i]
-                z[i] = cos(z[i])*self.scale
+                z[i] = cos(z[i])/self.scale
         # z = (cos, ..., cos, sin, ..., sin)
         else:
             for i in range(index_offset):
-                z[i+index_offset] = sin(z[i])*sqrt(2./self.n_components)
+                z[i+index_offset] = sin(z[i])/self.scale
                 z[i] = cos(z[i])/self.scale
 
 
@@ -594,6 +594,43 @@ cdef class CSignedCirculantRandomMatrix(BaseCRandomFeature):
 
         for i in range(self.n_components):
             z[i] /= self.scale
+
+
+cdef class COrthogonalRandomFeature(BaseCRandomFeature):
+    def __init__(self, transformer):
+        self.n_components = transformer.n_components
+        self.n_features = transformer.random_weights_.shape[0]
+        self.random_weights = get_dataset(transformer.random_weights_, 'c')
+        self.random_offset = transformer.random_offset_
+        self.use_offset = transformer.use_offset
+        self.random_fourier = transformer.random_fourier
+        if transformer.random_fourier:
+            self.scale = sqrt(self.n_components/2.)
+        else:
+            self.scale = sqrt(self.n_components)
+
+    cdef void transform(self,
+                        double* z,
+                        double* data,
+                        int* indices,
+                        int n_nz):
+        cdef Py_ssize_t i, j, jj
+        cdef Py_ssize_t index_offset = int(self.n_components/2)
+        dot_all(z, data, indices, n_nz, self.random_weights, self.n_components)
+        if self.random_fourier:
+            # z = (cos, cos, ..., cos)
+            if self.use_offset:
+                for i in range(self.n_components):
+                    z[i] += self.random_offset[i]
+                    z[i] = cos(z[i]) / self.scale
+            # z = (cos, ..., cos, sin, ..., sin)
+            else:
+                for i in range(index_offset):
+                    z[i+index_offset] = sin(z[i]) / self.scale
+                    z[i] = cos(z[i]) / self.scale
+        else:
+            for i in range(self.n_components):
+                z[i] = z[i] / self.scale
 
 
 cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):

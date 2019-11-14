@@ -69,7 +69,7 @@ class RandomProjection(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            Training data, where n_samples in the number of samples
+            Training data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -105,7 +105,7 @@ class RandomProjection(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            New data, where n_samples in the number of samples
+            New data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -116,3 +116,8 @@ class RandomProjection(BaseEstimator, TransformerMixin):
         X = check_array(X, accept_sparse=True)
         output = safe_sparse_dot(X, self.random_weights_, True)
         return output / sqrt(self.n_components)
+
+    def _remove_bases(self, indices):
+        self.random_weights_ = np.delete(self.random_weights_, indices, axis=1)
+        self.n_components = self.random_weights_.shape[1]
+        return True

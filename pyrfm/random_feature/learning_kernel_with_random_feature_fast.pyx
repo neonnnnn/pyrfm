@@ -11,6 +11,11 @@ cimport numpy as np
 from cython.view cimport array
 from libc.stdlib cimport srand, rand
 from libc.math cimport log, exp
+from ..dataset_fast import get_dataset
+from ..dataset_fast cimport RowDataset
+from .random_features_fast import get_fast_random_feature
+from .random_features_fast cimport BaseCRandomFeature
+from sklearn.utils.extmath import safe_sparse_dot
 
 
 cdef inline void _proj_l1ball_sort(np.ndarray[np.float64_t, ndim=1] v,
@@ -87,6 +92,33 @@ cdef inline void _proj_l1ball(double[:] v,
             v[i] = 0
 
 
+cdef _compute_X_trans_y(BaseCRandomFeature transformer_fast,
+                        RowDataset dataset,
+                        long[:] y):
+    cdef Py_ssize_t i, j
+    cdef Py_ssize_t n_samples = dataset.get_n_samples()
+    cdef int n_components = transformer_fast.n_components
+    cdef double* data
+    cdef int* indices
+    cdef int n_nz
+    cdef double[:] z = array((n_components, ), sizeof(double), format='d')
+    cdef double[:] v = array((n_components, ), sizeof(double), format='d')
+    for j in range(n_components):
+        v[j] = 0
+        z[j] = 0
+    
+    for i in range(n_samples):
+        dataset.get_row_ptr(i, &indices, &data, &n_nz)
+        transformer_fast.transform(&z[0], data, indices, n_nz)
+        for j in range(n_components):
+            v[j] += y[i] * z[j]
+            z[j] = 0
+    
+    for j in range(n_components):
+        v[j] = n_components * (v[j])**2
+    return np.asarray(v)
+
+
 def proj_l1ball(v, z):
     projed = np.array(v)
     _proj_l1ball(projed, z, len(projed))
@@ -97,3 +129,15 @@ def proj_l1ball_sort(v, z):
     projed = np.array(v)
     _proj_l1ball_sort(projed, z, len(projed))
     return projed
+
+
+def compute_X_trans_y(transformer, X, y):
+    transformer_fast = get_fast_random_feature(transformer)
+    if transformer_fast is not None:
+        dataset = get_dataset(X, 'c')
+        return _compute_X_trans_y(transformer_fast, dataset, y)
+    else:
+        X_trans = transformer.transform(X)
+        scale = np.sqrt(X_trans.shape[1])
+        v = safe_sparse_dot(y, X_trans*scale, dense_output=True)**2
+        return v
