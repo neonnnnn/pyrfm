@@ -285,7 +285,7 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
             )
             msg += "You should set n_components to an n-tuple of the next "
             msg += "power of two of n_features."
-            warnings.warn()
+            warnings.warn(msg)
             self.n_components = n_components
 
         # n_stacks * n_features_padded = self.n_components
