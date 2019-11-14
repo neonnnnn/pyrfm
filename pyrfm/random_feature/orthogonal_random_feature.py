@@ -50,7 +50,13 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         If False, OrthogonalRandomFeature does not sample it and computes just
         structured_matrix-feature_vector product (i.e., approximates dot product
         kernel).
-
+    
+    use_offset : bool (default=False)
+        If True, Z(x) = (cos(w_1x+b_1), cos(w_2x+b_2), ... , cos(w_Dx+b_D),
+        where w is random_weights and b is offset (D=n_components).
+        If False, Z(x) = (cos(w_1x), ..., cos(w_{D/2}x), sin(w_1x), ...,
+        sin(w_{D/2}x)).
+    
     random_state : int, RandomState instance or None, optional (default=None)
         If int, random_state is the seed used by the random number generator;
         If np.RandomState instance, random_state is the random number generator;
@@ -76,11 +82,12 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
     """
     def __init__(self, n_components=100,  gamma=0.5, distribution="gaussian",
-                 random_fourier=True, random_state=None):
+                 random_fourier=True, use_offset=False, random_state=None):
         self.n_components = n_components
         self.distribution = distribution
         self.gamma = gamma
         self.random_fourier = random_fourier
+        self.use_offset = use_offset
         self.random_state = random_state
 
     def fit(self, X, y=None):
@@ -89,7 +96,7 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            Training data, where n_samples in the number of samples
+            Training data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -103,11 +110,25 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         n_stacks = int(np.ceil(self.n_components/n_features))
         n_components = n_stacks * n_features
         if n_components != self.n_components:
-            warnings.warn("n_components is changed from {0} to {1}. "
-                          "You should set n_components n-tuple of the next " 
-                          "power of two of n_features."
-                          .format(self.n_components, n_components))
+            msg = "n_components is changed from {0} to {1}.".format(
+                    self.n_components, n_components
+            )
+            msg += "You should set n_components to an n-tuple of n_features."
+            warnings.warn(msg)
             self.n_components = n_components
+
+        if self.random_fourier and not self.use_offset:
+            n_stacks = int(np.ceil(n_stacks / 2))
+            n_components = n_stacks*n_features
+            if n_components*2 != self.n_components:
+                msg = "n_components is changed from {0} to {1}.".format(
+                    self.n_components, n_components*2
+                )
+                msg += "When random_fourier=True and use_offset=False, "
+                msg += "n_components should be larger than 2*n_features."
+                warnings.warn(msg)
+                self.n_components = n_components * 2
+
         if self.gamma == 'auto':
             gamma = 1.0 / X.shape[1]
         else:
@@ -125,12 +146,12 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
         self.random_weights_ = np.vstack(random_weights_).T
 
+        self.random_offset_ = None
         if self.random_fourier:
-            self.random_offset_ = random_state.uniform(0, 2*np.pi,
-                                                       size=self.n_components)
             self.random_weights_ *= sqrt(2*gamma)
-        else:
-            self.random_offset_ = None
+            if self.use_offset:
+                self.random_offset_ = random_state.uniform(0, 2*np.pi,
+                                                           size=n_components)
 
         return self
 
@@ -140,7 +161,7 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            New data, where n_samples in the number of samples
+            New data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -151,9 +172,24 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         X = check_array(X, accept_sparse=True)
         output = safe_sparse_dot(X, self.random_weights_, True)
         if self.random_fourier:
-            output = np.cos(output+self.random_offset_)
+            if self.use_offset:
+                output = np.cos(output+self.random_offset_)
+            else:
+                output = np.hstack((np.cos(output), np.sin(output)))
             output *= np.sqrt(2)
         return output / sqrt(self.n_components)
+    
+    def _remove_bases(self, indices):
+        if self.random_fourier and not self.use_offset:
+            warnings.warn("Bases are not removed when use_offset=False and"
+                          " random_fourier=True.")
+            return False
+        else:
+            self.random_weights_ = np.delete(self.random_weights_, indices, 1)
+            if self.random_fourier:
+                self.random_offset_ = np.delete(self.random_offset_, indices, 0)
+            self.n_components = self.random_weights_.shape[1]
+            return True
 
 
 class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
@@ -196,7 +232,6 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         If None, the random number generator is the RandomState instance used
         by `np.random`.
 
-
     Attributes
     ----------
     random_weights_ : array, shape (n_components, n_features) (use_offset=True) 
@@ -229,7 +264,7 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            Training data, where n_samples in the number of samples
+            Training data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -245,10 +280,12 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         n_components = n_stacks * n_features_padded
 
         if n_components != self.n_components:
-            warnings.warn("n_components is changed from {0} to {1}. "
-                          "You should set n_components n-tuple of the next "
-                          "power of two of n_features."
-                          .format(self.n_components, n_components))
+            msg = "n_components is changed from {0} to {1}. ".format(
+                self.n_components, n_components
+            )
+            msg += "You should set n_components to an n-tuple of the next "
+            msg += "power of two of n_features."
+            warnings.warn()
             self.n_components = n_components
 
         # n_stacks * n_features_padded = self.n_components
@@ -269,7 +306,7 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            New data, where n_samples in the number of samples
+            New data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
