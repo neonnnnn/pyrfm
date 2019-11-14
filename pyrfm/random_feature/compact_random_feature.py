@@ -97,7 +97,7 @@ class CompactRandomFeature(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            Training data, where n_samples in the number of samples
+            Training data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -139,7 +139,7 @@ class CompactRandomFeature(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape (n_samples, n_features)
-            New data, where n_samples in the number of samples
+            New data, where n_samples is the number of samples
             and n_features is the number of features.
 
         Returns
@@ -151,3 +151,12 @@ class CompactRandomFeature(BaseEstimator, TransformerMixin):
         X = check_array(X, accept_sparse=True)
         Z = transform_all_fast(X, self)
         return Z
+
+    def _remove_bases(self, indices):
+        if hasattr(self.transformer_down, "_remove_bases"):
+            ret = self.transformer_down._remove_bases(indices)
+            self.n_components_ = self.transformer_down.n_components
+            self.random_weights_ = self.transformer_down.random_weights_
+            return ret
+        else:
+            return False
