@@ -12,9 +12,10 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.externals import six
 from sklearn.utils.multiclass import type_of_target
 from ..random_feature.random_features_fast import get_fast_random_feature
+from ..random_feature.random_features_doubly import get_doubly_random_feature
 from ..random_feature import LearningKernelwithRandomFeature
 from ..dataset_fast import get_dataset
-from .stochastic_predict import _predict_fast
+from .utils import _predict_fast
 from scipy import sparse
 from ..random_feature.maji_berg import MB
 from ..random_feature import AdditiveChi2Sampler
@@ -76,6 +77,7 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
     def _init_params(self, X, y):
         if not (self.warm_start and self._check_transformer_is_fitted()):
             self.transformer.fit(X, y)
+        
         n_components = self.transformer.n_components
 
         if not (self.warm_start and hasattr(self, 'coef_')):
@@ -86,9 +88,6 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
 
         if not (self.warm_start and hasattr(self, 't_')):
             self.t_ = 1
-
-        if self.loss not in self.LOSSES:
-            raise ValueError("loss {} is not supported.".format(self.loss))
 
         if self.normalize:
             if not (self.warm_start and hasattr(self, 'mean_')):
@@ -119,11 +118,34 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
 
     def _predict(self, X):
         check_is_fitted(self, 'coef_')
-        if getattr(self, 'stochastic', False):
+        coef = self.coef_
+        if hasattr(self, 'intercept_'):
+            intercept = self.intercept_
+        else:
+            intercept = 0.
+    
+        # if averaging, use averaged coef and intercept
+        if hasattr(self, 'average'):
+            if isinstance(self.average, bool):
+                averaging = self.average
+            else:
+                averaging = self.average > 0
+        
+            if averaging:
+                coef = self.coef_average_
+                intercept = self.intercept_average_
+    
+        if getattr(self, "transformer_doubly_", False):
+            y_pred = np.zeros(X.shape[0])
+            _predict_fast(coef, get_dataset(X, order='c'), y_pred,
+                          self.mean_, self.var_, self.t_-1, 
+                          self.transformer_doubly_)
+        elif getattr(self, 'stochastic', False):
             y_pred = np.zeros(X.shape[0])
             is_sparse = sparse.issparse(X)
+    
             transformer_fast = get_fast_random_feature(self.transformer)
-            if transformer_fast is None or not self.fast_solver:
+            if transformer_fast is None:
                 for i, xi in enumerate(X):
                     if is_sparse:
                         xi_trans = self.transformer.transform(xi).ravel()
@@ -135,17 +157,16 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
                         xi_trans = (xi_trans - self.mean_)
                         xi_trans /= np.sqrt(self.var_)+1e-6
 
-                    y_pred[i] = safe_sparse_dot(xi_trans, self.coef_)
+                    y_pred[i] = safe_sparse_dot(xi_trans, coef.T)
 
             else:
-                _predict_fast(self.coef_, get_dataset(X, order='c'), y_pred,
-                              self.mean_, self.var_, transformer_fast)
+                _predict_fast(coef, get_dataset(X, order='c'), y_pred,
+                              self.mean_, self.var_, self.t_-1, transformer_fast)
         else:
             X_trans = self.transformer.transform(X)
-            y_pred = safe_sparse_dot(X_trans, self.coef_.T)
+            y_pred = safe_sparse_dot(X_trans, coef.T)
 
-        if self.fit_intercept and hasattr(self, 'intercept_'):
-            y_pred += self.intercept_
+        y_pred += intercept
 
         if y_pred.ndim != 1:
             y_pred = y_pred.ravel()

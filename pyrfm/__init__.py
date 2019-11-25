@@ -20,7 +20,8 @@ from .linear_model import (AdaGradRegressor, AdaGradClassifier,
                            SDCARegressor, SDCAClassifier,
                            AdamRegressor, AdamClassifier,
                            SGDRegressor, SGDClassifier,
-                           SAGARegressor, SAGAClassifier)
+                           SAGARegressor, SAGAClassifier,
+                           DoublySGDRegressor, DoublySGDClassifier)
 
 
 __all__ = ['RandomKernel', 'SubfeatureRandomKernel', 'RandomFourier',
@@ -33,4 +34,5 @@ __all__ = ['RandomKernel', 'SubfeatureRandomKernel', 'RandomFourier',
            'AdaGradRegressor', 'AdaGradClassifier', 'AdamRegressor',
            'AdamClassifier', 'SparseMBRegressor', 'SparseMBClassifier',
            'SDCARegressor', 'SDCAClassifier', 'SGDClassifier', 'SGDRegressor',
-           'SAGARegressor', 'SAGAClassifier']
+           'SAGARegressor', 'SAGAClassifier',
+           'DoublySGDClassifier', 'DoublySGDRegressor']
