@@ -85,7 +85,7 @@ class BaseAdaGradEstimator(BaseLinear):
         n_components = self.transformer.n_components
         # valid hyper parameters and init parameters
         self._valid_params()
-        self._init_params(X)
+        self._init_params(X, y)
 
         loss = self.LOSSES[self.loss]
         alpha = self.alpha / self.C
@@ -122,7 +122,7 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
         transformer must have (1) n_components attribute, (2) fit(X, y),
         and (3) transform(X).
 
-    eta0 : double (default=1.0)
+    eta0 : double (default=0.1)
         Step-size parameter.
 
     loss : str (default="squared_hinge")
@@ -232,7 +232,7 @@ class AdaGradClassifier(BaseAdaGradEstimator, LinearClassifierMixin):
         'log': Logistic()
     }
 
-    def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared_hinge',
+    def __init__(self, transformer=RBFSampler(), eta0=0.1, loss='squared_hinge',
                  C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
                  eps=1e-4, warm_start=False, random_state=None, verbose=True,
@@ -258,7 +258,7 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
         transformer must have (1) n_components attribute, (2) fit(X, y),
         and (3) transform(X).
 
-    eta0 : double (default=1.0)
+    eta0 : double (default=0.1)
         Step-size parameter.
 
     loss : str (default="squared")
@@ -361,7 +361,7 @@ class AdaGradRegressor(BaseAdaGradEstimator, LinearRegressorMixin):
         'squared': Squared(),
     }
 
-    def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared',
+    def __init__(self, transformer=RBFSampler(), eta0=0.1, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
                  eps=1e-4, warm_start=False, random_state=None, verbose=True,

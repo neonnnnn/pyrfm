@@ -17,7 +17,8 @@ class BaseSAGAEstimator(BaseLinear):
     LEARNING_RATE = {
         'constant': 0,
         'pegasos': 1,
-        'inv_scaling': 2
+        'inv_scaling': 2,
+        'optimal': 3
     }
 
     LOSSES = {
@@ -33,7 +34,7 @@ class BaseSAGAEstimator(BaseLinear):
     def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0, intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
-                 learning_rate='pegasos', power_t=0.5, is_saga=True,
+                 learning_rate='optimal', power_t=1., is_saga=True,
                  warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
         self.transformer = transformer
@@ -59,14 +60,14 @@ class BaseSAGAEstimator(BaseLinear):
     def _init_params(self, X, y):
         super(BaseSAGAEstimator, self)._init_params(X, y)
         n_components = self.transformer.n_components
-        if not (self.warm_start and hasattr(self, 'averaged_grad_coef')):
+        if not (self.warm_start and hasattr(self, 'averaged_grad_coef_')):
             self.averaged_grad_coef_ = np.zeros(n_components)
 
         if not (self.warm_start and hasattr(self, 'averaged_grad_intercept_')):
             self.averaged_grad_intercept_ = np.zeros(1)
 
         if not (self.warm_start and hasattr(self, "dloss_")):
-            self.dloss_ = np.zeros(n_components)
+            self.dloss_ = np.zeros(X.shape[0])
 
     def _valid_params(self):
         super(BaseSAGAEstimator, self)._valid_params()
@@ -128,6 +129,8 @@ class BaseSAGAEstimator(BaseLinear):
                         self.fit_intercept, self.shuffle, random_state,
                         self.transformer,
                         get_fast_random_feature(self.transformer))
+        if self.t_ == 1: # for sgd initialization
+            self.t_ += n_samples
         self.t_ += n_samples * (it + 1)
 
         return self
@@ -147,7 +150,7 @@ class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
         transformer must have (1) n_components attribute, (2) fit(X, y),
         and (3) transform(X).
 
-    eta0 : double (default=1.0)
+    eta0 : double (default=0.01)
         Step-size parameter.
 
     loss : str (default="squared_hinge")
@@ -195,12 +198,13 @@ class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
         If sum of absolute val of update in one epoch is lower than tol,
         the SAGA solver stops learning.
 
-    learning_rate : str (default='pegasos')
-        The method for learning rate decay. {'constant'|'pegasos'|'inv_scaling'}
+    learning_rate : str (default='optimal')
+        The method for learning rate decay. {'constant'|'pegasos'|'inv_scaling'
+        |'optimal'}
         are supported now.
 
-    power_t : double (default=0.5)
-        The parameter for learning_rate 'inv_scaling'.
+    power_t : double (default=1.)
+        The parameter for learning_rate 'inv_scaling' and 'optimal'.
 
     is_saga : bool (default=True)
         Whether SAGA (True) or SAG (False).
@@ -238,7 +242,7 @@ class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
     self.averaged_grad_intercept_ : array, shape (1, )
         The averaged gradient of intercept.
 
-    self.dloss : array, shape (n_samples, )
+    self.dloss_ : array, shape (n_samples, )
         The gradient of loss for each samples.
 
     self.mean_, self.var_ : array or None, shape (n_components, )
@@ -269,10 +273,10 @@ class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
         'log': Logistic()
     }
 
-    def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared_hinge',
+    def __init__(self, transformer=RBFSampler(), eta0=0.01, loss='squared_hinge',
                  C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
-                 learning_rate='pegasos', power_t=0.5, is_saga=False,
+                 learning_rate='optimal', power_t=1., is_saga=False,
                  warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
         super(SAGAClassifier, self).__init__(
@@ -296,7 +300,7 @@ class SAGARegressor(BaseSAGAEstimator, LinearRegressorMixin):
         transformer must have (1) n_components attribute, (2) fit(X, y),
         and (3) transform(X).
 
-    eta0 : double (default=1.0)
+    eta0 : double (default=0.01)
         Step-size parameter.
 
     loss : str (default="squared")
@@ -340,12 +344,13 @@ class SAGARegressor(BaseSAGAEstimator, LinearRegressorMixin):
         If sum of absolute val of update in one epoch is lower than tol,
         the SAGA solver stops learning.
 
-    learning_rate : str (default='pegasos')
-        The method for learning rate decay. {'constant'|'pegasos'|'inv_scaling'}
+    learning_rate : str (default='optimal')
+        The method for learning rate decay. {'constant'|'pegasos'|'inv_scaling'
+        |'optimal'}
         are supported now.
 
-    power_t : double (default=0.5)
-        The parameter for learning_rate 'inv_scaling'.
+    power_t : double (default=1.)
+        The parameter for learning_rate 'inv_scaling' and 'optimal'.
 
     is_saga : bool (default=True)
         Whether SAGA (True) or SAG (False).
@@ -383,7 +388,7 @@ class SAGARegressor(BaseSAGAEstimator, LinearRegressorMixin):
     self.averaged_grad_intercept_ : array, shape (1, )
         The averaged gradient of intercept.
 
-    self.dloss : array, shape (n_samples, )
+    self.dloss_ : array, shape (n_samples, )
         The gradient of loss for each samples.    
 
     self.mean_, self.var_ : array or None, shape (n_components, )
@@ -411,10 +416,10 @@ class SAGARegressor(BaseSAGAEstimator, LinearRegressorMixin):
         'squared': Squared(),
     }
 
-    def __init__(self, transformer=RBFSampler(), eta0=1.0, loss='squared',
+    def __init__(self, transformer=RBFSampler(), eta0=0.01, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
-                 learning_rate='pegasos', power_t=0.5, is_saga=False,
+                 learning_rate='optimal', power_t=1., is_saga=False,
                  warm_start=False, random_state=None, verbose=True,
                  fast_solver=True, shuffle=True):
         super(SAGARegressor, self).__init__(
