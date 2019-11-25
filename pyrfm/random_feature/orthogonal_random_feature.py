@@ -18,8 +18,8 @@ def _get_random_matrix(distribution):
 
 
 class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
-    """Approximates feature map of the RBF or dot kernel by Monte Carlo
-    approximation by Orthogonal Random Feature map.
+    """Approximates feature map of the RBF or dot kernel 
+    by Orthogonal Random Feature map.
 
     Parameters
     ----------
@@ -193,8 +193,8 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
 
 class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
-    """Approximates feature map of the RBF or dot kernel by Monte Carlo
-    approximation by Structured Orthogonal Random Fourier Feature map.
+    """Approximates feature map of the RBF or dot kernel by 
+    Structured Orthogonal Random Fourier Feature map.
 
     Parameters
     ----------

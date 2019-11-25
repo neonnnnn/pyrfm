@@ -6,48 +6,33 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.extmath import safe_sparse_dot
 from scipy.sparse import csc_matrix
-from scipy.fftpack import fft, ifft
 from sklearn.utils.validation import check_is_fitted
 
 
-def _index_hash(n_inputs, n_outputs, degree, rng):
-    """
-    # h(j) = (a*j + b mod p) mod n_outputs,
-    # where p is a prime number that is enough large (p >> n_outputs)
-    p = 2**61 - 1
-    a = rng.randint(p, size)
-    b = rng.randint(p, size)
-    return (((a * np.arange(n_outputs)) % p + b) % p) % n_outputs
-    """
-    return rng.randint(n_outputs, size=(degree, n_inputs), dtype=np.int32)
+def _index_hash(n_inputs, n_outputs, rng):
+    return rng.randint(n_outputs, size=(n_inputs), dtype=np.int32)
 
 
-def _sign_hash(n_inputs, degree, rng):
-    return 2*rng.randint(2, size=(degree, n_inputs), dtype=np.int32) - 1
+def _sign_hash(n_inputs, rng):
+    return 2*rng.randint(2, size=(n_inputs), dtype=np.int32) - 1
 
-
-def _make_projection_matrices(i_hash, s_hash, n_components):
-    degree, d = i_hash.shape
-    val = s_hash.ravel()
-    row = i_hash.ravel()
-    col = np.arange(d*degree)
-    random_weights = csc_matrix((val, (row, col)),
-                                shape=(n_components, d*degree))
+def _make_projection_matrices(hash_indices, hash_signs, n_components):
+    n_features = hash_indices.shape[0]
+    col = np.arange(n_features)
+    random_weights = csc_matrix((hash_signs, (hash_indices, col)),
+                                shape=(n_components, n_features))
 
     return random_weights
 
-
-class TensorSketch(BaseEstimator, TransformerMixin):
-    """Approximates feature map of a polynomial kernel by Tensor Sketch.
-
+class CountSketch(BaseEstimator, TransformerMixin):
+    """Approximates feature map of a linear kernel by Count Sketch, 
+    a.k.a feature hashing.
+    
     Parameters
     ----------
     n_components : int (default=100)
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
-
-    degree : int (default=2)
-        Parameter of the polynomial product kernel.
 
     random_state : int, RandomState instance or None, optional (default=None)
         If int, random_state is the seed used by the random number generator;
@@ -55,30 +40,46 @@ class TensorSketch(BaseEstimator, TransformerMixin):
         If None, the random number generator is the RandomState instance used
         by `np.random`.
 
+    dense_output : bool (default=True)
+        If dense_output = False and X is sparse matrix, output random
+        feature matrix will become sparse matrix.
+
     Attributes
     ----------
-    hash_indices_ : array, shape (degree, n_features)
-        Hash matrix for CountSketch.
+    hash_indices_ : np.array, shape (n_features)
+        Hash table that represents the embedded indices.
+    
+    hash_signs_ : np.array, shape (n_features)
+        Sign array.
 
-    hash_signs_ : array, shape (degree, n_features)
-        Sign matrix for CountSketch.
-
-    random_weights_ : list of csc_matrix, len=degree
-        The sampled basis created by hash_indices and hash_signs for
-        convenience.
+    random_weights_ : np.array, shape (n_features)
+        Projection matrix created by hash_indices_ and hash_signs_.
 
     References
     ----------
-    [1] Fast and scalable polynomial kernels via explicit feature maps.
+    [1] Finding Frequent Items in Data Streams.
+    Moses Charikar, Kevin Chen, and Martin Farach-Colton.
+    In ICALP 2002.
+    (https://www.cs.rutgers.edu/~farach/pubs/FrequentStream.pdf)
+
+    [2] Fast and scalable polynomial kernels via explicit feature maps.
     Ninh Pham and Rasmus Pagh.
     In KDD 2013.
     (http://chbrown.github.io/kdd-2013-usb/kdd/p239.pdf)
 
+    [3] Feature Hashing for Large Scale Multitask Learning.
+    Kilian Weinberger, Anirban Dasgupta ANIRBAN, John Langford, Alex Smola,
+    and Josh Attenberg.
+    In ICML 2009.
+    (http://alex.smola.org/papers/2009/Weinbergeretal09.pdf)
+
     """
-    def __init__(self, n_components=100, degree=2, random_state=None):
+    def __init__(self, n_components=100, degree=2, random_state=None,
+                 dense_output=False):
         self.n_components = n_components
         self.degree = degree
         self.random_state = random_state
+        self.dense_output = dense_output
 
     def fit(self, X, y=None):
         """Generate hash functions according to n_features.
@@ -97,14 +98,12 @@ class TensorSketch(BaseEstimator, TransformerMixin):
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         random_state = check_random_state(self.random_state)
-        i_hash = _index_hash(n_features, self.n_components, self.degree,
-                             random_state)
-        s_hash = _sign_hash(n_features, self.degree, random_state)
-        self.hash_indices_ = i_hash.ravel()
-        self.hash_signs_= s_hash.ravel()
-        self.random_weights_ = _make_projection_matrices(i_hash, s_hash,
+        self.hash_indices_ = _index_hash(n_features, self.n_components, 
+                                         random_state)
+        self.hash_signs_ = _sign_hash(n_features, random_state)
+        self.random_weights_ = _make_projection_matrices(self.hash_indices_,
+                                                         self.hash_signs_,
                                                          self.n_components)
-
         return self
 
     def transform(self, X):
@@ -121,13 +120,5 @@ class TensorSketch(BaseEstimator, TransformerMixin):
         X_new : array-like, shape (n_samples, n_components)
         """
         check_is_fitted(self, "random_weights_")
-        X = check_array(X, True)
-        n_samples, n_features = X.shape
-        P = safe_sparse_dot(X, self.random_weights_[:, :n_features].T, True)
-        output = fft(P)
-        for offset in range(n_features, n_features*self.degree, n_features):
-            random_weight = self.random_weights_[:, offset:offset+n_features]
-            P = safe_sparse_dot(X, random_weight.T, True)
-            output *= fft(P)
-
-        return ifft(output).real
+        X = check_array(X, accept_sparse=True)
+        return safe_sparse_dot(X, self.random_weights_.T, self.dense_output)

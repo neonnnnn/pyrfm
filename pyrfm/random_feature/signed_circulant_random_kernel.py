@@ -12,8 +12,8 @@ from .signed_circulant_random_projection import SignedCirculantRandomMatrix
 
 
 class SignedCirculantRandomKernel(BaseEstimator, TransformerMixin):
-    """Approximates feature map of the ANOVA kernel by Monte Carlo
-    approximation by Signed Circulant Random Kernel map.
+    """Approximates feature map of the ANOVA kernel by 
+    Signed Circulant Random Kernel map.
 
     Parameters
     ----------
