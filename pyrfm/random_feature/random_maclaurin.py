@@ -7,7 +7,7 @@ from sklearn.utils import check_random_state, check_array
 from sklearn.utils.validation import check_is_fitted
 from scipy.special import factorial, binom
 from scipy.sparse import issparse, hstack, csr_matrix
-from .sparse_rademacher import get_subfeatures_indices
+from .utils_random_fast import get_subfeatures_indices
 from .utils import get_random_matrix
 import warnings
 
@@ -112,6 +112,37 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
         self.p_sparse = p_sparse
         self.random_state = random_state
 
+    def _set_coefs(self, gamma):
+        if self.coefs is None:
+            if self.kernel == 'poly':
+                self.coefs = self.bias ** np.arange(self.degree+1)[::-1]
+                self.coefs *= binom(self.degree,
+                                    range(self.degree+1)).astype(np.float64)
+                self.coefs /= factorial(range(self.degree+1))
+            elif self.kernel == 'exp':
+                self.coefs = gamma ** np.arange(self.max_expansion)
+                self.coefs /= factorial(range(self.max_expansion))
+            else:
+                raise ValueError("When using the user-specific kernel "
+                                 "function, coefs must be given explicitly.")
+    
+    def _sample_orders(self, random_state):
+        coefs = np.array(self.coefs)
+        if self.h01:
+            coefs[1] = 0
+            coefs[0] = 0
+
+        if self.p_choice is None:
+            p_choice = (1/self.p) ** (np.arange(len(coefs)) + 1)
+            if np.sum(coefs == 0.) != 0:
+                p_choice[coefs == 0] = 0
+            p_choice /= np.sum(p_choice)
+            self.p_choice = p_choice
+ 
+        self.orders_ = random_state.choice(len(self.p_choice),
+                                           self.n_components,
+                                           p=self.p_choice).astype(np.int32)
+
     def fit(self, X, y=None):
         """Generate random weights and orders according to n_features.
 
@@ -138,42 +169,12 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
                 raise ValueError("kernel must be {'poly'|'exp'} or callable.")
 
         if self.gamma == 'auto':
-            gamma_ = 1.0 / X.shape[1]
+            gamma = 1.0 / X.shape[1]
         else:
-            gamma_ = self.gamma
+            gamma = self.gamma
 
-        if self.coefs is None:
-            if self.kernel == 'poly':
-                self.coefs = self.bias ** np.arange(self.degree+1)[::-1]
-                self.coefs *= binom(self.degree,
-                                    range(self.degree+1)).astype(np.float64)
-                self.coefs /= factorial(range(self.degree+1))
-                coefs = self.coefs
-            elif self.kernel == 'exp':
-                self.coefs = gamma_ ** np.arange(self.max_expansion)
-                self.coefs /= factorial(range(self.max_expansion))
-                coefs = self.coefs
-            else:
-                raise ValueError('When using the user-specific kernel function,'
-                                 'coefs must be given explicitly.')
-        else:
-            coefs = self.coefs
-
-        if self.h01:
-            coefs[1] = 0
-            coefs[0] = 0
-
-        if self.p_choice is None:
-            p_choice = (1/self.p) ** (np.arange(len(coefs)) + 1)
-            if np.sum(coefs == 0.) != 0:
-                p_choice[coefs == 0] = 0
-            p_choice /= np.sum(p_choice)
-            self.p_choice = p_choice
-
-        self.orders_ = random_state.choice(len(self.p_choice),
-                                           self.n_components,
-                                           p=self.p_choice).astype(np.int32)
-
+        self._set_coefs(gamma)
+        self._sample_orders(random_state)
         distribution = self.distribution.lower()
         size = (n_features, np.sum(self.orders_))
         self.random_weights_ = get_random_matrix(random_state, distribution,
@@ -206,9 +207,9 @@ class RandomMaclaurin(BaseEstimator, TransformerMixin):
                 dense_output = True
         output = transform_all_fast(X, self, dense_output)
 
-        if self.h01 and self.bias != 0:
-            linear = X * np.sqrt(self.degree*self.bias**(self.degree-1))
-            dummy = np.sqrt(self.bias ** self.degree) * np.ones((n_samples, 1))
+        if self.h01:
+            linear = X * np.sqrt(self.coefs[1])
+            dummy = np.sqrt(self.coefs[0]) * np.ones((n_samples, 1))
             if dense_output:
                 if issparse(linear):
                     output = np.hstack([linear.toarray(), output])

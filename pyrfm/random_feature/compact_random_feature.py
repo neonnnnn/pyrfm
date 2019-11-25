@@ -8,8 +8,7 @@ from . import RandomMaclaurin
 
 
 class CompactRandomFeature(BaseEstimator, TransformerMixin):
-    """Approximates feature map of the RBF kernel by Monte Carlo
-    approximation by Random Fourier Feature map.
+    """Efficient random feature map by Compact Random Feature map.
 
     You can construct (the simplest) CompactRandomFeature by combining random
     features and sklearn.random_projection, e.g.,

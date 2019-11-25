@@ -11,6 +11,7 @@ from sklearn.kernel_approximation import RBFSampler
 from .sgd_fast import _sgd_fast
 from ..dataset_fast import get_dataset
 from ..random_feature.random_features_fast import get_fast_random_feature
+import warnings
 
 
 class BaseSGDEstimator(BaseLinear):
@@ -32,9 +33,9 @@ class BaseSGDEstimator(BaseLinear):
     def __init__(self, transformer=RBFSampler(), eta0=0.01, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0, intercept_decay=0.1,
                  normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
-                 learning_rate='pegasos', power_t=0.5, average=True,
-                 warm_start=False, random_state=None, verbose=True,
-                 fast_solver=True, shuffle=True):
+                 learning_rate='optimal', power_t=0.75,
+                 average=True, warm_start=False, random_state=None,
+                 verbose=True, fast_solver=True, shuffle=True):
         self.transformer = transformer
         self.eta0 = eta0
         self.loss = loss
@@ -58,18 +59,17 @@ class BaseSGDEstimator(BaseLinear):
     def _init_params(self, X, y):
         super(BaseSGDEstimator, self)._init_params(X, y)
         n_components = self.transformer.n_components
+        n_features = X.shape[1]
+        if not (self.warm_start and hasattr(self, 'coef_average_')):
+            self.coef_average_ = np.zeros(n_components)
 
-        if not (self.warm_start and hasattr(self, 'coef_cache_')):
-            self.coef_cache_ = np.zeros(n_components)
-
-        if not (self.warm_start and hasattr(self, 'intercept_cache_')):
-            self.intecept_cache_ = np.zeros(1)
+        if not (self.warm_start and hasattr(self, 'intercept_average_')):
+            self.intercept_average_ = np.zeros(1)
 
     def _valid_params(self):
         super(BaseSGDEstimator, self)._valid_params()
-
-        if not isinstance(self.average, bool):
-            raise ValueError("average is not bool.")
+        if type(self.average) not in [bool, int]:
+            raise ValueError("average is not {bool|int}.")
 
         if self.learning_rate == 'pegasos':
             if not (self.l1_ratio < 1):
@@ -116,16 +116,24 @@ class BaseSGDEstimator(BaseLinear):
         random_state = check_random_state(self.random_state)
         is_sparse = sparse.issparse(X)
         learning_rate = self.LEARNING_RATE[self.learning_rate]
-        it = _sgd_fast(self.coef_, self.intercept_, self.coef_cache_,
-                       self.intecept_cache_, get_dataset(X, order='c'), X, y,
-                       self.mean_, self.var_, loss, alpha, self.l1_ratio,
+        if isinstance(self.average, int):
+            average = self.average
+        else:
+            if average:
+                average = 1
+            else:
+                average = 0
+
+        transformer_fast = get_fast_random_feature(self.transformer)
+        it = _sgd_fast(self.coef_, self.intercept_, self.coef_average_,
+                       self.intercept_average_, get_dataset(X, order='c'), X_, 
+                       y, self.mean_, self.var_, loss, alpha, self.l1_ratio,
                        intercept_decay, self.eta0, learning_rate,
-                       self.power_t, self.average, self.t_, self.max_iter,
+                       self.power_t, average, self.t_, self.max_iter,
                        self.tol, is_sparse, self.verbose, self.fit_intercept,
                        self.shuffle, random_state, self.transformer,
-                       get_fast_random_feature(self.transformer))
+                       transformer_fast)
         self.t_ += n_samples*(it+1)
-
         return self
 
 
@@ -200,14 +208,18 @@ class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
 
         - 'inv_scaling': eta = eta0 / pow(t, power_t)
 
-        - 'optimal': eta = eta0 / pow(1 + alpha*(1-l1_ratio)*t, power_t)
+        - 'optimal': eta = eta0 / pow(1 + eta0*alpha*(1-l1_ratio)*t, power_t)
 
-    power_t : double (default=0.5)
-        The parameter for learning_rate 'inv_scaling'.
+    power_t : double (default=0.75)
+        The parameter for learning_rate 'inv_scaling' and 'optimal'.
 
-    average : bool (default=True)
+    average : int or bool (default=1)
         Whether output averaged weight or not.
-        If average=True, you should use learning_rate='optimal' and
+        If type(average) is int, the optimizer will compute the averaged weights
+        after `average` iterations. 
+        If average=True, the optimizer will compute the averaged weights
+        after 1 iterations (i.e., averaging over all iterations). 
+        If averaging, you should use learning_rate='optimal' and
         power_t=0.75[2].
 
     warm_start : bool (default=False)
@@ -234,13 +246,13 @@ class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
     self.coef_ : array, shape (n_components, )
         The learned coefficients of the linear model.
 
-    self.coef_cache_ : array, shape (n_components, )
+    self.coef_average_ : array, shape (n_components, )
         The latest learned coefficients of the linear model for average=True.
 
     self.intercept_ : array, shape (1, )
         The learned intercept (bias) of the linear model.
 
-    self.intercept_cache_ : array, shape (1, )
+    self.intercept_average_ : array, shape (1, )
         The latest learned intercept (bias) of the linear model
         for average=True.
 
@@ -276,13 +288,15 @@ class SGDClassifier(BaseSGDEstimator, LinearClassifierMixin):
     def __init__(self, transformer=RBFSampler(), eta0=0.01,
                  loss='squared_hinge', C=1.0, alpha=1.0, l1_ratio=0.,
                  intercept_decay=0.1, normalize=False, fit_intercept=True,
-                 max_iter=100, tol=1e-6, learning_rate='optimal', power_t=0.75,
-                 average=True, warm_start=False, random_state=None,
-                 verbose=True, fast_solver=True, shuffle=True):
+                 max_iter=100, tol=1e-6, learning_rate='optimal',
+                 power_t=0.75, average=1, warm_start=False,
+                 random_state=None, verbose=True, fast_solver=True,
+                 shuffle=True):
         super(SGDClassifier, self).__init__(
             transformer, eta0, loss, C, alpha, l1_ratio, intercept_decay,
-            normalize, fit_intercept, max_iter, tol, learning_rate, power_t,
-            average, warm_start, random_state, verbose, fast_solver, shuffle
+            normalize, fit_intercept, max_iter, tol, learning_rate,
+            power_t, average, warm_start, random_state, verbose,
+            fast_solver, shuffle
         )
 
 
@@ -353,14 +367,18 @@ class SGDRegressor(BaseSGDEstimator, LinearRegressorMixin):
 
         - 'inv_scaling': eta = eta0 / pow(t, power_t)
 
-        - 'optimal': eta = eta0 / pow(1 + alpha*(1-l1_ratio)*t, power_t)
+        - 'optimal': eta = eta0 / pow(1 + eta0*alpha*(1-l1_ratio)*t, power_t)
 
-    power_t : double (default=0.5)
-        The parameter for learning_rate 'inv_scaling'.
-
-    average : bool (default=True)
+    power_t : double (default=0.75)
+        The parameter for learning_rate 'inv_scaling' and 'optimal'.
+    
+    average : int or bool (default=1)
         Whether output averaged weight or not.
-        If average=True, you should use learning_rate='optimal' and
+        If type(average) is int, the optimizer will compute the averaged weights
+        after `average` iterations. 
+        If average=True, the optimizer will compute the averaged weights
+        after 1 iterations (i.e., averaging over all iterations). 
+        If averaging, you should use learning_rate='optimal' and
         power_t=0.75[2].
 
     warm_start : bool (default=False)
@@ -387,13 +405,13 @@ class SGDRegressor(BaseSGDEstimator, LinearRegressorMixin):
     self.coef_ : array, shape (n_components, )
         The learned coefficients of the linear model.
 
-    self.coef_cache_ : array, shape (n_components, )
+    self.coef_average_ : array, shape (n_components, )
         The latest learned coefficients of the linear model for average=True.
 
     self.intercept_ : array, shape (1, )
         The learned intercept (bias) of the linear model.
 
-    self.intercept_cache_ : array, shape (1, )
+    self.intercept_average_ : array, shape (1, )
         The latest learned intercept (bias) of the linear model
         for average=True.
 
@@ -422,14 +440,15 @@ class SGDRegressor(BaseSGDEstimator, LinearRegressorMixin):
         'squared': Squared(),
     }
 
-    def __init__(self, transformer=RBFSampler(), eta0=0.001, loss='squared',
+    def __init__(self, transformer=RBFSampler(), eta0=0.01, loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
-                 normalize=False, fit_intercept=True, max_iter=100, tol=1e-6,
-                 learning_rate='optimal', power_t=0.75, average=True,
-                 warm_start=False, random_state=None, verbose=True,
-                 fast_solver=True, shuffle=True):
+                 normalize=False, fit_intercept=True, max_iter=100,
+                 tol=1e-6, learning_rate='optimal', power_t=0.75,
+                 average=1, warm_start=False, random_state=None,
+                 verbose=True, fast_solver=True, shuffle=True):
         super(SGDRegressor, self).__init__(
             transformer, eta0, loss, C, alpha, l1_ratio, intercept_decay,
-            normalize, fit_intercept, max_iter, tol, learning_rate, power_t,
-            average, warm_start, random_state, verbose, fast_solver, shuffle
+            normalize, fit_intercept, max_iter, tol, learning_rate,
+            power_t, average, warm_start, random_state, verbose, fast_solver,
+            shuffle
         )

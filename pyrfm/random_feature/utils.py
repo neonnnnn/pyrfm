@@ -1,5 +1,5 @@
 import numpy as np
-from .sparse_rademacher import sparse_rademacher
+from .utils_random_fast import sparse_rademacher
 
 
 def next_pow_of_two(x):

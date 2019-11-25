@@ -2,14 +2,16 @@ from ..dataset_fast cimport RowDataset, ColumnDataset
 
 
 cdef class BaseCRandomFeature(object):
-    cdef Py_ssize_t n_components
-    cdef Py_ssize_t n_features
+    cdef int n_components
+    cdef int n_features
     cdef double scale
     cdef void transform(self,
                         double* z,
                         double* data,
                         int* indices,
                         int n_nz)
+
+    cdef int get_n_components(self)
 
 
 cdef class CRBFSampler(BaseCRandomFeature):

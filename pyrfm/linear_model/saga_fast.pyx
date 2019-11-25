@@ -36,6 +36,8 @@ cdef inline double _get_eta(double eta0,
         eta = 1.0 / (lam2 * t)
     elif learning_rate == 2:
         eta /= pow(t, power_t)
+    elif learning_rate == 3:
+        eta /= pow(1+lam2*eta0*t, power_t)
     return eta
 
 
@@ -83,7 +85,7 @@ cdef double sgd_initialization(double[:] coef,
                                double[:] z):
     cdef Py_ssize_t i, ii, j
     cdef int n_samples, n_components
-    cdef double dloss, eta_t, viol, y_pred, intercept_new, coef_new_j
+    cdef double dloss, eta_t, viol, y_pred, intercept_new, coef_new_j, update
     # data pointers
     cdef int* indices
     cdef double* data
@@ -93,17 +95,22 @@ cdef double sgd_initialization(double[:] coef,
     n_components = coef.shape[0]
 
     viol = 0
+    if mean is not None:
+        for i in range(n_samples):
+            X.get_row_ptr(i, &indices, &data, &n_nz)
+            transform(X_array, z, i, data, indices, n_nz, is_sparse, transformer,
+                      transformer_fast)
+            for j in range(n_components):
+                mean[j] += z[j] / n_samples
+        for i in range(n_samples):
+            X.get_row_ptr(i, &indices, &data, &n_nz)
+            transform(X_array, z, i, data, indices, n_nz, is_sparse, transformer,
+                      transformer_fast)
+            for j in range(n_components):
+                var[j] += (z[j] - mean[j])**2 / (n_samples-1)
+
     if shuffle:
         random_state.shuffle(indices_samples)
-    if mean is not None and t[0] == 1:
-        i = random_state.randint(n_samples-1)+1
-        i = indices_samples[i]
-        X.get_row_ptr(i, &indices, &data, &n_nz)
-        transform(X_array, z, i, data, indices, n_nz, is_sparse, transformer,
-                  transformer_fast)
-        for j in range(n_components):
-            mean[j] = z[j]
-
     for ii in range(n_samples):
         i = indices_samples[ii]
         X.get_row_ptr(i, &indices, &data, &n_nz)
@@ -112,7 +119,8 @@ cdef double sgd_initialization(double[:] coef,
 
         # if normalize
         if mean is not None:
-            normalize(z, mean, var, t[0], n_components)
+            for j in range(n_components):
+                z[j] = (z[j] - mean[j]) / (sqrt(var[j])+1e-6)
 
         y_pred = _pred(z, coef, intercept[0], lam1, lam2,
                        &acc_loss[0], n_components)
@@ -174,7 +182,8 @@ cdef double saga_epoch(double[:] coef,
 
     cdef Py_ssize_t i, ii, j
     cdef int n_samples, n_components
-    cdef double dloss, eta_t, viol, y_pred, intercept_new, coef_new_j, dloss_dif
+    cdef double dloss, eta_t, viol, y_pred, intercept_new, coef_new_j
+    cdef double dloss_dif, update
     # data pointers
     cdef int* indices
     cdef double* data
@@ -186,17 +195,16 @@ cdef double saga_epoch(double[:] coef,
     viol = 0
     if shuffle:
         random_state.shuffle(indices_samples)
-
     for ii in range(n_samples):
         i = indices_samples[ii]
         X.get_row_ptr(i, &indices, &data, &n_nz)
         transform(X_array, z, i, data, indices, n_nz, is_sparse, transformer,
                   transformer_fast)
-
         # if normalize
         if mean is not None:
-            normalize(z, mean, var, t[0], n_components)
-
+            for j in range(n_components):
+                z[j] = (z[j] - mean[j]) / (sqrt(var[j])+1e-6)
+    
         y_pred = _pred(z, coef, intercept[0], lam1, lam2,
                        &acc_loss[0], n_components)
         acc_loss[0] += loss.loss(y_pred, y[i])
@@ -288,9 +296,8 @@ def _saga_fast(double[:] coef,
                                   transformer, transformer_fast,
                                   indices_samples, z)
         if verbose:
-            print("SGD Initialization. Violation {} Loss {}".format(viol,
-                                                                    acc_loss))
-
+            print("SGD Initialization. " 
+                  "Violation {} Loss {}".format(viol, acc_loss))
     for it in range(max_iter):
         acc_loss = 0
         viol = saga_epoch(coef, intercept, averaged_grad_coef,
@@ -308,5 +315,4 @@ def _saga_fast(double[:] coef,
             if verbose:
                 print("Converged at iteration {}".format(it+1))
             break
-
     return it

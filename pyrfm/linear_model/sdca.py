@@ -10,6 +10,7 @@ from sklearn.kernel_approximation import RBFSampler
 from .sdca_fast import _sdca_fast
 from ..dataset_fast import get_dataset
 from ..random_feature.random_features_fast import get_fast_random_feature
+import warnings
 
 
 class BaseSDCAEstimator(BaseLinear):
@@ -48,7 +49,19 @@ class BaseSDCAEstimator(BaseLinear):
             raise ValueError("alpha*(1-l1_ratio)/C = 0. SDCA needs a strongly"
                              "convex regularizer (alpha*(1-l1_ration)/C must"
                              "be bigger than 0).")
-
+    def _init_params(self, X, y):
+        super(BaseSDCAEstimator, self)._init_params(X, y)
+        n_components = self.transformer.n_components
+        n_features = X.shape[1]
+        n_samples = X.shape[0]
+        if not (self.warm_start and hasattr(self, "dual_coef_")):
+            self.dual_coef_ = np.zeros(n_samples)
+        else:
+            if len(self.dual_coef_) != n_samples:
+                warnings.warn("The number of training data is different from "
+                              "the previous one. dual_coef_ is reset.")
+                self.dual_coef_ = np.zeros(n_samples)
+    
     def fit(self, X, y):
         """Fit model according to X and y.
 
@@ -71,7 +84,6 @@ class BaseSDCAEstimator(BaseLinear):
         self._valid_params()
         self._init_params(X, y)
 
-        self.dual_coef_ = np.zeros(n_samples)
         loss = self.LOSSES[self.loss]
         alpha = self.alpha / self.C
         intercept_decay = self.intercept_decay / self.C
@@ -85,6 +97,8 @@ class BaseSDCAEstimator(BaseLinear):
                         is_sparse, self.verbose, self.fit_intercept,
                         self.shuffle, random_state, self.transformer,
                         get_fast_random_feature(self.transformer))
+        if self.t_ == 1: # for sgd initialization
+            self.t_ += n_samples
         self.t_ += n_samples*(it+1)
 
         return self

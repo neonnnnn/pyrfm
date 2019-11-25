@@ -11,6 +11,7 @@ from scipy.fftpack._fftpack import zfft
 import numpy as np
 cimport numpy as np
 from sklearn.kernel_approximation import (RBFSampler, SkewedChi2Sampler)
+from sklearn.utils import check_random_state
 from ..dataset_fast import get_dataset
 from ..dataset_fast cimport RowDataset, ColumnDataset
 from cython.view cimport array
@@ -77,6 +78,10 @@ cdef class BaseCRandomFeature(object):
         raise NotImplementedError("This is an abstract method.")
 
 
+    cdef int get_n_components(self):
+        return self.n_components
+
+
 cdef class CRBFSampler(BaseCRandomFeature):
     def __init__(self, transformer):
         self.n_components = transformer.n_components
@@ -84,7 +89,7 @@ cdef class CRBFSampler(BaseCRandomFeature):
         self.random_weights = transformer.random_weights_
         self.random_offset = transformer.random_offset_
         self.scale = sqrt(self.n_components/2.)
-
+        
     cdef void transform(self,
                         double* z,
                         double* data,
@@ -157,6 +162,9 @@ cdef class CAdditiveChi2Sampler(BaseCRandomFeature):
         for jj in range(n_nz):
             j = indices[jj]
             z[j] = sqrt(data[jj]*self.sample_interval)
+            if data[jj] < 0:
+                raise ValueError("Entries of X must be non-negative.")
+                return 
 
         offset = self.n_features       
         for jj in range(n_nz):
@@ -472,7 +480,6 @@ cdef class CSubsampledRandomHadamard(BaseCRandomFeature):
                            format='d')
         cdef int n_features_padded = 2**self.degree_hadamard
         self.scale = sqrt((1.0*self.n_components)/n_features_padded)
-        print(self.scale, self.n_components, n_features_padded)
 
     cdef void transform(self,
                         double* z,

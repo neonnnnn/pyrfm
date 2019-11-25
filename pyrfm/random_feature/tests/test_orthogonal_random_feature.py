@@ -13,6 +13,7 @@ X /= np.sum(X, axis=1, keepdims=True)
 Y /= np.sum(Y, axis=1, keepdims=True)
 X_sp = csr_matrix(X)
 
+
 def test_orthogonal_random_feature():
     for gamma, n_components in zip([10, 100], [2048, 4096]):
         # compute exact kernel
