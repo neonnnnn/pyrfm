@@ -66,17 +66,23 @@ def test_all_subsets_kernel():
     # compute exact kernel
     distributions = ['rademacher', 'gaussian', 'laplace', 'uniform',
                      'sparse_rademacher']
+    p_sparse = 0.5
     kernel = all_subsets(X, Y)
     for dist in distributions:
         # approximate kernel mapping
-        rk_transform = RandomKernel(n_components=3000, random_state=rng,
+        rk_transform = RandomKernel(n_components=4000, random_state=rng,
                                     kernel='all_subsets',
-                                    distribution=dist, p_sparse=0.5)
+                                    distribution=dist, p_sparse=p_sparse)
         X_trans = rk_transform.fit_transform(X)
         Y_trans = rk_transform.transform(Y)
         kernel_approx = np.dot(X_trans, Y_trans.T)
 
         error = kernel - kernel_approx
+        if dist == 'sparse_rademacher':
+            nnz = rk_transform.random_weights_.nnz
+            nnz_expect = np.prod(rk_transform.random_weights_.shape)*p_sparse
+            nnz_var = np.sqrt(nnz_expect * (1-p_sparse))
+            assert_less_equal(np.abs(nnz-nnz_expect), 3*nnz_var)
         assert_less_equal(np.abs(np.mean(error)), 0.01)
         assert_less_equal(np.max(error), 0.1)  # nothing too far off
         assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
