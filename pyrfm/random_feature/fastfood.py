@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.validation import check_is_fitted
-from .utils_fast import fisher_yates_shuffle
+from .utils_random_fast import fisher_yates_shuffle_with_indices
 from .utils import next_pow_of_two, rademacher, get_random_matrix
 from scipy.stats import chi
 import warnings
@@ -134,7 +134,8 @@ class FastFood(BaseEstimator, TransformerMixin):
         self.random_perm_ = np.zeros(size, dtype=np.int32)
         self._fy_vector_ = np.zeros(size, dtype=np.int32)
         for t in range(n_stacks):
-            perm, fyvec = fisher_yates_shuffle(n_features_padded, random_state)
+            perm, fyvec = fisher_yates_shuffle_with_indices(n_features_padded,
+                                                            random_state)
             self.random_perm_[t] = perm
             self._fy_vector_[t] = fyvec
 

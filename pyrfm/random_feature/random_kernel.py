@@ -10,7 +10,7 @@ from scipy.sparse import csr_matrix, issparse
 from math import sqrt
 from ..kernels import anova, all_subsets, anova_fast, pairwise
 from .utils import get_random_matrix
-from .sparse_rademacher import get_subfeatures_indices
+from .utils_random_fast import get_subfeatures_indices
 import warnings
 from scipy.special import comb
 
