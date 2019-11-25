@@ -6,7 +6,6 @@ def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
 
     config = Configuration('pyrfm', parent_package, top_path)
-
     config.add_extension('dataset_fast',
                          sources=['dataset_fast.pyx'],
                          language='c++',
@@ -16,6 +15,7 @@ def configuration(parent_package='', top_path=None):
                          sources=['kernels_fast.pyx'],
                          language='c++',
                          include_dirs=[numpy.get_include()])
+    config.add_subpackage('sfmt')
     config.add_subpackage('random_feature')
     config.add_subpackage('linear_model')
 
