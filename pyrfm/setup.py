@@ -16,6 +16,7 @@ def configuration(parent_package='', top_path=None):
                          language='c++',
                          include_dirs=[numpy.get_include()])
     config.add_subpackage('sfmt')
+    config.add_subpackage('ffht')
     config.add_subpackage('random_feature')
     config.add_subpackage('linear_model')
 

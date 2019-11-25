@@ -14,6 +14,7 @@ cdef extern from "fht.h":
 
 
 cdef void  _fwht1d_fast(double* out, int degree, bint normalize):
+    """
     cdef Py_ssize_t jj, j1, i2, k, step, m, n_block, offset
     cdef double tmp, norm
     n_block = 1
@@ -33,7 +34,8 @@ cdef void  _fwht1d_fast(double* out, int degree, bint normalize):
             offset += 2*step
 
         n_block = n_block << 1
-
+    """
+    fht_double(out, degree)
     if normalize:
         norm = sqrt(2**degree)
         for jj in range(2**degree):
@@ -45,7 +47,6 @@ cdef void _fwht2d_fast(double[:, ::1] out, int degree, bint normalize):
     n = out.shape[0]
     for i in range(n):
         _fwht1d_fast(&out[i, 0], degree, normalize)
-
 
 
 def fwht1d_fast(np.ndarray[double, ndim=1] x,

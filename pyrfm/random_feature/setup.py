@@ -9,13 +9,7 @@ def configuration(parent_package='', top_path=None):
 
     config = Configuration('random_feature', parent_package, top_path)
     sfmtdir = join(top_path, 'pyrfm', 'sfmt', 'SFMT-src-1.5.1')
-     
-    config.add_extension('fht_fast',
-                         sources=["fht_fast.pyx",
-                                  join("src", "FFHT", "fht_avx.c")],
-                         include_dirs=[join('.', 'src', 'FFHT'),
-                                       numpy.get_include()],
-                         depends=[join("src", "FFHT", "fht.h")])
+    ffhtdir = join(top_path, 'pyrfm', 'ffht', 'FFHT')
     
     config.add_extension('unarize',
                          sources=['unarize.pyx'],
@@ -31,7 +25,8 @@ def configuration(parent_package='', top_path=None):
     config.add_extension("random_features_fast",
                          sources=['random_features_fast.pyx'],
                          language='c++',
-                         include_dirs=[numpy.get_include()])
+                         include_dirs=[numpy.get_include(),
+                                       ffhtdir])
 
     config.add_extension("random_features_doubly",
                          sources=['random_features_doubly.pyx'],
