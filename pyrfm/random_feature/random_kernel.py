@@ -32,8 +32,8 @@ def _pairwise(symmetric=False):
 
 
 class RandomKernel(BaseEstimator, TransformerMixin):
-    """Approximates feature map of the ANOVA/all-subsets kernel by Monte Carlo
-    approximation by Random Kernel Feature map.
+    """Approximates feature map of the ANOVA/all-subsets kernel by 
+    Random Kernel Feature map.
 
     Parameters
     ----------
@@ -170,8 +170,8 @@ class RandomKernel(BaseEstimator, TransformerMixin):
 
 
 class SubfeatureRandomKernel(BaseEstimator, TransformerMixin):
-    """Approximates feature map of the ANOVA/all-subsets kernel by Monte Carlo
-    approximation by Subfeature Random Kernel Feature map.
+    """Approximates feature map of the ANOVA/all-subsets kernel
+    by Subfeature Random Kernel Feature map.
 
     Parameters
     ----------
@@ -218,7 +218,6 @@ class SubfeatureRandomKernel(BaseEstimator, TransformerMixin):
     ----------
     [1] Sparse Random Feature Maps for the Item-multiset Kernel.
     Kyohei Atarashi, Satoshi Oyama, and Masahito Kurihara.
-    To appear.
 
     """
     def __init__(self, n_components=100, n_sub_features=5, kernel='anova',

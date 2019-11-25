@@ -11,8 +11,8 @@ import warnings
 
 
 class RandomFourier(BaseEstimator, TransformerMixin):
-    """Approximates feature map of the RBF kernel by Monte Carlo
-    approximation by Random Fourier Feature map.
+    """Approximates feature map of the RBF kernel by 
+    Random Fourier Feature map.
 
     Parameters
     ----------

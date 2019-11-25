@@ -19,8 +19,8 @@ from math import sqrt
 EPS = 1e-8
 
 class LearningKernelwithRandomFeature(BaseEstimator, TransformerMixin):
-    """ Learnes importance weights for random features by maximizing the 
-    kernel alignment.
+    """Learnes importance weights of random features by maximizing the 
+    kernel alignment with a divergence constraint.
 
     Parameters
     ----------

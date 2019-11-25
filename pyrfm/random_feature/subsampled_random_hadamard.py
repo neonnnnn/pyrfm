@@ -14,7 +14,7 @@ def _get_random_matrix(distribution):
 
 class SubsampledRandomHadamard(BaseEstimator, TransformerMixin):
     """Approximates feature maps of the product between random matrix and
-    feature vectors by Subsampled Randomized Hadamard Transform
+    feature vectors by Subsampled Randomized Hadamard Transform.
 
     This class can be used as a sub-routine for approximating the product
     between random matrix and feature vectors in some random features.
