@@ -44,12 +44,12 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
     random_fourier : boolean (default=True)
         Whether to approximate the RBF kernel or not.
-        If True, this class samples random_offset_ in the fit method and computes
-        the cosine of structured_matrix-feature_vector product + random_offset_
-        in transform.
+        If True, this class samples random_offset_ in the fit method and 
+        computes the cosine of structured_matrix-feature_vector product 
+        + random_offset_ in transform.
         If False, OrthogonalRandomFeature does not sample it and computes just
-        structured_matrix-feature_vector product (i.e., approximates dot product
-        kernel).
+        structured_matrix-feature_vector product (i.e., approximates dot 
+        product kernel).
     
     use_offset : bool (default=False)
         If True, Z(x) = (cos(w_1x+b_1), cos(w_2x+b_2), ... , cos(w_Dx+b_D),
@@ -113,7 +113,7 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
             msg = "n_components is changed from {0} to {1}.".format(
                     self.n_components, n_components
             )
-            msg += "You should set n_components to an n-tuple of n_features."
+            msg += " You should set n_components to an n-tuple of n_features."
             warnings.warn(msg)
             self.n_components = n_components
 
@@ -124,8 +124,8 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
                 msg = "n_components is changed from {0} to {1}.".format(
                     self.n_components, n_components*2
                 )
-                msg += "When random_fourier=True and use_offset=False, "
-                msg += "n_components should be larger than 2*n_features."
+                msg += " When random_fourier=True and use_offset=False, "
+                msg += " n_components should be larger than 2*n_features."
                 warnings.warn(msg)
                 self.n_components = n_components * 2
 
@@ -219,9 +219,9 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
     random_fourier : boolean (default=True)
         Whether to approximate the RBF kernel or not.
-        If True, this class samples random_offset_ in the fit method and computes
-        the cosine of structured_matrix-feature_vector product + random_offset_
-        in transform.
+        If True, this class samples random_offset_ in the fit method and
+        computes the cosine of structured_matrix-feature_vector product 
+        + random_offset_ in transform.
         If False, StructuredOrthogonalRandomFeature does not sample it and 
         computes just structured_matrix-feature_vector product
         (i.e., approximates dot product kernel).
@@ -234,7 +234,7 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    random_weights_ : array, shape (n_components, n_features) (use_offset=True) 
+    random_weights_ : array, shape (n_components, n_features) (use_offset=True)
     or (n_components/2, n_features) (otherwise)
         The sampled basis.
 
@@ -283,8 +283,8 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
             msg = "n_components is changed from {0} to {1}. ".format(
                 self.n_components, n_components
             )
-            msg += "You should set n_components to an n-tuple of the next "
-            msg += "power of two of n_features."
+            msg += " You should set n_components to an n-tuple of the next "
+            msg += " power of two of n_features."
             warnings.warn(msg)
             self.n_components = n_components
 
