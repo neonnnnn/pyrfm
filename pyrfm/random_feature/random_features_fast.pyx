@@ -20,7 +20,7 @@ from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
                RandomProjection, OrthogonalRandomFeature,
                SubfeatureRandomMaclaurin, StructuredOrthogonalRandomFeature,
                SignedCirculantRandomMatrix, SubfeatureRandomKernel,
-               AdditiveChi2Sampler)
+               AdditiveChi2Sampler, CountSketch)
 from ..ffht.fht_fast cimport _fwht1d_fast
 from libcpp.vector cimport vector
 from scipy.sparse import csc_matrix, csr_matrix
@@ -43,7 +43,8 @@ RANDOMFEATURES = {
     OrthogonalRandomFeature: COrthogonalRandomFeature,
     StructuredOrthogonalRandomFeature: CStructuredOrthogonalRandomFeature,
     SignedCirculantRandomMatrix: CSignedCirculantRandomMatrix,
-    SubfeatureRandomKernel: CSubfeatureRandomKernel
+    SubfeatureRandomKernel: CSubfeatureRandomKernel,
+    CountSketch: CCountSketch
 }
 
 
@@ -523,6 +524,29 @@ cdef class CRandomProjection(BaseCRandomFeature):
         dot_all(z, data, indices, n_nz, self.random_weights, self.n_components)
         for i in range(self.n_components):
             z[i] /= self.scale
+
+
+cdef class CCountSketch(BaseCRandomFeature):
+    def __init__(self, transformer):
+        self.n_components = transformer.n_components
+        self.n_features = transformer.random_weights_.shape[1]
+        self.hash_indices = transformer.hash_indices_
+        self.hash_signs = transformer.hash_signs_
+    
+    cdef void transform(self,
+                        double* z,
+                        double* data,
+                        int* indices,
+                        int n_nz):
+        cdef Py_ssize_t i, jj, j
+        cdef int sign
+        for i in range(self.n_components):
+            z[i] = 0
+        for jj in range(n_nz):
+            j = indices[jj]
+            sign = self.hash_signs[j]
+            i = self.hash_indices[j]
+            z[i] += sign * data[jj]
 
 
 cdef class CCompactRandomFeature(BaseCRandomFeature):

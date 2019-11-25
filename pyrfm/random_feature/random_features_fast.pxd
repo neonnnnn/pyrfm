@@ -100,6 +100,11 @@ cdef class CRandomProjection(BaseCRandomFeature):
     cdef RowDataset random_weights
 
 
+cdef class CCountSketch(BaseCRandomFeature):
+    cdef int[:] hash_indices
+    cdef int[:] hash_signs
+
+
 cdef class CCompactRandomFeature(BaseCRandomFeature):
     cdef int n_components_up
     cdef BaseCRandomFeature transformer_up

@@ -3,6 +3,7 @@ from .random_kernel import RandomKernel, SubfeatureRandomKernel
 from .random_maclaurin import RandomMaclaurin, SubfeatureRandomMaclaurin
 from .signed_circulant_random_kernel import SignedCirculantRandomKernel
 from .maji_berg import MB, SparseMB
+from .count_sketch import CountSketch
 from .tensor_sketch import TensorSketch
 from .compact_random_feature import CompactRandomFeature
 # for structured random features
