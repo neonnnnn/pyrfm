@@ -3,13 +3,11 @@ import numpy as np
 from sklearn.utils.testing import (assert_greater_equal, assert_almost_equal,
                                    assert_less_equal)
 from pyrfm import (TensorSketch, RandomKernel, RandomMaclaurin, RandomFourier,
-                   AdditiveChi2Sampler, AdaGradClassifier, AdaGradRegressor)
+                   AdditiveChi2Sampler, SGDClassifier, SGDRegressor)
 from sklearn.kernel_approximation import (RBFSampler, SkewedChi2Sampler)
-from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.preprocessing import StandardScaler
 from .utils_linear_model import generate_target, generate_samples
 from scipy.sparse import csr_matrix
-
 
 # generate data
 n_samples = 500
@@ -33,45 +31,30 @@ def test_regressor_regularization():
         y_test = y[n_train:]
         for loss in ['squared']:
             # overfitting
-            clf = AdaGradRegressor(transformer, max_iter=300, warm_start=True,
-                                   verbose=False, fit_intercept=True, loss=loss,
-                                   alpha=0.0001, intercept_decay=1e-6,
-                                   random_state=0, tol=0, normalize=normalize)
+            clf = SGDRegressor(transformer, max_iter=300, warm_start=True,
+                               verbose=False, fit_intercept=True, loss=loss,
+                               alpha=0.00001, intercept_decay=1e-10,
+                               random_state=0, tol=0, normalize=normalize)
             clf.fit(X_train[:100], y_train[:100])
             l2 = np.mean((y_train[:100] - clf.predict(X_train[:100]))**2)
             assert_less_equal(l2, 0.01)
 
             # underfitting
-            clf_under = AdaGradRegressor(transformer, max_iter=100, warm_start=True,
-                                         verbose=False, fit_intercept=True, loss=loss,
-                                         alpha=100000, random_state=0,
-                                         normalize=normalize)
+            clf_under = SGDRegressor(transformer, max_iter=100, warm_start=True,
+                                     verbose=False, fit_intercept=True, loss=loss,
+                                     alpha=100000, random_state=0,
+                                     normalize=normalize)
             clf_under.fit(X_train, y_train)
             assert_greater_equal(np.sum(clf.coef_ ** 2),
                                  np.sum(clf_under.coef_ ** 2))
 
             # l1 regularization
-            clf_l1 = AdaGradRegressor(transformer, max_iter=100, warm_start=True,
-                                      verbose=False, fit_intercept=True,
-                                      loss=loss, alpha=1000, l1_ratio=0.9,
-                                      random_state=0, normalize=normalize)
+            clf_l1 = SGDRegressor(transformer, max_iter=100, warm_start=True,
+                                  verbose=False, fit_intercept=True,
+                                  loss=loss, alpha=1000, l1_ratio=0.9,
+                                  random_state=0, normalize=normalize)
             clf_l1.fit(X_train, y_train)
             assert_almost_equal(np.sum(np.abs(clf_l1.coef_)), 0)
-
-            # comparison with sgd
-            sgd = SGDRegressor(alpha=0.01, max_iter=100, eta0=1,
-                               learning_rate='constant', fit_intercept=True,
-                               random_state=0)
-            sgd.fit(X_trans[:n_train], y_train)
-            test_l2_sgd = np.mean((y_test - sgd.predict(X_trans[n_train:]))**2)
-            clf = AdaGradRegressor(transformer, max_iter=100, warm_start=True,
-                                   verbose=False, fit_intercept=True, loss=loss,
-                                   alpha=0.01, random_state=0, normalize=normalize,
-                                   )
-
-            clf.fit(X_train, y_train)
-            test_l2 = np.mean((y_test - clf.predict(X_test))**2)
-            assert_less_equal(test_l2, test_l2_sgd)
 
 
 def test_classifier_regularization():
@@ -89,81 +72,67 @@ def test_classifier_regularization():
         y_test = np.sign(y_test)
         for loss in ['squared_hinge', 'log', 'hinge']:
             # overfitting
-            clf = AdaGradClassifier(transformer, max_iter=500, warm_start=True,
-                                    verbose=False, fit_intercept=True, loss=loss,
-                                    alpha=0.00001, intercept_decay=1e-10,
-                                    random_state=0, tol=0, eta0=0.1,
-                                    normalize=normalize)
+            clf = SGDClassifier(transformer, max_iter=500, warm_start=True,
+                                verbose=False, fit_intercept=True, loss=loss,
+                                alpha=0.00001, intercept_decay=1e-10,
+                                random_state=0, tol=0,
+                                normalize=normalize)
             clf.fit(X_train[:100], y_train[:100])
             train_acc = clf.score(X_train[:100], y_train[:100])
             assert_greater_equal(train_acc, 0.95)
+
             # underfitting
-            clf_under = AdaGradClassifier(transformer, max_iter=100, warm_start=True,
-                                          verbose=False, fit_intercept=True,
-                                          loss=loss, alpha=10000,
-                                          random_state=0, normalize=normalize)
+            clf_under = SGDClassifier(transformer, max_iter=100, warm_start=True,
+                                      verbose=False, fit_intercept=True,
+                                      loss=loss, alpha=10000,
+                                      random_state=0, normalize=normalize)
             clf_under.fit(X_train, y_train)
             assert_greater_equal(np.sum(clf.coef_ ** 2),
                                  np.sum(clf_under.coef_ ** 2))
 
             # l1 regularization
-            clf_l1 = AdaGradClassifier(transformer, max_iter=100, warm_start=True,
-                                       verbose=False, fit_intercept=True, loss=loss,
-                                       alpha=1000, l1_ratio=0.9,
-                                       random_state=0, normalize=normalize)
+            clf_l1 = SGDClassifier(transformer, max_iter=100, warm_start=True,
+                                   verbose=False, fit_intercept=True, loss=loss,
+                                   alpha=1000, l1_ratio=0.9,
+                                   random_state=0, normalize=normalize)
             clf_l1.fit(X_train, y_train)
             assert_almost_equal(np.sum(np.abs(clf_l1.coef_)), 0)
-
-            # comparison with SGD
-            sgd = SGDClassifier(alpha=0.01, max_iter=100, eta0=1,
-                                learning_rate='constant', fit_intercept=True,
-                                loss=loss, random_state=0)
-            sgd.fit(X_trans[:n_train], y_train)
-            test_acc_sgd = sgd.score(X_trans[n_train:], y_test)
-            clf = AdaGradClassifier(transformer, max_iter=100, warm_start=True,
-                                    verbose=False, fit_intercept=True, loss=loss,
-                                    alpha=0.01, random_state=0, normalize=normalize,
-                                    eta0=0.1)
-
-            clf.fit(X_train, y_train)
-            test_acc = clf.score(X_test, y_test)
-            assert_greater_equal(test_acc, test_acc_sgd)
 
 
 def _test_regressor(transformer, X_train, y_train, X_test, y_test, X_trans,
                     normalize=False, sparse=True):
     for loss in ['squared']:
         # fast solver and slow solver
-        clf_slow = AdaGradRegressor(transformer, max_iter=10, warm_start=True,
-                                    verbose=False, fit_intercept=True, loss=loss,
-                                    alpha=0.0001, random_state=0,
-                                    normalize=normalize, fast_solver=False)
+        clf_slow = SGDRegressor(transformer, max_iter=10, warm_start=True,
+                                verbose=False, fit_intercept=True, loss=loss,
+                                alpha=0.0001, random_state=0,
+                                normalize=normalize, fast_solver=False)
         clf_slow.fit(X_train, y_train)
 
-        clf_fast = AdaGradRegressor(transformer, max_iter=10, warm_start=True,
-                                    verbose=False, fit_intercept=True, loss=loss,
-                                    alpha=0.0001, random_state=0,
-                                    normalize=normalize, fast_solver=True)
+        clf_fast = SGDRegressor(transformer, max_iter=10, warm_start=True,
+                                verbose=False, fit_intercept=True, loss=loss,
+                                alpha=0.0001, random_state=0,
+                                normalize=normalize, fast_solver=True)
         clf_fast.fit(X_train, y_train)
         assert_almost_equal(clf_fast.coef_, clf_slow.coef_, decimal=6)
         if sparse:
             # dense / sparse
-            clf_dense = AdaGradRegressor(transformer, loss=loss, max_iter=10,
-                                         random_state=0, verbose=False)
+            clf_dense = SGDRegressor(transformer, loss=loss, max_iter=10,
+                                     random_state=0)
             clf_dense.fit(X_train, y_train)
-            clf_sparse = AdaGradRegressor(transformer, loss=loss, max_iter=10,
-                                          random_state=0, verbose=False)
+            clf_sparse = SGDRegressor(transformer, loss=loss, max_iter=10,
+                                      random_state=0)
             clf_sparse.fit(csr_matrix(X_train), y_train)
             assert_almost_equal(clf_dense.coef_, clf_sparse.coef_)
 
         # warm_start
-        clf = AdaGradRegressor(transformer, max_iter=10, shuffle=False,
-                               random_state=0, tol=0, loss=loss,
-                               warm_start=False, verbose=False)
+        clf = SGDRegressor(transformer, max_iter=10, shuffle=False,
+                           random_state=0, tol=0, loss=loss,
+                           warm_start=False)
         clf.fit(X_train, y_train)
-        clf_warm = AdaGradRegressor(transformer, max_iter=5, shuffle=False,
-                                    random_state=0, tol=0, loss=loss,
-                                    warm_start=True, verbose=False)
+        clf_warm = SGDRegressor(transformer, max_iter=5, shuffle=False,
+                                random_state=0, tol=0, loss=loss,
+                                warm_start=True)
         clf_warm.fit(X_train, y_train)
         clf_warm.fit(X_train, y_train)
         assert_almost_equal(clf.t_, clf_warm.t_)
@@ -174,36 +143,36 @@ def _test_classifier(transformer, X_train, y_train, X_test, y_test, X_trans,
                      normalize=False, sparse=True):
     for loss in ['squared_hinge', 'log', 'hinge']:
         # fast solver and slow solver
-        clf_slow = AdaGradClassifier(transformer, max_iter=10, warm_start=True,
-                                     verbose=False, fit_intercept=True, loss=loss,
-                                     random_state=0, normalize=normalize,
-                                     fast_solver=False)
+        clf_slow = SGDClassifier(transformer, max_iter=10, warm_start=True,
+                                 verbose=False, fit_intercept=True, loss=loss,
+                                 random_state=0, normalize=normalize,
+                                 fast_solver=False)
         clf_slow.fit(X_train[:20], y_train[:20])
 
-        clf_fast = AdaGradClassifier(transformer, max_iter=10, warm_start=True,
-                                     verbose=False, fit_intercept=True, loss=loss,
-                                     random_state=0, normalize=normalize,
-                                     fast_solver=True)
+        clf_fast = SGDClassifier(transformer, max_iter=10, warm_start=True,
+                                 verbose=False, fit_intercept=True, loss=loss,
+                                 random_state=0, normalize=normalize,
+                                 fast_solver=True)
         clf_fast.fit(X_train[:20], y_train[:20])
         assert_almost_equal(clf_fast.coef_, clf_slow.coef_, decimal=6)
         if sparse:
             # dense / sparse
-            clf_dense = AdaGradClassifier(transformer, loss=loss, max_iter=10,
-                                          random_state=0, verbose=False)
+            clf_dense = SGDClassifier(transformer, loss=loss, max_iter=10,
+                                      random_state=0)
             clf_dense.fit(X_train, y_train)
-            clf_sparse = AdaGradClassifier(transformer, loss=loss, max_iter=10,
-                                           random_state=0, verbose=False)
+            clf_sparse = SGDClassifier(transformer, loss=loss, max_iter=10,
+                                       random_state=0)
             clf_sparse.fit(csr_matrix(X_train), y_train)
             assert_almost_equal(clf_dense.coef_, clf_sparse.coef_)
 
         # warm_start
-        clf = AdaGradClassifier(transformer, max_iter=10, shuffle=False,
-                                random_state=0, tol=0, loss=loss,
-                                warm_start=False, verbose=False)
+        clf = SGDClassifier(transformer, max_iter=10, shuffle=False,
+                            random_state=0, tol=0, loss=loss,
+                            warm_start=False)
         clf.fit(X_train, y_train)
-        clf_warm = AdaGradClassifier(transformer, max_iter=5, shuffle=False,
-                                     random_state=0, tol=0, loss=loss,
-                                     warm_start=True, verbose=False)
+        clf_warm = SGDClassifier(transformer, max_iter=5, shuffle=False,
+                                 random_state=0, tol=0, loss=loss,
+                                 warm_start=True)
         clf_warm.fit(X_train, y_train)
         clf_warm.fit(X_train, y_train)
         assert_almost_equal(clf.t_, clf_warm.t_)
