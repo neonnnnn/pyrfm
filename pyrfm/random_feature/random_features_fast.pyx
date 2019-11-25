@@ -21,7 +21,7 @@ from . import (RandomFourier, RandomKernel, RandomMaclaurin, TensorSketch,
                SubfeatureRandomMaclaurin, StructuredOrthogonalRandomFeature,
                SignedCirculantRandomMatrix, SubfeatureRandomKernel,
                AdditiveChi2Sampler)
-from .fht_fast cimport _fwht1d_fast
+from ..ffht.fht_fast cimport _fwht1d_fast
 from libcpp.vector cimport vector
 from scipy.sparse import csc_matrix, csr_matrix
 from scipy.special import comb
@@ -164,7 +164,6 @@ cdef class CAdditiveChi2Sampler(BaseCRandomFeature):
             z[j] = sqrt(data[jj]*self.sample_interval)
             if data[jj] < 0:
                 raise ValueError("Entries of X must be non-negative.")
-                return 
 
         offset = self.n_features       
         for jj in range(n_nz):
