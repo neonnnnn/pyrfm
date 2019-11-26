@@ -13,7 +13,7 @@ from .doubly_sgd_fast import _doubly_sgd_fast
 from ..dataset_fast import get_dataset
 from ..random_feature.random_features_doubly import get_doubly_random_feature
 from sklearn.utils.validation import check_is_fitted
-from .utils import _predict_fast
+from .utils import _predict_fast_doubly
 import warnings
 
 
@@ -23,6 +23,7 @@ class BaseDoublySGDEstimator(BaseSGDEstimator):
         'pegasos': 1,
         'inv_scaling': 2,
         'optimal': 3,
+        'original': 4,
     }
     LOSSES = {
         'squared': Squared(),
@@ -33,11 +34,11 @@ class BaseDoublySGDEstimator(BaseSGDEstimator):
     }
     stochastic = True
 
-    def __init__(self, transformer=RBFSampler(), eta0=0.01, loss='squared',
+    def __init__(self, transformer=RBFSampler(), eta0=1., loss='squared',
                  C=1.0, alpha=1.0, l1_ratio=0, intercept_decay=0.1,
-                 fit_intercept=True, max_iter=100, batch_size=10, tol=1e-6,
-                 learning_rate='pegasos', power_t=0.5,
-                 warm_start=False, random_state=None,
+                 fit_intercept=True, max_iter=100, batch_size=10, 
+                 n_bases_sampled=1, tol=1e-6, learning_rate='optimal', 
+                 power_t=1, eta1=1e-4, warm_start=False, random_state=None,
                  verbose=True, shuffle=True):
         self.transformer = transformer
         self.eta0 = eta0
@@ -49,9 +50,11 @@ class BaseDoublySGDEstimator(BaseSGDEstimator):
         self.fit_intercept = fit_intercept
         self.max_iter = max_iter
         self.batch_size = batch_size
+        self.n_bases_sampled = n_bases_sampled
         self.tol = tol
         self.learning_rate = learning_rate
         self.power_t = power_t
+        self.eta1 = eta1
         self.warm_start = warm_start
         self.random_state = random_state
         self.verbose = verbose
@@ -64,14 +67,15 @@ class BaseDoublySGDEstimator(BaseSGDEstimator):
         if not (self.warm_start and hasattr(self, 'transformer_doubly_')):
             self.transformer_doubly_ = get_doubly_random_feature(
                 self.transformer, X.shape[1]
-        )
+            )
+            self.transformer_doubly_.set_n_components(0)
         if self.transformer_doubly_ is None:
             raise ValueError("transformer has no doubly implementation.")
         
         max_t = self.max_iter * ((X.shape[0]-1) // self.batch_size + 1)
-        self.transformer_doubly_.inc_n_components(max_t - 1)
+        self.transformer_doubly_.inc_n_components(max_t*self.n_bases_sampled)
         n_components = self.transformer_doubly_.get_n_components()
-        self.transformer_doubly_.dec_n_components(max_t - 1)
+        self.transformer_doubly_.dec_n_components(max_t*self.n_bases_sampled)
         n_features = X.shape[1]
         
         if self.warm_start and hasattr(self, "coef_"):
@@ -108,13 +112,15 @@ class BaseDoublySGDEstimator(BaseSGDEstimator):
     
         if not (0 <= self.power_t):
             raise ValueError("power_t < 0.")
-
+        
+        if not (0 < self.n_bases_sampled):
+            raise ValueError("n_bases_sampled < 0.")
+    
     def _predict(self, X):
         check_is_fitted(self, 'coef_')
         y_pred = np.zeros(X.shape[0])
-        _predict_fast(self.coef_, get_dataset(X, order='c'), y_pred,
-                      None, None, self.t_-1, self.transformer_doubly_)
-        
+        _predict_fast_doubly(self.coef_, get_dataset(X, order='c'), y_pred,
+                             self.transformer_doubly_)
         if self.fit_intercept and hasattr(self, 'intercept_'):
             y_pred += self.intercept_
 
@@ -152,12 +158,13 @@ class BaseDoublySGDEstimator(BaseSGDEstimator):
         random_state = check_random_state(self.random_state)
         learning_rate = self.LEARNING_RATE[self.learning_rate]
 
-        it = _doubly_sgd_fast(self.coef_, self.intercept_, get_dataset(X, order='c'),
+        it = _doubly_sgd_fast(self.coef_, self.intercept_, 
+                              get_dataset(X, order='c'),
                               y, loss, alpha, self.l1_ratio, intercept_decay,
-                              self.eta0, learning_rate, self.power_t, 
-                              self.t_, self.max_iter, self.batch_size,
-                              self.tol, self.verbose, self.fit_intercept,
-                              self.shuffle, random_state,
+                              self.eta0, learning_rate, self.power_t, self.eta1,
+                              self.t_, self.max_iter, self.batch_size, 
+                              self.n_bases_sampled, self.tol, self.verbose,
+                              self.fit_intercept, self.shuffle, random_state,
                               self.transformer_doubly_)
         self.t_ += ((n_samples-1)//self.batch_size+1)*(it+1)
 
@@ -178,7 +185,7 @@ class DoublySGDClassifier(BaseDoublySGDEstimator, LinearClassifierMixin):
         transformer must have (1) n_components attribute, (2) fit(X, y),
         and (3) transform(X).
 
-    eta0 : double (default=0.01)
+    eta0 : double (default=1.)
         Step-size parameter.
 
     loss : str (default="squared_hinge")
@@ -193,7 +200,7 @@ class DoublySGDClassifier(BaseDoublySGDEstimator, LinearClassifierMixin):
     C : double (default=1.0)
         Weight of the loss term.
 
-    alpha : double (default=1.0)
+    alpha : double (default=1e-4)
         Weight of the penalty term.
 
     l1_ratio : double (default=0)
@@ -207,7 +214,7 @@ class DoublySGDClassifier(BaseDoublySGDEstimator, LinearClassifierMixin):
 
         - Otherwise : Elastic Net.
 
-    intercept_decay : double (default=0.1)
+    intercept_decay : double (default=1e-5)
         Weight of the penalty term for intercept.
 
     fit_intercept : bool (default=True)
@@ -218,6 +225,10 @@ class DoublySGDClassifier(BaseDoublySGDEstimator, LinearClassifierMixin):
 
     batch_size : int (default=10)
         Number of samples in one batch.
+
+    n_bases_sampled : int (default=1)
+        Number of new random bases (called "number of feature blocks" 
+        in original paper).
 
     tol : double (default=1e-6)
         Tolerance of stopping criterion.
@@ -235,8 +246,13 @@ class DoublySGDClassifier(BaseDoublySGDEstimator, LinearClassifierMixin):
 
         - 'optimal': eta = eta0 / pow(1 + eta0*alpha*(1-l1_ratio)*t, power_t)
 
+        - 'original': eta = eta0 / (1 + eta1*t)
+    
     power_t : double (default=0.75)
         The parameter for learning_rate 'inv_scaling' and 'optimal'.
+
+    eta1 : double (default=1e-4)
+        The parameter for learning_rate 'original'.
    
     warm_start : bool (default=False)
         Whether to activate warm-start or not.
@@ -299,16 +315,17 @@ class DoublySGDClassifier(BaseDoublySGDEstimator, LinearClassifierMixin):
         'log': Logistic()
     }
 
-    def __init__(self, transformer=RBFSampler(), eta0=0.001,
-                 loss='squared_hinge', C=1.0, alpha=1.0, l1_ratio=0.,
-                 intercept_decay=0.1, fit_intercept=True,
-                 max_iter=100, batch_size=10, tol=1e-6, 
-                 learning_rate='optimal', power_t=1, warm_start=False,
+    def __init__(self, transformer=RBFSampler(), eta0=.1,
+                 loss='squared_hinge', C=1.0, alpha=1e-3, l1_ratio=0.,
+                 intercept_decay=1e-5, fit_intercept=True,
+                 max_iter=100, batch_size=10, n_bases_sampled=1, tol=1e-6, 
+                 learning_rate='optimal', power_t=1, eta1=1e-4,
+                 warm_start=False,
                  random_state=None, verbose=True, shuffle=True):
         super(DoublySGDClassifier, self).__init__(
             transformer, eta0, loss, C, alpha, l1_ratio, intercept_decay,
-            fit_intercept, max_iter, batch_size, tol, learning_rate,
-            power_t, warm_start, random_state, verbose, shuffle
+            fit_intercept, max_iter, batch_size, n_bases_sampled, tol, learning_rate,
+            power_t, eta1, warm_start, random_state, verbose, shuffle
         )
 
 
@@ -326,7 +343,7 @@ class DoublySGDRegressor(BaseDoublySGDEstimator, LinearRegressorMixin):
         transformer must have (1) n_components attribute, (2) fit(X, y),
         and (3) transform(X).
 
-    eta0 : double (default=0.01)
+    eta0 : double (default=1.)
         Step-size parameter.
 
     loss : str (default="squared")
@@ -337,7 +354,7 @@ class DoublySGDRegressor(BaseDoublySGDEstimator, LinearRegressorMixin):
     C : double (default=1.0)
         Weight of the loss term.
 
-    alpha : double (default=1.0)
+    alpha : double (default=1e-4)
         Weight of the penalty term.
 
     l1_ratio : double (default=0)
@@ -360,6 +377,10 @@ class DoublySGDRegressor(BaseDoublySGDEstimator, LinearRegressorMixin):
     max_iter : int (default=100)
         Maximum number of iterations.
 
+    n_bases_sampled : int (default=1)
+        Number of new random bases (called "number of feature blocks" 
+        in original paper).
+
     batch_size : int (default=10)
         Number of samples in one batch.
 
@@ -379,8 +400,13 @@ class DoublySGDRegressor(BaseDoublySGDEstimator, LinearRegressorMixin):
 
         - 'optimal': eta = eta0 / pow(1 + eta0*alpha*(1-l1_ratio)*t, power_t)
 
+        - 'original': eta = eta0 / (1 + eta1*t)
+
     power_t : double (default=1)
         The parameter for learning_rate 'inv_scaling' and 'optimal'.
+
+    eta1 : double (default=1e-4)
+        The parameter for learning_rate 'original'.
 
     warm_start : bool (default=False)
         Whether to activate warm-start or not.
@@ -439,13 +465,13 @@ class DoublySGDRegressor(BaseDoublySGDEstimator, LinearRegressorMixin):
         'squared': Squared(),
     }
 
-    def __init__(self, transformer=RBFSampler(), eta0=0.001, loss='squared',
-                 C=1.0, alpha=1.0, l1_ratio=0., intercept_decay=0.1,
-                 fit_intercept=True, max_iter=100, batch_size=10, tol=1e-6,
-                 learning_rate='optimal', power_t=1, warm_start=False,
-                 random_state=None, verbose=True, shuffle=True):
+    def __init__(self, transformer=RBFSampler(), eta0=.1, loss='squared',
+                 C=1.0, alpha=1e-3, l1_ratio=0., intercept_decay=1e-4,
+                 fit_intercept=True, max_iter=100, batch_size=10, n_bases_sampled=1,
+                 tol=1e-6, learning_rate='optimal', power_t=1, eta1=1e-4, 
+                 warm_start=False, random_state=None, verbose=True, shuffle=True):
         super(DoublySGDRegressor, self).__init__(
             transformer, eta0, loss, C, alpha, l1_ratio, intercept_decay,
-            fit_intercept, max_iter, batch_size, tol, learning_rate, power_t, 
-            warm_start, random_state, verbose, shuffle
+            fit_intercept, max_iter, batch_size, n_bases_sampled, tol, learning_rate,
+            power_t, eta1, warm_start, random_state, verbose, shuffle
         )

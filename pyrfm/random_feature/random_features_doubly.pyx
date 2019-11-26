@@ -56,6 +56,12 @@ cdef class BaseCDoublyRandomFeature(BaseCRandomFeature):
 
     cpdef int get_n_components(self):
         return self.n_iter
+    
+    cdef void sample_base(self):
+        raise NotImplementedError("This is an abstract method.")
+
+    cdef double _transform(self, double* data, int* indices, int n_nz):
+        raise NotImplementedError("This is an abstract method.")
 
     cdef void transform(self,
                         double* z,
@@ -64,31 +70,74 @@ cdef class BaseCDoublyRandomFeature(BaseCRandomFeature):
                         int n_nz):
         raise NotImplementedError("This is an abstract method.")
 
+    cdef void init_gen_rand(self):
+        self.sfmt.init_gen_rand(self.seed)
     
+    cdef void pred_batch(self,
+                         double[:, ::1] Z,
+                         double[:] y_pred,
+                         double[:] coef,
+                         double intercept,
+                         RowDataset X,
+                         int* indices_samples,
+                         int batch_size,
+                         int start,
+                         int stop):
+        cdef Py_ssize_t n, nn, ii, s
+        # data pointers
+        cdef int* indices
+        cdef double* data
+        cdef int n_nz
+        self.init_gen_rand()
+        s = 0
+        for nn in range(batch_size):
+            y_pred[nn] = intercept
+        for i in range(self.n_iter):
+            self.sample_base()
+            for nn in range(batch_size):
+                n = indices_samples[nn]
+                X.get_row_ptr(n, &indices, &data, &n_nz)
+                if (start <= i) and (i < stop):
+                    Z[nn, s] = self._transform(data, indices, n_nz)
+                    y_pred[nn] += coef[i] * Z[nn, s]
+                else:
+                    y_pred[nn] += coef[i]*self._transform(data, indices, n_nz)
+            if (start <= i) and (i < stop):
+                s += 1
+            
+
 cdef class CDoublyRBFSampler(BaseCDoublyRandomFeature):
     def __init__(self, transformer, n_features):
         super(CDoublyRBFSampler, self).__init__(transformer, n_features)
         self.scale_weight = sqrt(2*transformer.gamma)
         self.scale = sqrt(2)
 
+    cdef void sample_base(self):
+        self.sfmt.genrand_randn_fill(&self.random_weights[0], 
+                                     self.n_features, 0, 1.) 
+        self.offset = self.sfmt.genrand_uniform(0, 2*M_PI)
+    
+    cdef double _transform(self, double* data, int* indices, int n_nz):
+        cdef double z = 0
+        cdef Py_ssize_t jj, j
+        for jj in range(n_nz):
+            j = indices[jj]
+            z += data[jj] * self.random_weights[j]
+        z *= self.scale_weight
+        z += self.offset
+        return cos(z) * self.scale
+
     cdef void transform(self,
                         double* z,
                         double* data,
                         int* indices,
                         int n_nz):
-        cdef Py_ssize_t i, j, jj, n
+        cdef Py_ssize_t i, j, jj
         self.sfmt.init_gen_rand(self.seed)
         for i in range(self.n_iter):
-            z[i] = 0
             # sampling random weights
-            self.sfmt.genrand_randn_fill(&self.random_weights[0], 
-                                         self.n_features, 0, 1.) 
-            for jj in range(n_nz):
-                j = indices[jj]
-                z[i] += data[jj] * self.random_weights[j]
-            z[i] *= self.scale_weight
-            z[i] += self.sfmt.genrand_uniform(0, 2*M_PI)
-            z[i] = cos(z[i]) * self.scale
+            self.sample_base()
+            z[i] = self._transform(data, indices, n_nz)
 
 
 cdef class CDoublyRandomFourier(BaseCDoublyRandomFeature):
@@ -102,12 +151,76 @@ cdef class CDoublyRandomFourier(BaseCDoublyRandomFeature):
         self.scale_weight = sqrt(2*gamma)
         self.use_offset = transformer.use_offset
         self.scale = sqrt(2)
+        self.offset = 0.
 
     cpdef int get_n_components(self):
         if self.use_offset:
             return self.n_iter
         else:
             return 2*self.n_iter
+
+    cdef void sample_base(self):
+        self.sfmt.genrand_randn_fill(&self.random_weights[0], 
+                                     self.n_features, 0, 1.) 
+        self.offset = self.sfmt.genrand_uniform(0, 2*M_PI)
+
+    cdef void pred_batch(self,
+                         double[:, ::1] Z,
+                         double[:] y_pred,
+                         double[:] coef,
+                         double intercept,
+                         RowDataset X,
+                         int* indices_samples,
+                         int batch_size,
+                         int start,
+                         int stop):
+        cdef Py_ssize_t n, nn, i, jj, j, s
+        # data pointers
+        cdef int* indices
+        cdef double* data
+        cdef int n_nz
+        cdef double z
+        s = 0
+        self.sfmt.init_gen_rand(self.seed)
+        for nn in range(batch_size):
+            y_pred[nn] = intercept
+        
+        for i in range(self.n_iter):
+            self.sfmt.genrand_randn_fill(&self.random_weights[0], 
+                                         self.n_features, 0, 1.) 
+            self.offset = self.sfmt.genrand_uniform(0, 2*M_PI)
+            for nn in range(batch_size):
+                n = indices_samples[nn]
+                X.get_row_ptr(n, &indices, &data, &n_nz)
+                z = 0
+                # z = (cos, cos, ...)
+                if self.use_offset:
+                    for jj in range(n_nz):
+                        j = indices[jj]
+                        z += data[jj] * self.random_weights[j]
+                    z *= self.scale_weight
+                    z += self.offset
+                    y_pred[nn] += cos(z) * self.scale * coef[i]
+                    if Z is not None and (start <= i) and (i < stop):
+                        Z[nn, s] = cos(z) * self.scale
+                # z = (cos, sin, ...)
+                else:
+                    for jj in range(n_nz):
+                        j = indices[jj]
+                        z += data[jj] * self.random_weights[j]
+                    z *= self.scale_weight
+                    y_pred[nn] += coef[2*i] * cos(z) * self.scale
+                    y_pred[nn] += coef[2*i+1] * sin(z) * self.scale
+                    if (Z is not None) and (start <= 2*i) and (2*i+1 < stop):
+                        Z[nn, 2*s] = cos(z) * self.scale
+                        Z[nn, 2*s+1] = sin(z) * self.scale
+            
+            if self.use_offset:
+                if (start <= i) and (i < stop):
+                    s += 1
+            else:
+                if (start <= 2*i) and (2*i+1 < stop):
+                    s += 1
 
     cdef void transform(self,
                         double* z,
@@ -118,8 +231,7 @@ cdef class CDoublyRandomFourier(BaseCDoublyRandomFeature):
         self.sfmt.init_gen_rand(self.seed)
         for i in range(self.n_iter):
             # sampling random bases
-            self.sfmt.genrand_randn_fill(&self.random_weights[0], 
-                                         self.n_features, 0, 1.)
+            self.sample_base()
             # z = (cos, cos, ..., cos)
             if self.use_offset:
                 z[i] = 0
@@ -127,7 +239,7 @@ cdef class CDoublyRandomFourier(BaseCDoublyRandomFeature):
                     j = indices[jj]
                     z[i] += data[jj] * self.random_weights[j]
                 z[i] *= self.scale_weight
-                z[i] += self.sfmt.genrand_uniform(0, 2*M_PI)
+                z[i] += self.offset
                 z[i] = cos(z[i]) * self.scale
             # z = (cos, ..., cos, sin, ..., sin)
             else:
@@ -146,6 +258,22 @@ cdef class CDoublySkewedChi2Sampler(BaseCDoublyRandomFeature):
         self.skewedness = transformer.skewedness
         self.scale = sqrt(2)
 
+    cdef void sample_base(self):
+        self.sfmt.genrand_uniform_fill(&self.random_weights[0],
+                                       self.n_features, 0., 1.)
+        self.offset = self.sfmt.genrand_uniform(0, 2*M_PI)
+    
+    cdef double _transform(self, double* data, int* indices, int n_nz):
+        cdef double z = 0
+        cdef Py_ssize_t jj, j
+        cdef double rw, log_data_skewdness
+        for jj in range(n_nz):
+            j = indices[jj]
+            log_data_skewdness = log(data[jj]+self.skewedness)
+            rw = (1./M_PI)*log(tan(M_PI/2.*self.random_weights[j]))
+            z += log_data_skewdness*rw
+        return cos(z+self.offset) * self.scale
+
     cdef void transform(self, 
                         double* z,
                         double* data,
@@ -157,15 +285,13 @@ cdef class CDoublySkewedChi2Sampler(BaseCDoublyRandomFeature):
         for i in range(self.n_iter):
             z[i] = 0
             # sample bases
-            self.sfmt.genrand_uniform_fill(&self.random_weights[0],
-                                           self.n_features, 0., 1.)
+            self.sample_base()
             for jj in range(n_nz):
                 j = indices[jj]
                 log_data_skewdness = log(data[jj]+self.skewedness)
                 rw = (1./M_PI)*log(tan(M_PI/2.*self.random_weights[j]))
                 z[i] += log_data_skewdness*rw
-
-            z[i] += self.sfmt.genrand_uniform(0, 2*M_PI)
+            z[i] += self.offset
             z[i] = cos(z[i])*self.scale
 
 
@@ -186,28 +312,49 @@ cdef class CDoublyRandomMaclaurin(BaseCDoublyRandomFeature):
         if transformer.h01:
             warnings.warn("h01 heuristisc is not valid for doubly optimizer.")
     
+    cdef void init_gen_rand(self):
+        self.sfmt.init_gen_rand(self.seed)
+        self.cat.init_gen_rand(self.seed)
+
+    cdef void sample_base(self):
+        self.order = self.cat.get_sample()
+        self.sfmt.genrand_rademacher_fill(&self.random_weights[0],
+                                          self.n_features)
+
+    cdef double _transform(self, double* data, int* indices, int n_nz):
+        cdef Py_ssize_t k, j, jj
+        cdef double z, cache
+        z = 1
+        for k in range(self.order):
+            cache = 0
+            for jj in range(n_nz):
+                j = indices[jj]
+                cache += data[jj] * self.random_weights[j]
+            z *= cache
+        z *= sqrt(self.coefs[self.order]/self.p_choice[self.order])
+        return z
+
     cdef void transform(self, 
                         double* z,
                         double* data,
                         int* indices,
                         int n_nz):
-        cdef Py_ssize_t i, jj, j, k, order, offset
+        cdef Py_ssize_t i, jj, j, k, offset
+        cdef double cache
         self.sfmt.init_gen_rand(self.seed)
         self.cat.init_gen_rand(self.seed)
-        cdef double cache
         offset = 0
         for i in range(self.n_iter):
-            order = self.cat.get_sample()
+            self.sample_base()
+            
             z[i+offset] = 1.
-            for k in range(order):
-                self.sfmt.genrand_rademacher_fill(&self.random_weights[0],
-                                                  self.n_features)
+            for k in range(self.order):
                 cache = 0
                 for jj in range(n_nz):
                     j = indices[jj]
                     cache += data[jj] * self.random_weights[j]
                 z[i+offset] *= cache
-            z[i+offset] *= sqrt(self.coefs[order]/self.p_choice[order])
+            z[i+offset] *= sqrt(self.coefs[self.order]/self.p_choice[self.order])
 
 
 cdef class CDoublyRandomKernel(BaseCDoublyRandomFeature):
@@ -226,6 +373,17 @@ cdef class CDoublyRandomKernel(BaseCDoublyRandomFeature):
         for j in range(self.degree):
             self.anova[j+1] = 0
         self.anova[0] = 1
+   
+    cdef double _transform(self, double* data, int* indices, int n_nz):
+        if self.kernel == 0:
+            return anova(data, indices, n_nz, self.random_weights,
+                         self.degree, self.anova)
+        else:
+            return all_subsets(data, indices, n_nz, self.random_weights)
+
+    cdef void sample_base(self):
+        self.sfmt.genrand_rademacher_fill(&self.random_weights[0],
+                                          self.n_features)
 
     cdef void transform(self, 
                         double* z,
@@ -235,8 +393,7 @@ cdef class CDoublyRandomKernel(BaseCDoublyRandomFeature):
         cdef Py_ssize_t i
         self.sfmt.init_gen_rand(self.seed)
         for i in range(self.n_iter):
-            self.sfmt.genrand_rademacher_fill(&self.random_weights[0], 
-                                              self.n_features)
+            self.sample_base()
             if self.kernel == 0:
                 z[i] = anova(data, indices, n_nz, self.random_weights,
                              self.degree, self.anova)
