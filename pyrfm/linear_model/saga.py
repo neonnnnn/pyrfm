@@ -427,4 +427,3 @@ class SAGARegressor(BaseSAGAEstimator, LinearRegressorMixin):
             normalize, fit_intercept, max_iter, tol, learning_rate, power_t,
             is_saga, warm_start, random_state, verbose, fast_solver, shuffle
         )
-
