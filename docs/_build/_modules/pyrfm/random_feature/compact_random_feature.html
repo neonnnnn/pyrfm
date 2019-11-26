@@ -1,0 +1,352 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>pyrfm.random_feature.compact_random_feature &mdash; pyrfm 0.1.0dev documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> pyrfm
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">API-References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../linear_model.html">Linear models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../random_feature.html">Random features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kernel.html">Kernel functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyrfm</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>pyrfm.random_feature.compact_random_feature</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyrfm.random_feature.compact_random_feature</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Author: Kyohei Atarashi</span>
+<span class="c1"># License: BSD-2-Clause</span>
+
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span>
+<span class="kn">from</span> <span class="nn">sklearn.utils</span> <span class="k">import</span> <span class="n">check_random_state</span><span class="p">,</span> <span class="n">check_array</span>
+<span class="kn">from</span> <span class="nn">sklearn.utils.validation</span> <span class="k">import</span> <span class="n">check_is_fitted</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">RandomMaclaurin</span>
+
+
+<div class="viewcode-block" id="CompactRandomFeature"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.CompactRandomFeature.html#pyrfm.random_feature.CompactRandomFeature">[docs]</a><span class="k">class</span> <span class="nc">CompactRandomFeature</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Efficient random feature map by Compact Random Feature map.</span>
+
+<span class="sd">    You can construct (the simplest) CompactRandomFeature by combining random</span>
+<span class="sd">    features and sklearn.random_projection, e.g.,</span>
+
+<span class="sd">        &gt;&gt;&gt; trans_up = RandomMaclaurin(n_components=n_components_up)</span>
+<span class="sd">        &gt;&gt;&gt; trans_down = SparseRandomProjecion(n_components=n_components.</span>
+<span class="sd">                                           density=1)</span>
+<span class="sd">        &gt;&gt;&gt; X_trans_up = trans_up.fit_transform(X)</span>
+<span class="sd">        &gt;&gt;&gt; X_trans_down = trans_down.fit_transform(X_trans_down)</span>
+
+<span class="sd">    The advantages of this CompactRandomFeature is its memory efficiency.</span>
+<span class="sd">    Above-mentioned combinatorial approach might occur the memory error in</span>
+<span class="sd">    the up projection when the size of the original feature matrix is large.</span>
+<span class="sd">    CompactRandomFeature for a random feature map with a cython implementation</span>
+<span class="sd">    avoid the memory error because it does not compute all of up projection</span>
+<span class="sd">    random features at the same time.</span>
+<span class="sd">    Although you can avoid MemoryError by creating mini-batches of the training</span>
+<span class="sd">    instances, this CompactRandomFeature class save this step.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    transformer_up : sklearn transformer object (default=None)</span>
+<span class="sd">        A random feature map object.</span>
+<span class="sd">        If None, RandomMaclaurin is used.</span>
+
+<span class="sd">    transformer_down: str or sklearn transformer object (default=None)</span>
+<span class="sd">        Transformer for down projection.</span>
+<span class="sd">        {&quot;srht&quot;} can be used.</span>
+<span class="sd">        If None, structured projection cannot be used. Standard RandomProjection</span>
+<span class="sd">        is used.</span>
+
+<span class="sd">    n_components : int (default=10)</span>
+<span class="sd">        Number of Monte Carlo samples per randomized features of transformer.</span>
+<span class="sd">        It corresponds to E in original paper [1].</span>
+<span class="sd">        Equals the dimensionality of the computed (mapped) feature space.</span>
+
+<span class="sd">    n_components_up : int (default=100)</span>
+<span class="sd">        Number of Monte Calro samples per original features.</span>
+<span class="sd">        It corresponds to D in original paper [1].</span>
+<span class="sd">        It is used when transformer = &quot;random_maclaurin&quot; or &quot;tensor_sketch&quot;</span>
+
+<span class="sd">    degree : int (default=2)</span>
+<span class="sd">        Degree of polynomial kernel.</span>
+<span class="sd">        This argument is used when transformer = None.</span>
+
+<span class="sd">    h01 : int (default=False)</span>
+<span class="sd">        Using h01 heuristics or not.</span>
+<span class="sd">        This argument is used when transformer = None.</span>
+
+<span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
+<span class="sd">        If int, random_state is the seed used by the random number generator;</span>
+<span class="sd">        If np.RandomState instance, random_state is the random number generator;</span>
+<span class="sd">        If None, the random number generator is the RandomState instance used</span>
+<span class="sd">        by `np.random`.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    random_weights_ : array, shape (n_components, transformer.n_components)</span>
+<span class="sd">    or (transformer.n_components)</span>
+<span class="sd">        The sampled basis for down projection.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    [1] Compact Random Feature Maps.</span>
+<span class="sd">    Raffay Hamid, Ying Xiao, Alex Gittens, and Dennis DeCoste.</span>
+<span class="sd">    In ICML 2014.</span>
+<span class="sd">    (http://proceedings.mlr.press/v32/hamid14.pdf)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transformer_up</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">transformer_down</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">n_components</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_components_up</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">h01</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformer_up</span> <span class="o">=</span> <span class="n">transformer_up</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span> <span class="o">=</span> <span class="n">transformer_down</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="n">n_components</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_components_up</span> <span class="o">=</span> <span class="n">n_components_up</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">=</span> <span class="n">degree</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h01</span> <span class="o">=</span> <span class="n">h01</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span>
+
+<div class="viewcode-block" id="CompactRandomFeature.fit"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.CompactRandomFeature.html#pyrfm.random_feature.CompactRandomFeature.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fit the transformers for up projection and down projection.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : {array-like, sparse matrix}, shape (n_samples, n_features)</span>
+<span class="sd">            Training data, where n_samples is the number of samples</span>
+<span class="sd">            and n_features is the number of features.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : object</span>
+<span class="sd">            Returns the transformer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">random_state</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># fit up projection transformer</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer_up</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transformer_up</span> <span class="o">=</span> <span class="n">RandomMaclaurin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components_up</span><span class="p">,</span>
+                                                  <span class="n">degree</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span>
+                                                  <span class="n">h01</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">h01</span><span class="p">,</span>
+                                                  <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformer_up</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">n_components_up</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer_up</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># fit down projection transformer</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+            <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">DOWNSAMPLES</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span> <span class="ow">in</span> <span class="n">DOWNSAMPLES</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span> <span class="o">=</span> <span class="n">DOWNSAMPLES</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span><span class="p">](</span>
+                    <span class="n">n_components</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> not in </span><span class="si">{1}</span><span class="s2">. Use </span><span class="si">{1}</span><span class="s2"> or transformer.&quot;</span>
+                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span><span class="p">,</span>
+                                         <span class="n">DOWNSAMPLES</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer_up</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">[:</span><span class="mi">2</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span><span class="o">.</span><span class="n">n_components</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span><span class="o">.</span><span class="n">random_weights_</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="CompactRandomFeature.transform"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.CompactRandomFeature.html#pyrfm.random_feature.CompactRandomFeature.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply the approximate feature map to X.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : {array-like, sparse matrix}, shape (n_samples, n_features)</span>
+<span class="sd">            New data, where n_samples is the number of samples</span>
+<span class="sd">            and n_features is the number of features.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X_new : array-like, shape (n_samples, n_components)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">.random_features_fast</span> <span class="k">import</span> <span class="n">transform_all_fast</span>
+        <span class="n">check_is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;random_weights_&quot;</span><span class="p">)</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">transform_all_fast</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Z</span></div>
+
+    <span class="k">def</span> <span class="nf">_remove_bases</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span><span class="p">,</span> <span class="s2">&quot;_remove_bases&quot;</span><span class="p">):</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span><span class="o">.</span><span class="n">_remove_bases</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_components_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span><span class="o">.</span><span class="n">n_components</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer_down</span><span class="o">.</span><span class="n">random_weights_</span>
+            <span class="k">return</span> <span class="n">ret</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Kyohei Atarashi
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

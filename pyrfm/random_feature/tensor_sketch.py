@@ -38,7 +38,7 @@ def _make_projection_matrices(i_hash, s_hash, n_components):
 
 
 class TensorSketch(BaseEstimator, TransformerMixin):
-    """Approximates feature map of a polynomial kernel by Tensor Sketch.
+    """Approximates feature map of the polynomial kernel by Tensor Sketch.
 
     Parameters
     ----------

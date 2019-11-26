@@ -15,7 +15,7 @@ def _get_random_matrix(distribution):
 
 
 class RandomProjection(BaseEstimator, TransformerMixin):
-    """Approximates feature map of the dot product kernel by Random Projection.
+    """Approximates feature map of the linear product kernel by Random Projection.
 
     Parameters
     ----------

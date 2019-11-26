@@ -25,7 +25,7 @@ def _make_projection_matrices(hash_indices, hash_signs, n_components):
     return random_weights
 
 class CountSketch(BaseEstimator, TransformerMixin):
-    """Approximates feature map of a linear kernel by Count Sketch, 
+    """Approximates feature map of the linear kernel by Count Sketch, 
     a.k.a feature hashing.
     
     Parameters

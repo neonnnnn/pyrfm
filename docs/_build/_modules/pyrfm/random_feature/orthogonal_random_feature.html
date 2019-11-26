@@ -1,0 +1,511 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>pyrfm.random_feature.orthogonal_random_feature &mdash; pyrfm 0.1.0dev documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> pyrfm
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">API-References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../linear_model.html">Linear models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../random_feature.html">Random features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kernel.html">Kernel functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyrfm</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>pyrfm.random_feature.orthogonal_random_feature</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyrfm.random_feature.orthogonal_random_feature</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Author: Kyohei Atarashi</span>
+<span class="c1"># License: BSD-2-Clause</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span>
+<span class="kn">from</span> <span class="nn">sklearn.utils</span> <span class="k">import</span> <span class="n">check_random_state</span><span class="p">,</span> <span class="n">check_array</span>
+<span class="kn">from</span> <span class="nn">sklearn.utils.validation</span> <span class="k">import</span> <span class="n">check_is_fitted</span>
+<span class="kn">from</span> <span class="nn">sklearn.utils.extmath</span> <span class="k">import</span> <span class="n">safe_sparse_dot</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">sqrt</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">get_random_matrix</span><span class="p">,</span> <span class="n">next_pow_of_two</span>
+<span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="k">import</span> <span class="n">qr_multiply</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="k">import</span> <span class="n">chi</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+
+<span class="k">def</span> <span class="nf">_get_random_matrix</span><span class="p">(</span><span class="n">distribution</span><span class="p">):</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="n">rng</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="n">get_random_matrix</span><span class="p">(</span><span class="n">rng</span><span class="p">,</span> <span class="n">distribution</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="OrthogonalRandomFeature"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.OrthogonalRandomFeature.html#pyrfm.random_feature.OrthogonalRandomFeature">[docs]</a><span class="k">class</span> <span class="nc">OrthogonalRandomFeature</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Approximates feature map of the RBF or dot kernel </span>
+<span class="sd">    by Orthogonal Random Feature map.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n_components : int (default=100)</span>
+<span class="sd">        Number of Monte Carlo samples per original features.</span>
+<span class="sd">        Equals the dimensionality of the computed (mapped) feature space.</span>
+<span class="sd">        If n_components is not a n-tuple of n_features, it is automatically</span>
+<span class="sd">        changed to the smallest n-tuple of the n_features that is bigger than</span>
+<span class="sd">        n_features, which is bigger than n_components.</span>
+<span class="sd">        That is, ceil(n_components/n_features)*n_features.</span>
+
+<span class="sd">    gamma : float (default=0.5)</span>
+<span class="sd">        Bandwidth parameter. gamma = 1/2\sigma^2, where \sigma is a std</span>
+<span class="sd">        parameter for the Gaussian distribution.</span>
+
+<span class="sd">    distribution : str or function (default=&quot;gaussian&quot;)</span>
+<span class="sd">        A function for sampling random basis whose arguments</span>
+<span class="sd">        are random_state and size.</span>
+<span class="sd">        Its arguments must be random_state and size.</span>
+<span class="sd">        For str, &quot;gaussian&quot; (or &quot;normal&quot;), &quot;rademacher&quot;, &quot;laplace&quot;, or</span>
+<span class="sd">        &quot;uniform&quot; can be used.</span>
+
+<span class="sd">    random_fourier : boolean (default=True)</span>
+<span class="sd">        Whether to approximate the RBF kernel or not.</span>
+<span class="sd">        If True, this class samples random_offset_ in the fit method and </span>
+<span class="sd">        computes the cosine of structured_matrix-feature_vector product </span>
+<span class="sd">        + random_offset_ in transform.</span>
+<span class="sd">        If False, OrthogonalRandomFeature does not sample it and computes just</span>
+<span class="sd">        structured_matrix-feature_vector product (i.e., approximates dot </span>
+<span class="sd">        product kernel).</span>
+<span class="sd">    </span>
+<span class="sd">    use_offset : bool (default=False)</span>
+<span class="sd">        If True, Z(x) = (cos(w_1x+b_1), cos(w_2x+b_2), ... , cos(w_Dx+b_D),</span>
+<span class="sd">        where w is random_weights and b is offset (D=n_components).</span>
+<span class="sd">        If False, Z(x) = (cos(w_1x), ..., cos(w_{D/2}x), sin(w_1x), ...,</span>
+<span class="sd">        sin(w_{D/2}x)).</span>
+<span class="sd">    </span>
+<span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
+<span class="sd">        If int, random_state is the seed used by the random number generator;</span>
+<span class="sd">        If np.RandomState instance, random_state is the random number generator;</span>
+<span class="sd">        If None, the random number generator is the RandomState instance used</span>
+<span class="sd">        by `np.random`.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    random_weights_ : array, shape (n_features, n_components) (use_offset=True) </span>
+<span class="sd">    or (n_components/2, n_features) (otherwise)</span>
+<span class="sd">        The sampled basis.</span>
+
+<span class="sd">    random_offset_ : array or None, shape (n_components, )</span>
+<span class="sd">        The sampled offset vector. If use_offset=False, random_offset_=None.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    [1] Orthogonal Random Features.</span>
+<span class="sd">    Felix Xinnan Yu, Ananda Theertha Suresh, Krzysztof Choromanski,</span>
+<span class="sd">    Daniel Holtmann-Rice, and Sanjiv Kumar.</span>
+<span class="sd">    In NIPS 2016.</span>
+<span class="sd">    (https://arxiv.org/pdf/1610.09072.pdf)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>  <span class="n">gamma</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">distribution</span><span class="o">=</span><span class="s2">&quot;gaussian&quot;</span><span class="p">,</span>
+                 <span class="n">random_fourier</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_offset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="n">n_components</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span> <span class="o">=</span> <span class="n">distribution</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_fourier</span> <span class="o">=</span> <span class="n">random_fourier</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_offset</span> <span class="o">=</span> <span class="n">use_offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span>
+
+<div class="viewcode-block" id="OrthogonalRandomFeature.fit"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.OrthogonalRandomFeature.html#pyrfm.random_feature.OrthogonalRandomFeature.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generate random weights according to n_features.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : {array-like, sparse matrix}, shape (n_samples, n_features)</span>
+<span class="sd">            Training data, where n_samples is the number of samples</span>
+<span class="sd">            and n_features is the number of features.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : object</span>
+<span class="sd">            Returns the transformer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">random_state</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">n_samples</span><span class="p">,</span> <span class="n">n_features</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">n_stacks</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="o">/</span><span class="n">n_features</span><span class="p">))</span>
+        <span class="n">n_components</span> <span class="o">=</span> <span class="n">n_stacks</span> <span class="o">*</span> <span class="n">n_features</span>
+        <span class="k">if</span> <span class="n">n_components</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;n_components is changed from </span><span class="si">{0}</span><span class="s2"> to </span><span class="si">{1}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">,</span> <span class="n">n_components</span>
+            <span class="p">)</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot; You should set n_components to an n-tuple of n_features.&quot;</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="n">n_components</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_fourier</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_offset</span><span class="p">:</span>
+            <span class="n">n_stacks</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">n_stacks</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="n">n_components</span> <span class="o">=</span> <span class="n">n_stacks</span><span class="o">*</span><span class="n">n_features</span>
+            <span class="k">if</span> <span class="n">n_components</span><span class="o">*</span><span class="mi">2</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;n_components is changed from </span><span class="si">{0}</span><span class="s2"> to </span><span class="si">{1}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">,</span> <span class="n">n_components</span><span class="o">*</span><span class="mi">2</span>
+                <span class="p">)</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot; When random_fourier=True and use_offset=False, &quot;</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot; n_components should be larger than 2*n_features.&quot;</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="n">n_components</span> <span class="o">*</span> <span class="mi">2</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+            <span class="n">gamma</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span>
+
+        <span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="n">n_features</span><span class="p">,</span> <span class="n">n_features</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span> <span class="o">=</span> <span class="n">_get_random_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">)</span>
+        <span class="n">random_weights_</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_stacks</span><span class="p">):</span>
+            <span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">(</span><span class="n">random_state</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+            <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">chi</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">n_features</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_features</span><span class="p">))</span>
+            <span class="n">SQ</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">qr_multiply</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+            <span class="n">random_weights_</span> <span class="o">+=</span> <span class="p">[</span><span class="n">SQ</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">random_weights_</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_offset_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_fourier</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">*=</span> <span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">gamma</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_offset</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">random_offset_</span> <span class="o">=</span> <span class="n">random_state</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+                                                           <span class="n">size</span><span class="o">=</span><span class="n">n_components</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="OrthogonalRandomFeature.transform"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.OrthogonalRandomFeature.html#pyrfm.random_feature.OrthogonalRandomFeature.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply the approximate feature map to X.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : {array-like, sparse matrix}, shape (n_samples, n_features)</span>
+<span class="sd">            New data, where n_samples is the number of samples</span>
+<span class="sd">            and n_features is the number of features.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X_new : array-like, shape (n_samples, n_components)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">check_is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;random_weights_&quot;</span><span class="p">)</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">safe_sparse_dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_fourier</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_offset</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">output</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">random_offset_</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">output</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">output</span><span class="p">)))</span>
+            <span class="n">output</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output</span> <span class="o">/</span> <span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">_remove_bases</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_fourier</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_offset</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Bases are not removed when use_offset=False and&quot;</span>
+                          <span class="s2">&quot; random_fourier=True.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_fourier</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">random_offset_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_offset_</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="StructuredOrthogonalRandomFeature"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.StructuredOrthogonalRandomFeature.html#pyrfm.random_feature.StructuredOrthogonalRandomFeature">[docs]</a><span class="k">class</span> <span class="nc">StructuredOrthogonalRandomFeature</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Approximates feature map of the RBF or dot kernel by </span>
+<span class="sd">    Structured Orthogonal Random Fourier Feature map.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n_components : int (default=100)</span>
+<span class="sd">        Number of Monte Carlo samples per original features.</span>
+<span class="sd">        Equals the dimensionality of the computed (mapped) feature space.</span>
+<span class="sd">        If n_components is not a n-tuple of n_features, it is automatically</span>
+<span class="sd">        changed to the smallest n-tuple of the n_features that is bigger than</span>
+<span class="sd">        n_features, which is bigger than n_components.</span>
+<span class="sd">        That is, ceil(n_components/n_features)*n_features.</span>
+
+<span class="sd">    gamma : float (default=0.5)</span>
+<span class="sd">        Bandwidth parameter. gamma = 1/2\sigma^2, where \sigma is a std</span>
+<span class="sd">        parameter for the Gaussian distribution.</span>
+
+<span class="sd">    distribution : str or function (default=&quot;rademacher&quot;)</span>
+<span class="sd">        A function for sampling random basis whose arguments</span>
+<span class="sd">        are random_state and size.</span>
+<span class="sd">        Its arguments must be random_state and size.</span>
+<span class="sd">        For str, &quot;gaussian&quot; (or &quot;normal&quot;), &quot;rademacher&quot;, &quot;laplace&quot;, or</span>
+<span class="sd">        &quot;uniform&quot; can be used.</span>
+
+<span class="sd">    random_fourier : boolean (default=True)</span>
+<span class="sd">        Whether to approximate the RBF kernel or not.</span>
+<span class="sd">        If True, this class samples random_offset_ in the fit method and</span>
+<span class="sd">        computes the cosine of structured_matrix-feature_vector product </span>
+<span class="sd">        + random_offset_ in transform.</span>
+<span class="sd">        If False, StructuredOrthogonalRandomFeature does not sample it and </span>
+<span class="sd">        computes just structured_matrix-feature_vector product</span>
+<span class="sd">        (i.e., approximates dot product kernel).</span>
+
+<span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
+<span class="sd">        If int, random_state is the seed used by the random number generator;</span>
+<span class="sd">        If np.RandomState instance, random_state is the random number generator;</span>
+<span class="sd">        If None, the random number generator is the RandomState instance used</span>
+<span class="sd">        by `np.random`.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    random_weights_ : array, shape (n_components, n_features) (use_offset=True)</span>
+<span class="sd">    or (n_components/2, n_features) (otherwise)</span>
+<span class="sd">        The sampled basis.</span>
+
+<span class="sd">    random_offset_ : array or None, shape (n_components, )</span>
+<span class="sd">        The sampled offset vector. If use_offset=False, random_offset_=None.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    [1] Orthogonal Random Features.</span>
+<span class="sd">    Felix Xinnan Yu, Ananda Theertha Suresh, Krzysztof Choromanski,</span>
+<span class="sd">    Daniel Holtmann-Rice, and Sanjiv Kumar.</span>
+<span class="sd">    In NIPS 2016.</span>
+<span class="sd">    (https://arxiv.org/pdf/1610.09072.pdf)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>  <span class="n">gamma</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">distribution</span><span class="o">=</span><span class="s2">&quot;rademacher&quot;</span><span class="p">,</span>
+                 <span class="n">random_fourier</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="n">n_components</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span> <span class="o">=</span> <span class="n">distribution</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_fourier</span> <span class="o">=</span> <span class="n">random_fourier</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span>
+
+<div class="viewcode-block" id="StructuredOrthogonalRandomFeature.fit"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.StructuredOrthogonalRandomFeature.html#pyrfm.random_feature.StructuredOrthogonalRandomFeature.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generate random weights according to n_features.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : {array-like, sparse matrix}, shape (n_samples, n_features)</span>
+<span class="sd">            Training data, where n_samples is the number of samples</span>
+<span class="sd">            and n_features is the number of features.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : object</span>
+<span class="sd">            Returns the transformer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">random_state</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">n_samples</span><span class="p">,</span> <span class="n">n_features</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">n_features_padded</span> <span class="o">=</span> <span class="n">next_pow_of_two</span><span class="p">(</span><span class="n">n_features</span><span class="p">)</span>
+        <span class="n">n_stacks</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="o">/</span><span class="n">n_features_padded</span><span class="p">))</span>
+        <span class="n">n_components</span> <span class="o">=</span> <span class="n">n_stacks</span> <span class="o">*</span> <span class="n">n_features_padded</span>
+
+        <span class="k">if</span> <span class="n">n_components</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;n_components is changed from </span><span class="si">{0}</span><span class="s2"> to </span><span class="si">{1}</span><span class="s2">. &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">,</span> <span class="n">n_components</span>
+            <span class="p">)</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot; You should set n_components to an n-tuple of the next &quot;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot; power of two of n_features.&quot;</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="n">n_components</span>
+
+        <span class="c1"># n_stacks * n_features_padded = self.n_components</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span> <span class="o">=</span> <span class="n">_get_random_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">)</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="n">n_stacks</span><span class="p">,</span> <span class="n">n_features</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">n_features_padded</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">(</span><span class="n">random_state</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_fourier</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">random_offset_</span> <span class="o">=</span> <span class="n">random_state</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+                                                       <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">random_offset_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="StructuredOrthogonalRandomFeature.transform"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.StructuredOrthogonalRandomFeature.html#pyrfm.random_feature.StructuredOrthogonalRandomFeature.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply the approximate feature map to X.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : {array-like, sparse matrix}, shape (n_samples, n_features)</span>
+<span class="sd">            New data, where n_samples is the number of samples</span>
+<span class="sd">            and n_features is the number of features.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X_new : array-like, shape (n_samples, n_components)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">.random_features_fast</span> <span class="k">import</span> <span class="n">transform_all_fast</span>
+        <span class="n">check_is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;random_weights_&quot;</span><span class="p">)</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">transform_all_fast</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Z</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Kyohei Atarashi
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
