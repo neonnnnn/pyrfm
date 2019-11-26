@@ -23,7 +23,7 @@ A library for random feature maps and linear models with random feature maps in 
 
 For running example codes (pyrfm/benchmarks), jupyter and matplotlib are required.
 
-##Documentation
+## Documentation
 https://neonnnnn.github.io/pyrfm/
 
 ## What are random feature maps?
