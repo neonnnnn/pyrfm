@@ -19,16 +19,16 @@ cdef class SFMTRandomState:
     cdef double gauss
 
     cpdef void init_gen_rand(self, uint32_t seed)
-    cpdef uint32_t genrand_next_uint32(self)
-    cpdef uint64_t genrand_next_uint64(self)
-    cpdef uint32_t genrand_randint_uint32(self, uint32_t high) 
-    cpdef double genrand_real_01_closed(self) # [0, 1]
-    cpdef double genrand_real_01_ropen(self) # [0, 1)
-    cpdef double genrand_real_01_open(self) # (0, 1)
-    cpdef double genrand_randn(self, double loc=*, double scale=*)
-    cpdef double genrand_laplace(self, double loc=*, double scale=*)
-    cpdef double genrand_uniform(self, double low=*, double high=*)
-    cpdef int genrand_rademacher(self)
+    cdef uint32_t genrand_next_uint32(self)
+    cdef uint64_t genrand_next_uint64(self)
+    cdef uint32_t genrand_randint_uint32(self, uint32_t high) 
+    cdef double genrand_real_01_closed(self) # [0, 1]
+    cdef double genrand_real_01_ropen(self) # [0, 1)
+    cdef double genrand_real_01_open(self) # (0, 1)
+    cdef double genrand_randn(self, double loc=*, double scale=*)
+    cdef double genrand_laplace(self, double loc=*, double scale=*)
+    cdef double genrand_uniform(self, double low=*, double high=*)
+    cdef int genrand_rademacher(self)
 
     cdef void genrand_randn_fill(self, double* z, int n, double loc=*,
                                  double scale=*)

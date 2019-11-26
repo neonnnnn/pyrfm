@@ -44,13 +44,13 @@ cdef class SFMTRandomState(object):
     cpdef void init_gen_rand(self, uint32_t seed):
         sfmt_init_gen_rand(self.sfmt_state, seed)
 
-    cpdef uint32_t genrand_next_uint32(self):
+    cdef uint32_t genrand_next_uint32(self):
         return sfmt_genrand_uint32(self.sfmt_state)
 
-    cpdef uint64_t genrand_next_uint64(self):
+    cdef uint64_t genrand_next_uint64(self):
         return sfmt_genrand_uint64(self.sfmt_state)       
     
-    cpdef uint32_t genrand_randint_uint32(self, uint32_t high):
+    cdef uint32_t genrand_randint_uint32(self, uint32_t high):
         # Fast Random Integer Generation in an Interval
         # https://arxiv.org/abs/1805.10941
         cdef uint32_t x = sfmt_genrand_uint32(self.sfmt_state)
@@ -65,29 +65,29 @@ cdef class SFMTRandomState(object):
                 l = <uint32_t>(m & 0xFFFFFFFFUL)
         return m >> 32
 
-    cpdef double genrand_real_01_closed(self):
+    cdef double genrand_real_01_closed(self):
         return sfmt_genrand_real1(self.sfmt_state)
 
-    cpdef double genrand_real_01_ropen(self):
+    cdef double genrand_real_01_ropen(self):
         return sfmt_genrand_real2(self.sfmt_state)
     
-    cpdef double genrand_real_01_open(self):
+    cdef double genrand_real_01_open(self):
         return sfmt_genrand_real3(self.sfmt_state)
     
-    cpdef double genrand_randn(self, double loc=0, double scale=1):
+    cdef double genrand_randn(self, double loc=0, double scale=1):
         # box-muller
         cdef double z1, z2
         if self.has_gauss:
             self.has_gauss = False
-            return self.gauss
+            return loc  + scale * self.gauss
         else:
             z1 = self.genrand_real_01_open()
             z2 = self.genrand_real_01_open()
             self.has_gauss = True
-            self.gauss = loc + scale*sqrt(-2*log(z1))*cos(2*M_PI*z2)
+            self.gauss = sqrt(-2*log(z1))*cos(2*M_PI*z2)
             return loc + scale*sqrt(-2*log(z1))*sin(2*M_PI*z2)
 
-    cpdef double genrand_laplace(self, double loc=0, double scale=1):
+    cdef double genrand_laplace(self, double loc=0, double scale=1):
         cdef double z
         z = self.genrand_real_01_open()
         if z >= 0.5:
@@ -95,10 +95,10 @@ cdef class SFMTRandomState(object):
         else:
             return loc + scale*log(z+z)
     
-    cpdef double genrand_uniform(self, double low=0, double high=1):
+    cdef double genrand_uniform(self, double low=0, double high=1):
         return low + (high - low)*self.genrand_real_01_closed()
     
-    cpdef int genrand_rademacher(self):
+    cdef int genrand_rademacher(self):
         return 2*self.genrand_randint_uint32(2) - 1
 
     cdef void genrand_randn_fill(self, double* z, int n, double loc=0, 
@@ -106,7 +106,7 @@ cdef class SFMTRandomState(object):
         cdef Py_ssize_t i
         for i in range(n):
             z[i] = self.genrand_randn(loc, scale)
-
+            
     cdef void genrand_laplace_fill(self, double* z, int n, double loc=0, 
                                    double scale=1):
         cdef Py_ssize_t i
@@ -123,3 +123,42 @@ cdef class SFMTRandomState(object):
         cdef Py_ssize_t i
         for i in range(n):
             z[i] = self.genrand_rademacher()
+
+    def randint(self, uint32_t high):
+        return self.genrand_randint_uint32(high)
+    
+    def real_01_closed(self):
+        return sfmt_genrand_real1(self.sfmt_state)
+
+    def real_01_ropen(self):
+        return sfmt_genrand_real2(self.sfmt_state)
+    
+    def real_01_open(self):
+        return sfmt_genrand_real3(self.sfmt_state)
+    
+    def randn(self, double loc=0, double scale=1):
+        # box-muller
+        cdef double z1, z2
+        if self.has_gauss:
+            self.has_gauss = False
+            return loc  + scale * self.gauss
+        else:
+            z1 = self.genrand_real_01_open()
+            z2 = self.genrand_real_01_open()
+            self.has_gauss = True
+            self.gauss = sqrt(-2*log(z1))*cos(2*M_PI*z2)
+            return loc + scale*sqrt(-2*log(z1))*sin(2*M_PI*z2)
+
+    def laplace(self, double loc=0, double scale=1):
+        cdef double z
+        z = self.genrand_real_01_open()
+        if z >= 0.5:
+            return loc - scale*log(2.0-z-z)
+        else:
+            return loc + scale*log(z+z)
+    
+    def uniform(self, double low=0, double high=1):
+        return low + (high - low)*self.genrand_real_01_closed()
+    
+    def rademacher(self):
+        return 2*self.genrand_randint_uint32(2) - 1
