@@ -185,7 +185,7 @@ class DoublySGDClassifier(BaseDoublySGDEstimator, LinearClassifierMixin):
         transformer must have (1) n_components attribute, (2) fit(X, y),
         and (3) transform(X).
 
-    eta0 : double (default=1.)
+    eta0 : double (default=0.1)
         Step-size parameter.
 
     loss : str (default="squared_hinge")
@@ -200,7 +200,7 @@ class DoublySGDClassifier(BaseDoublySGDEstimator, LinearClassifierMixin):
     C : double (default=1.0)
         Weight of the loss term.
 
-    alpha : double (default=1e-4)
+    alpha : double (default=1e-3)
         Weight of the penalty term.
 
     l1_ratio : double (default=0)
@@ -214,7 +214,7 @@ class DoublySGDClassifier(BaseDoublySGDEstimator, LinearClassifierMixin):
 
         - Otherwise : Elastic Net.
 
-    intercept_decay : double (default=1e-5)
+    intercept_decay : double (default=1e-4)
         Weight of the penalty term for intercept.
 
     fit_intercept : bool (default=True)
@@ -315,9 +315,9 @@ class DoublySGDClassifier(BaseDoublySGDEstimator, LinearClassifierMixin):
         'log': Logistic()
     }
 
-    def __init__(self, transformer=RBFSampler(), eta0=.1,
+    def __init__(self, transformer=RBFSampler(), eta0=0.1,
                  loss='squared_hinge', C=1.0, alpha=1e-3, l1_ratio=0.,
-                 intercept_decay=1e-5, fit_intercept=True,
+                 intercept_decay=1e-4, fit_intercept=True,
                  max_iter=100, batch_size=10, n_bases_sampled=1, tol=1e-6, 
                  learning_rate='optimal', power_t=1, eta1=1e-4,
                  warm_start=False,
@@ -343,7 +343,7 @@ class DoublySGDRegressor(BaseDoublySGDEstimator, LinearRegressorMixin):
         transformer must have (1) n_components attribute, (2) fit(X, y),
         and (3) transform(X).
 
-    eta0 : double (default=1.)
+    eta0 : double (default=0.1)
         Step-size parameter.
 
     loss : str (default="squared")
@@ -354,7 +354,7 @@ class DoublySGDRegressor(BaseDoublySGDEstimator, LinearRegressorMixin):
     C : double (default=1.0)
         Weight of the loss term.
 
-    alpha : double (default=1e-4)
+    alpha : double (default=1e-3)
         Weight of the penalty term.
 
     l1_ratio : double (default=0)
@@ -368,7 +368,7 @@ class DoublySGDRegressor(BaseDoublySGDEstimator, LinearRegressorMixin):
 
         - Otherwise : Elastic Net.
 
-    intercept_decay : double (default=0.1)
+    intercept_decay : double (default=1e-4)
         Weight of the penalty term for intercept.
 
     fit_intercept : bool (default=True)
