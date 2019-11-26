@@ -6,7 +6,7 @@ from numpy.distutils.core import setup
 
 DISTNAME = 'pyrfm'
 DESCRIPTION = 'A python library for random feature maps.'
-VERSION = '0.1.dev0'
+VERSION = '1.0.0'
 
 
 def configuration(parent_package='', top_path=None):
