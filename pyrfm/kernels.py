@@ -37,6 +37,31 @@ def D(X, P, degree, dense_output=True):
 
 
 def anova(X, P, degree, dense_output=True):
+    """Compute ANOVA kernel by pure numpy.
+
+    .. math::
+
+        k(x, y) = \sum_{j_1 < \cdots < j_m} x_{j_1}p_{j_1}\cdots x_{j_m}p_{j_m}
+
+    Parameters
+    ----------
+    X : {array-like, sparse matrix} shape (n_samples1, n_features)
+        Feature matrix.
+
+    P : {array-like, sparse matrix} shape (n_samples2, n_features)
+        Feature matrix.
+
+    degree : int
+        Degree of the ANOVA kernel (m in above equation).
+
+    dense_output : bool (default=True)
+        Whether to output np.ndarray or not (csr_matrix).
+
+    Returns
+    -------
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
+
+    """
     X = check_array(X, True)
     P = check_array(P, True)
 
@@ -73,31 +98,202 @@ def anova(X, P, degree, dense_output=True):
     return A
 
 
+def pairwise(X, P, dense_output=True, symmetric=False):
+    """Compute pairwise kernel.
+
+    .. math::
+
+        k((x, a), (y, b)) = \sum_{t=1}^{m-1} \mathrm{ANOVA}^t(x, y)\mathrm{ANOVA}^{t-m}}a, b)
+
+    Now only degree (m) = 2 supported.
+
+    Parameters
+    ----------
+    X : {array-like, sparse matrix} shape (n_samples1, n_features)
+        Feature matrix.
+
+    P : {array-like, sparse matrix} shape (n_samples2, n_features)
+        Feature matrix.
+
+    dense_output : bool (default=True)
+        Whether to output np.ndarray or not (csr_matrix).
+
+    symmetric : bool (default=False)
+        Whether to symmetrize or not.
+
+    Returns
+    -------
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
+
+    """
+    if X.shape[1] % 2 != 0:
+        raise ValueError('X.shape[1] is not even.')
+
+    n_features = X.shape[1]//2
+
+    K1 = safe_sparse_dot(X[:, :n_features], P[:, :n_features], dense_output)
+    K2 = safe_sparse_dot(X[:, n_features:], P[:, n_features:], dense_output)
+    K = safe_np_elem_prod(K1, K2, dense_output)
+    if symmetric:
+        K1 = safe_sparse_dot(X[:, :n_features], P[:, n_features:], dense_output)
+        K2 = safe_sparse_dot(X[:, n_features:], P[:, :n_features], dense_output)
+        K += safe_np_elem_prod(K1, K2, dense_output)
+        K *= 0.5
+    return K
+
+
 def hellinger(X, P):
+    """Compute hellinger kernel.
+
+    .. math:: k(x, y) = \sum_{j=1}^d \sqrt{x_j}\sqrt{y_j}
+
+    Parameters
+    ----------
+    X : {array-like, sparse matrix} shape (n_samples1, n_features)
+        Feature matrix.
+
+    P : {array-like, sparse matrix} shape (n_samples2, n_features)
+        Feature matrix.
+
+    Returns
+    -------
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
+
+    """
+
     X = check_array(X, True)
     P = check_array(P, True)
     return safe_sparse_dot(np.sqrt(X), np.sqrt(P))
 
 
-def all_subsets(X, P):
+def all_subsets(X, P, dense_output=True):
+    """Compute all-subsets kernel.
+
+    .. math::
+        k(x, y) = \prod_{j=1}^d (1+x_jy_j)
+
+    Parameters
+    ----------
+    X : {array-like, sparse matrix} shape (n_samples1, n_features)
+        Feature matrix.
+
+    P : {array-like, sparse matrix} shape (n_samples2, n_features)
+        Feature matrix.
+
+    Returns
+    -------
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
+
+    """
+
     X = check_array(X, True)
     P = check_array(P, True)
-    return _all_subsets(X, P)
+    return _all_subsets(X, P, dense_output)
 
 
 def anova_fast(X, P, degree, dense_output=True):
+    """Compute ANOVA kernel by Cython implementation.
+
+    .. math::
+
+        k(x, y) = \sum_{j_1 < \cdots < j_m} x_{j_1}p_{j_1}\cdots x_{j_m}p_{j_m}
+
+    Parameters
+    ----------
+    X : {array-like, sparse matrix} shape (n_samples1, n_features)
+        Feature matrix.
+
+    P : {array-like, sparse matrix} shape (n_samples2, n_features)
+        Feature matrix.
+
+    degree : int
+        Degree of the ANOVA kernel (m in above equation).
+
+    dense_output : bool (default=True)
+        Whether to output np.ndarray or not (csr_matrix).
+
+    Returns
+    -------
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
+
+    """
+
     X = check_array(X, True)
     P = check_array(P, True)
     return _anova(X, P, degree, dense_output)
 
 
 def intersection(X, P):
+    """Compute intersection kernel.
+
+    .. math::
+
+        k(x, y) = \sum_{j=1}^{d} \min (x_j, y_j)
+
+    Parameters
+    ----------
+    X : {array-like, sparse matrix} shape (n_samples1, n_features)
+        Feature matrix.
+
+    P : {array-like, sparse matrix} shape (n_samples2, n_features)
+        Feature matrix.
+
+    Returns
+    -------
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
+
+    """
     X = check_array(X, True)
     P = check_array(P, True)
     return _intersection(X, P)
 
 
 def chi_square(X, P):
+    """Compute chi squared kernel.
+
+    .. math::
+
+        k(x,y) = \sum_{i=1}^{n}2x_iy_i/(x_i + y_i)
+
+    Parameters
+    ----------
+    X : {array-like, sparse matrix} shape (n_samples1, n_features)
+        Feature matrix.
+
+    P : {array-like, sparse matrix} shape (n_samples2, n_features)
+        Feature matrix.
+
+    Returns
+    -------
+    gram_matrix : array-like, shape (n_samples1, n_samples2)
+
+    """
     X = check_array(X, True)
     P = check_array(P, True)
     return _chi_square(X, P)
+
+
+def kernel_alignment(K, y, scaling=True):
+    """Compute kernel alignment.
+
+    Parameters
+    ----------
+    K : array, shape (n_sample, n_samples)
+        Gram matrix.
+
+    y : array, shape (n_samples, )
+        Label.
+    
+    scaling : bool (default=True)
+        Whether to scale or not.
+        If True, result is divided by \sqrt{KK}*n_samples
+
+    Returns
+    -------
+    score : double
+
+    """
+    score = np.dot(y, np.dot(K, y))
+    if scaling:
+        score /= (np.sqrt(np.sum(K**2))*len(y))
+    return score

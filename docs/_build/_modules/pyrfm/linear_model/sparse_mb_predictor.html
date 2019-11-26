@@ -1,0 +1,461 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>pyrfm.linear_model.sparse_mb_predictor &mdash; pyrfm 0.1.0dev documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> pyrfm
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">API-References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../linear_model.html">Linear models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../random_feature.html">Random features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../kernel.html">Kernel functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyrfm</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>pyrfm.linear_model.sparse_mb_predictor</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyrfm.linear_model.sparse_mb_predictor</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Author: Kyohei Atarashi</span>
+<span class="c1"># License: BSD-2-Clause</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">sparse</span>
+
+
+<span class="kn">from</span> <span class="nn">sklearn.utils.extmath</span> <span class="k">import</span> <span class="n">row_norms</span>
+<span class="kn">from</span> <span class="nn">sklearn.utils</span> <span class="k">import</span> <span class="n">check_random_state</span>
+<span class="kn">from</span> <span class="nn">..dataset_fast</span> <span class="k">import</span> <span class="n">get_dataset</span>
+
+<span class="kn">from</span> <span class="nn">.loss_fast</span> <span class="k">import</span> <span class="n">Squared</span><span class="p">,</span> <span class="n">SquaredHinge</span><span class="p">,</span> <span class="n">Logistic</span><span class="p">,</span> <span class="n">Hinge</span>
+<span class="kn">from</span> <span class="nn">..random_feature.maji_berg</span> <span class="k">import</span> <span class="n">SparseMB</span>
+<span class="kn">from</span> <span class="nn">.cd_primal_sparse_mb</span> <span class="k">import</span> <span class="n">_cd_primal</span>
+<span class="kn">from</span> <span class="nn">.base</span> <span class="k">import</span> <span class="n">BaseLinear</span><span class="p">,</span> <span class="n">LinearClassifierMixin</span><span class="p">,</span> <span class="n">LinearRegressorMixin</span>
+
+
+<span class="k">class</span> <span class="nc">BaseSparseMBEstimator</span><span class="p">(</span><span class="n">BaseLinear</span><span class="p">):</span>
+    <span class="n">LOSSES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;squared&#39;</span><span class="p">:</span> <span class="n">Squared</span><span class="p">(),</span>
+        <span class="s1">&#39;squared_hinge&#39;</span><span class="p">:</span> <span class="n">SquaredHinge</span><span class="p">(),</span>
+        <span class="s1">&#39;logistic&#39;</span><span class="p">:</span> <span class="n">Logistic</span><span class="p">(),</span>
+        <span class="s1">&#39;hinge&#39;</span><span class="p">:</span> <span class="n">Hinge</span><span class="p">()</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="s1">&#39;squared_hinge&#39;</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;cd&#39;</span><span class="p">,</span>
+                 <span class="n">C</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">fit_intercept</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+                 <span class="n">eps</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">,</span> <span class="n">warm_start</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="n">n_components</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span>
+        <span class="c1"># TODO Implement Group Lasso</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver</span> <span class="o">=</span> <span class="n">solver</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">C</span> <span class="o">=</span> <span class="n">C</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit_intercept</span> <span class="o">=</span> <span class="n">fit_intercept</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">warm_start</span> <span class="o">=</span> <span class="n">warm_start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shuffle</span> <span class="o">=</span> <span class="n">shuffle</span>
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fit model according to X and y.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        X : array-like, shape = [n_samples, n_features]</span>
+<span class="sd">            Training vectors, where n_samples is the number of samples</span>
+<span class="sd">            and n_features is the number of features.</span>
+<span class="sd">        y : array-like, shape = [n_samples]</span>
+<span class="sd">            Target values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : classifier</span>
+<span class="sd">            Returns self.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_X_y</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">warm_start</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;transformer&#39;</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span> <span class="o">=</span> <span class="n">SparseMB</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">X_trans</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">warm_start</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;coef_&#39;</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coef_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">warm_start</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;intercept_&#39;</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">intercept_</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">LOSSES</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;loss </span><span class="si">{}</span><span class="s2"> is not supported.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">))</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LOSSES</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">]</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span>
+        <span class="c1"># make tridiagonal matrix</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                         <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">))</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
+        <span class="n">H</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">eps</span>
+        <span class="n">H</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">H</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">eps</span>
+        <span class="n">H</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">X_col_norms</span> <span class="o">=</span> <span class="n">row_norms</span><span class="p">(</span><span class="n">X_trans</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">squared</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">X_trans_dataset</span> <span class="o">=</span> <span class="n">get_dataset</span><span class="p">(</span><span class="n">X_trans</span><span class="p">,</span> <span class="s1">&#39;fortran&#39;</span><span class="p">)</span>
+        <span class="n">H_dataset</span> <span class="o">=</span> <span class="n">get_dataset</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+        <span class="n">random_state</span> <span class="o">=</span> <span class="n">check_random_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">_cd_primal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coef_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">intercept_</span><span class="p">,</span> <span class="n">X_trans_dataset</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span>
+                   <span class="n">X_col_norms</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">H_dataset</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_intercept</span><span class="p">,</span>
+                   <span class="n">random_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shuffle</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SparseMBClassifier"><a class="viewcode-back" href="../../../generated/pyrfm.linear_model.SparseMBClassifier.html#pyrfm.linear_model.SparseMBClassifier">[docs]</a><span class="k">class</span> <span class="nc">SparseMBClassifier</span><span class="p">(</span><span class="n">BaseSparseMBEstimator</span><span class="p">,</span> <span class="n">LinearClassifierMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Linear classifier with feature map approximating the intersection (min)</span>
+<span class="sd">    kernel by sparse explicit feature map, which was proposed by S.Maji</span>
+<span class="sd">    and A.C.Berg.</span>
+
+<span class="sd">    SparseMB does not approximate min kernel only itself.</span>
+<span class="sd">    Linear classifier with SparseMB approximates linear classifier with MB.</span>
+<span class="sd">    For more detail, see [1].</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n_components : int (default=1000)</span>
+<span class="sd">        Number of Monte Carlo samples per original features.</span>
+<span class="sd">        Equals the dimensionality of the computed (mapped) feature space.</span>
+
+<span class="sd">    loss : str (default=&quot;squared_hinge&quot;)</span>
+<span class="sd">        Which loss function to use. Following losses can be used:</span>
+
+<span class="sd">        - &#39;squared_hinge&#39;</span>
+
+<span class="sd">        - &#39;logistic&#39;</span>
+
+<span class="sd">    C : double (default=1.0)</span>
+<span class="sd">        Weight of loss term.</span>
+
+<span class="sd">    alpha : double (default=1.0)</span>
+<span class="sd">        Weight of the penalty term.</span>
+
+<span class="sd">    fit_intercept : bool (default=True)</span>
+<span class="sd">        Whether to fit intercept (bias term) or not.</span>
+
+<span class="sd">    max_iter : int (default=100)</span>
+<span class="sd">        Maximum number of iterations.</span>
+
+<span class="sd">    tol : double (default=1e-6)</span>
+<span class="sd">        Tolerance of stopping criterion.</span>
+<span class="sd">        If sum of absolute val of update in one epoch is lower than tol,</span>
+<span class="sd">        the AdaGrad solver stops learning.</span>
+
+<span class="sd">    eps : double (default=1e-2)</span>
+<span class="sd">        A small double to ensure objective function convex.</span>
+
+<span class="sd">    warm_start : bool (default=False)</span>
+<span class="sd">        Whether to activate warm-start or not.</span>
+
+<span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
+<span class="sd">        If int, random_state is the seed used by the random number generator;</span>
+<span class="sd">        If RandomState instance, random_state is the random number generator;</span>
+<span class="sd">        If None, the random number generator is the RandomState instance used</span>
+<span class="sd">        by `np.random`.</span>
+
+<span class="sd">    verbose : bool (default=True)</span>
+<span class="sd">        Verbose mode or not.</span>
+
+<span class="sd">    shuffle : boole (default=True)</span>
+<span class="sd">        Whether to shuffle the order of parameters for optimization or not.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    self.transformer : scikit-learn TransformMixin object.</span>
+<span class="sd">        The learned transformer for random feature maps.</span>
+
+<span class="sd">    self.coef_ : array, shape (n_components, )</span>
+<span class="sd">        The learned coefficients of the linear model.</span>
+
+<span class="sd">    self.intercept_ : array, shape (1, )</span>
+<span class="sd">        The learned intercept (bias) of the linear model.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    [1] Max-Margin Additive Classifiers for Detection.</span>
+<span class="sd">    Subhransu Maji and Alexander C. Berg.</span>
+<span class="sd">    In ICCV 2009.</span>
+<span class="sd">    (http://acberg.com/papers/mb09iccv.pdf)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">LOSSES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;squared_hinge&#39;</span><span class="p">:</span> <span class="n">SquaredHinge</span><span class="p">(),</span>
+        <span class="s1">&#39;logistic&#39;</span><span class="p">:</span> <span class="n">Logistic</span><span class="p">(),</span>
+        <span class="s1">&#39;hinge&#39;</span><span class="p">:</span> <span class="n">Hinge</span><span class="p">()</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="s1">&#39;squared_hinge&#39;</span><span class="p">,</span>
+                 <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;cd&#39;</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">fit_intercept</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">warm_start</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SparseMBClassifier</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">n_components</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">solver</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">fit_intercept</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">warm_start</span><span class="p">,</span> <span class="n">random_state</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">shuffle</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SparseMBRegressor"><a class="viewcode-back" href="../../../generated/pyrfm.linear_model.SparseMBRegressor.html#pyrfm.linear_model.SparseMBRegressor">[docs]</a><span class="k">class</span> <span class="nc">SparseMBRegressor</span><span class="p">(</span><span class="n">BaseSparseMBEstimator</span><span class="p">,</span> <span class="n">LinearRegressorMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Linear regression with feature map approximating the intersection (min)</span>
+<span class="sd">    kernel by sparse explicit feature map, which was proposed by S.Maji</span>
+<span class="sd">    and A.C.Berg.</span>
+<span class="sd">    For more detail, see [1].</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n_components : int (default=1000)</span>
+<span class="sd">        Number of Monte Carlo samples per original features.</span>
+<span class="sd">        Equals the dimensionality of the computed (mapped) feature space.</span>
+
+<span class="sd">    loss : str (default=&quot;squared&quot;)</span>
+<span class="sd">        Which loss function to use. Following losses can be used:</span>
+
+<span class="sd">        - &#39;squared&#39;</span>
+
+<span class="sd">    C : double (default=1.0)</span>
+<span class="sd">        Weight of loss term.</span>
+
+<span class="sd">    alpha : double (default=1.0)</span>
+<span class="sd">        Weight of the penalty term.</span>
+
+<span class="sd">    fit_intercept : bool (default=True)</span>
+<span class="sd">        Whether to fit intercept (bias term) or not.</span>
+
+<span class="sd">    max_iter : int (default=100)</span>
+<span class="sd">        Maximum number of iterations.</span>
+
+<span class="sd">    tol : double (default=1e-6)</span>
+<span class="sd">        Tolerance of stopping criterion.</span>
+<span class="sd">        If sum of absolute val of update in one epoch is lower than tol,</span>
+<span class="sd">        the AdaGrad solver stops learning.</span>
+
+<span class="sd">    eps : double (default=1e-2)</span>
+<span class="sd">        A small double to ensure objective function convex.</span>
+
+<span class="sd">    warm_start : bool (default=False)</span>
+<span class="sd">        Whether to activate warm-start or not.</span>
+
+<span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
+<span class="sd">        If int, random_state is the seed used by the random number generator;</span>
+<span class="sd">        If RandomState instance, random_state is the random number generator;</span>
+<span class="sd">        If None, the random number generator is the RandomState instance used</span>
+<span class="sd">        by `np.random`.</span>
+
+<span class="sd">    verbose : bool (default=True)</span>
+<span class="sd">        Verbose mode or not.</span>
+
+<span class="sd">    shuffle : boole (default=True)</span>
+<span class="sd">        Whether to shuffle the order of parameters for optimization or not.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    self.transformer : scikit-learn TransformMixin object.</span>
+<span class="sd">        The learned transformer for random feature maps.</span>
+
+<span class="sd">    self.coef_ : array, shape (n_components, )</span>
+<span class="sd">        The learned coefficients of the linear model.</span>
+
+<span class="sd">    self.intercept_ : array, shape (1, )</span>
+<span class="sd">        The learned intercept (bias) of the linear model.</span>
+
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    [1] Max-Margin Additive Classifiers for Detection</span>
+<span class="sd">    Subhransu Maji, Alexander C. Berg.</span>
+<span class="sd">    In ICCV 2009.</span>
+<span class="sd">    (http://acberg.com/papers/mb09iccv.pdf)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">LOSSES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;squared&#39;</span><span class="p">:</span> <span class="n">Squared</span><span class="p">(),</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="s1">&#39;squared&#39;</span><span class="p">,</span>
+                 <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;cd&#39;</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">fit_intercept</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">warm_start</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SparseMBRegressor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">n_components</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">solver</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">fit_intercept</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">warm_start</span><span class="p">,</span> <span class="n">random_state</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">shuffle</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Kyohei Atarashi
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
