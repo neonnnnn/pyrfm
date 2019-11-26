@@ -37,7 +37,8 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx.ext.mathjax',
-    'sphinxcontrib.bibtex'
+    'sphinxcontrib.bibtex',
+    'sphinx.ext.githubpages'
 ]
 
 mathjax_path = 'https://cdn.mathjax.org/mathjax/latest/MathJax.js'
