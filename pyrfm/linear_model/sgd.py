@@ -126,7 +126,7 @@ class BaseSGDEstimator(BaseLinear):
 
         transformer_fast = get_fast_random_feature(self.transformer)
         it = _sgd_fast(self.coef_, self.intercept_, self.coef_average_,
-                       self.intercept_average_, get_dataset(X, order='c'), X_, 
+                       self.intercept_average_, get_dataset(X, order='c'), X, 
                        y, self.mean_, self.var_, loss, alpha, self.l1_ratio,
                        intercept_decay, self.eta0, learning_rate,
                        self.power_t, average, self.t_, self.max_iter,
