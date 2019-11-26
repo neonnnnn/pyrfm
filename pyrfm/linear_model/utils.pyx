@@ -6,6 +6,7 @@ from libc.math cimport  sqrt
 import numpy as np
 cimport numpy as np
 from ..random_feature.random_features_fast cimport BaseCRandomFeature
+from ..random_feature.random_features_doubly cimport BaseCDoublyRandomFeature
 from cython.view cimport array
 from ..dataset_fast cimport RowDataset
 
@@ -48,25 +49,39 @@ cdef void transform(X_array,
         transformer_fast.transform(&z[0], data, indices, n_nz)
 
 
+def _predict_fast_doubly(double[:] coef,
+                         RowDataset X,
+                         double[:] y_pred,
+                         BaseCDoublyRandomFeature transformer_fast):
+    cdef Py_ssize_t n_samples, n_components, i
+    n_samples = X.get_n_samples()
+    n_components = coef.shape[0]
+    cdef int[:] indices_samples = array((n_samples, ), sizeof(int), 
+                                        format='i')
+    for i in range(n_samples):
+        indices_samples[i] = i
+    transformer_fast.pred_batch(None, y_pred, coef, 0, X,
+                                &indices_samples[0], n_samples,
+                                n_components, -1)
+
+ 
 def _predict_fast(double[:] coef,
                   RowDataset X,
                   double[:] y_pred,
                   double[:] mean,
                   double[:] var,
-                  int n_iter,
                   BaseCRandomFeature transformer_fast):
     cdef Py_ssize_t n_samples, n_components, j, i
-    n_samples = X.get_n_samples()
-    n_components = transformer_fast.get_n_components()
-    
-    cdef double[:] z = array((n_components, ), sizeof(double), format='d')
-    for j in range(n_components):
-        z[j] = 0
+    cdef double[:] z
     # data pointers
     cdef int* indices
     cdef double* data
     cdef int n_nz
-
+    n_samples = X.get_n_samples()
+    n_components = transformer_fast.get_n_components()
+    z = array((n_components, ), sizeof(double), format='d')
+    for j in range(n_components):
+        z[j] = 0
     for i in range(n_samples):
         X.get_row_ptr(i, &indices, &data, &n_nz)
         transformer_fast.transform(&z[0], data, indices, n_nz)

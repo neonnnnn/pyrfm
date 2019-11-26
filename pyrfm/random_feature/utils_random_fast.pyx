@@ -124,7 +124,7 @@ cdef class Categorical:
         ret = np.zeros(_size, dtype=np.int32)
         for i in range(_size):
             u = self.random_state.uniform(0, self.sum)
-            j = self.sfmt.genrand_randint_uint32(self.n_categories)
+            j = self.sfmt.randint(self.n_categories)
             if u <= self.frequent[j]:
                 ret[i] = j
             else:

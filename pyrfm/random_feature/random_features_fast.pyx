@@ -463,9 +463,10 @@ cdef class CFastFood(BaseCRandomFeature):
                 i = j + n_features_padded*t
                 z[i] = self.cache[j] / sqrt(n_features_padded)
 
-        for i in range(self.n_components):
-            if self.random_fourier:
+        if self.random_fourier:
+            for i in range(self.n_components):
                 z[i] = cos(factor*z[i]+self.random_offset[i])
+        for i in range(self.n_components):
             z[i] /= self.scale
 
 

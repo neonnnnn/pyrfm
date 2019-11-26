@@ -15,7 +15,7 @@ from ..random_feature.random_features_fast import get_fast_random_feature
 from ..random_feature.random_features_doubly import get_doubly_random_feature
 from ..random_feature import LearningKernelwithRandomFeature
 from ..dataset_fast import get_dataset
-from .utils import _predict_fast
+from .utils import _predict_fast, _predict_fast_doubly
 from scipy import sparse
 from ..random_feature.maji_berg import MB
 from ..random_feature import AdditiveChi2Sampler
@@ -135,12 +135,7 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
                 coef = self.coef_average_
                 intercept = self.intercept_average_
     
-        if getattr(self, "transformer_doubly_", False):
-            y_pred = np.zeros(X.shape[0])
-            _predict_fast(coef, get_dataset(X, order='c'), y_pred,
-                          self.mean_, self.var_, self.t_-1, 
-                          self.transformer_doubly_)
-        elif getattr(self, 'stochastic', False):
+        if getattr(self, 'stochastic', False):
             y_pred = np.zeros(X.shape[0])
             is_sparse = sparse.issparse(X)
     
@@ -161,7 +156,7 @@ class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
 
             else:
                 _predict_fast(coef, get_dataset(X, order='c'), y_pred,
-                              self.mean_, self.var_, self.t_-1, transformer_fast)
+                              self.mean_, self.var_, transformer_fast)
         else:
             X_trans = self.transformer.transform(X)
             y_pred = safe_sparse_dot(X_trans, coef.T)

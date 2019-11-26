@@ -141,8 +141,8 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         for _ in range(n_stacks):
             W = self.distribution(random_state, size)
             S = np.diag(chi.rvs(df=n_features, size=n_features))
-            WS, _ = qr_multiply(W, S)
-            random_weights_ += [WS]
+            SQ, _ = qr_multiply(W, S)
+            random_weights_ += [SQ]
 
         self.random_weights_ = np.vstack(random_weights_).T
 
