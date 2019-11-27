@@ -6,10 +6,10 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_array
 from sklearn.utils.validation import check_is_fitted
 
-from scipy.sparse import csc_matrix
+from scipy.sparse import csc_matrix, csr_matrix, issparse
 import warnings
 from ..dataset_fast import get_dataset
-from .unarize import unarize, make_sparse_mb
+from .unarize import unarize, make_sparse_mb, unarize_sparse
 
 
 class MB(BaseEstimator, TransformerMixin):
@@ -19,8 +19,10 @@ class MB(BaseEstimator, TransformerMixin):
     Parameters
     ----------
     n_components : int (default=1000)
-        Number of Monte Carlo samples per original features.
-        Equals the dimensionality of the computed (mapped) feature space.
+        The dimension of the computed (mapped) feature space.
+
+    dense_output : bool (default=False)
+        Whether output feature matrix is dense or sparse.
 
     References
     ----------
@@ -30,8 +32,9 @@ class MB(BaseEstimator, TransformerMixin):
     (http://acberg.com/papers/mb09iccv.pdf)
 
     """
-    def __init__(self, n_components=1000):
+    def __init__(self, n_components=1000, dense_output=False):
         self.n_components = n_components
+        self.dense_output = dense_output
 
     def fit(self, X, y=None):
         """Compute the number of grids according to n_features.
@@ -69,7 +72,7 @@ class MB(BaseEstimator, TransformerMixin):
 
         Returns
         -------
-        X_new : array-like, shape (n_samples, n_components)
+        X_new : {np.ndarray, csr_matrix}, shape (n_samples, n_components)
         """
         check_is_fitted(self, "n_grids_")
         X = check_array(X, accept_sparse=['csc'])
@@ -82,24 +85,31 @@ class MB(BaseEstimator, TransformerMixin):
 
         if self.n_components != self.n_grids_*n_features:
             raise ValueError("X.shape[1] is different from X_train.shape[1].")
-        output = np.zeros((n_samples, self.n_components))
-        unarize(output, get_dataset(X, order='c'), self.n_grids_)
 
-        return output
+        if self.dense_output:
+            output = np.zeros((n_samples, self.n_components))
+            unarize(output, get_dataset(X, order='c'), self.n_grids_)
+            return output
+        else:
+            if issparse(X):
+                n_nz = int((X*self.n_grids_).ceil().sum())
+            else:
+                n_nz = int(np.sum(np.ceil(X*self.n_grids_)))
+            return unarize_sparse(get_dataset(X, order='c'), self.n_grids_, n_nz,
+                                  self.n_components)
 
 
 class SparseMB(BaseEstimator, TransformerMixin):
     """Approximates feature map of the intersection (min) kernel by sparse
     explicit feature map, which is proposed by S.Maji and A.C.Berg.
-    SparseMB does not approximate min kernel only itself.
+    SparseMB does not approximate the intersection kernel only itself.
     Linear classifier with SparseMB approximates linear classifier with MB.
     For more detail, see [1].
 
     Parameters
     ----------
     n_components : int (default=1000)
-        Number of Monte Carlo samples per original features.
-        Equals the dimensionality of the computed (mapped) feature space.
+        The dimension of the computed (mapped) feature space.
 
     References
     ----------
