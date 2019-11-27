@@ -11,14 +11,6 @@ from sklearn.utils.validation import check_is_fitted
 
 
 def _index_hash(n_inputs, n_outputs, degree, rng):
-    """
-    # h(j) = (a*j + b mod p) mod n_outputs,
-    # where p is a prime number that is enough large (p >> n_outputs)
-    p = 2**61 - 1
-    a = rng.randint(p, size)
-    b = rng.randint(p, size)
-    return (((a * np.arange(n_outputs)) % p + b) % p) % n_outputs
-    """
     return rng.randint(n_outputs, size=(degree, n_inputs), dtype=np.int32)
 
 
