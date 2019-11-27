@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>pyrfm.random_feature.learning_kernel_with_random_feature &mdash; pyrfm 0.1.0dev documentation</title>
+  <title>pyrfm.random_feature.learning_kernel_with_random_feature &mdash; pyrfm 1.0.0 documentation</title>
   
 
   
@@ -168,7 +168,7 @@
 <span class="n">EPS</span> <span class="o">=</span> <span class="mf">1e-8</span>
 
 <div class="viewcode-block" id="LearningKernelwithRandomFeature"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.LearningKernelwithRandomFeature.html#pyrfm.random_feature.LearningKernelwithRandomFeature">[docs]</a><span class="k">class</span> <span class="nc">LearningKernelwithRandomFeature</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Learnes importance weights of random features by maximizing the </span>
+    <span class="sd">&quot;&quot;&quot;Learns importance weights of random features by maximizing the </span>
 <span class="sd">    kernel alignment with a divergence constraint.</span>
 
 <span class="sd">    Parameters</span>
@@ -316,8 +316,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
                 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_removed</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;some columns of random_weights_ were removed &quot;</span>
-                          <span class="s2">&quot;and so transformer is refit.&quot;</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Some columns of random_weights_ were removed &quot;</span>
+                          <span class="s2">&quot;and so transformer is refitted now.&quot;</span><span class="p">)</span>
             <span class="n">n_components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">importance_weights_</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="o">.</span><span class="n">set_params</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="n">n_components</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
