@@ -6,14 +6,17 @@ class AdditiveChi2Sampler(kernel_approximation.AdditiveChi2Sampler):
     ----------
     sample_steps : int, optional
         Gives the number of (complex) sampling points.
+
     sample_interval : float, optional
         Sampling interval. Must be specified when sample_steps not in {1,2,3}.
-       References
+    
+    References
     ----------
     See `"Efficient additive kernels via explicit feature maps"
     <http://www.robots.ox.ac.uk/~vedaldi/assets/pubs/vedaldi11efficient.pdf>`_
-    A. Vedaldi and A. Zisserman, Pattern Analysis and Machine Intelligence,
-    2011
+    A. Vedaldi and A. Zisserman.
+    Pattern Analysis and Machine Intelligence, 2011.
+
     """
 
     def __init__(self, sample_steps=2, sample_interval=None):
