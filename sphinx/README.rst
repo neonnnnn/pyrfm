@@ -26,6 +26,10 @@ or download as a ZIP from GitHub.
 
 For running example codes (in pyrfm/benchmarks), jupyter and matplotlib are required.
 
+Github
+------
+https://github.com/neonnnnn/pyrfm
+
 What are random feature maps?
 -----------------------------
 
