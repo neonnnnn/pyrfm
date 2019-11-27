@@ -29,7 +29,7 @@ For running example codes (in pyrfm/benchmarks), jupyter and matplotlib are requ
 What are random feature maps?
 -----------------------------
 
-Using andom feature maps is a promising way for large-scale kernel methods.
+Using random feature maps is a promising way for large-scale kernel methods.
 They are maps from an original feature space to a randomized feature space approximating a kernel-induced feature space.
 The basic idea is to run linear models on such randomized feature space for classification, regression, clustering, etc.
 When the dimension of the random feature map D is not so high and the number of training example N is large, this approach is very efficient compared to canonical kernel methods.
