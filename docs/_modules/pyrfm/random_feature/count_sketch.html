@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>pyrfm.random_feature.count_sketch &mdash; pyrfm 0.1.0dev documentation</title>
+  <title>pyrfm.random_feature.count_sketch &mdash; pyrfm 1.0.0 documentation</title>
   
 
   
@@ -165,7 +165,7 @@
 <span class="k">def</span> <span class="nf">_sign_hash</span><span class="p">(</span><span class="n">n_inputs</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
     <span class="k">return</span> <span class="mi">2</span><span class="o">*</span><span class="n">rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_inputs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
 
-<span class="k">def</span> <span class="nf">_make_projection_matrices</span><span class="p">(</span><span class="n">hash_indices</span><span class="p">,</span> <span class="n">hash_signs</span><span class="p">,</span> <span class="n">n_components</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_make_projection_matrix</span><span class="p">(</span><span class="n">hash_indices</span><span class="p">,</span> <span class="n">hash_signs</span><span class="p">,</span> <span class="n">n_components</span><span class="p">):</span>
     <span class="n">n_features</span> <span class="o">=</span> <span class="n">hash_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">col</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_features</span><span class="p">)</span>
     <span class="n">random_weights</span> <span class="o">=</span> <span class="n">csc_matrix</span><span class="p">((</span><span class="n">hash_signs</span><span class="p">,</span> <span class="p">(</span><span class="n">hash_indices</span><span class="p">,</span> <span class="n">col</span><span class="p">)),</span>
@@ -250,9 +250,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">hash_indices_</span> <span class="o">=</span> <span class="n">_index_hash</span><span class="p">(</span><span class="n">n_features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">,</span> 
                                          <span class="n">random_state</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hash_signs_</span> <span class="o">=</span> <span class="n">_sign_hash</span><span class="p">(</span><span class="n">n_features</span><span class="p">,</span> <span class="n">random_state</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="n">_make_projection_matrices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hash_indices_</span><span class="p">,</span>
-                                                         <span class="bp">self</span><span class="o">.</span><span class="n">hash_signs_</span><span class="p">,</span>
-                                                         <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="n">_make_projection_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hash_indices_</span><span class="p">,</span>
+                                                       <span class="bp">self</span><span class="o">.</span><span class="n">hash_signs_</span><span class="p">,</span>
+                                                       <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
 <div class="viewcode-block" id="CountSketch.transform"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.CountSketch.html#pyrfm.random_feature.CountSketch.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>

@@ -16,7 +16,7 @@ def _index_hash(n_inputs, n_outputs, rng):
 def _sign_hash(n_inputs, rng):
     return 2*rng.randint(2, size=(n_inputs), dtype=np.int32) - 1
 
-def _make_projection_matrices(hash_indices, hash_signs, n_components):
+def _make_projection_matrix(hash_indices, hash_signs, n_components):
     n_features = hash_indices.shape[0]
     col = np.arange(n_features)
     random_weights = csc_matrix((hash_signs, (hash_indices, col)),
@@ -101,9 +101,9 @@ class CountSketch(BaseEstimator, TransformerMixin):
         self.hash_indices_ = _index_hash(n_features, self.n_components, 
                                          random_state)
         self.hash_signs_ = _sign_hash(n_features, random_state)
-        self.random_weights_ = _make_projection_matrices(self.hash_indices_,
-                                                         self.hash_signs_,
-                                                         self.n_components)
+        self.random_weights_ = _make_projection_matrix(self.hash_indices_,
+                                                       self.hash_signs_,
+                                                       self.n_components)
         return self
 
     def transform(self, X):

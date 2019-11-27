@@ -19,7 +19,7 @@ from math import sqrt
 EPS = 1e-8
 
 class LearningKernelwithRandomFeature(BaseEstimator, TransformerMixin):
-    """Learnes importance weights of random features by maximizing the 
+    """Learns importance weights of random features by maximizing the 
     kernel alignment with a divergence constraint.
 
     Parameters
@@ -167,8 +167,8 @@ class LearningKernelwithRandomFeature(BaseEstimator, TransformerMixin):
             self.transformer.fit(X)
                 
         if self.is_removed:
-            warnings.warn("some columns of random_weights_ were removed "
-                          "and so transformer is refit.")
+            warnings.warn("Some columns of random_weights_ were removed "
+                          "and so transformer is refitted now.")
             n_components = self.importance_weights_.shape[0]
             self.transformer.set_params(n_components=n_components)
             self.transformer.fit(X)

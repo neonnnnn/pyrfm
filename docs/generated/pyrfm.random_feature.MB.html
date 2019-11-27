@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>pyrfm.random_feature.MB &mdash; pyrfm 0.1.0dev documentation</title>
+  <title>pyrfm.random_feature.MB &mdash; pyrfm 1.0.0 documentation</title>
   
 
   
@@ -176,14 +176,16 @@
 <h1>pyrfm.random_feature.MB<a class="headerlink" href="#pyrfm-random-feature-mb" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="pyrfm.random_feature.MB">
-<em class="property">class </em><code class="sig-prename descclassname">pyrfm.random_feature.</code><code class="sig-name descname">MB</code><span class="sig-paren">(</span><em class="sig-param">n_components=1000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyrfm/random_feature/maji_berg.html#MB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.random_feature.MB" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">pyrfm.random_feature.</code><code class="sig-name descname">MB</code><span class="sig-paren">(</span><em class="sig-param">n_components=1000</em>, <em class="sig-param">dense_output=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyrfm/random_feature/maji_berg.html#MB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.random_feature.MB" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.base.BaseEstimator</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.base.TransformerMixin</span></code></p>
 <p>Approximates feature map of the intersection (min) kernel by explicit
 feature map, which is proposed by S.Maji and A.C.Berg.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>n_components</strong> (<em>int</em><em> (</em><em>default=1000</em><em>)</em>) – Number of Monte Carlo samples per original features.
-Equals the dimensionality of the computed (mapped) feature space.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_components</strong> (<em>int</em><em> (</em><em>default=1000</em><em>)</em>) – The dimension of the computed (mapped) feature space.</p></li>
+<li><p><strong>dense_output</strong> (<em>bool</em><em> (</em><em>default=False</em><em>)</em>) – Whether output feature matrix is dense or sparse.</p></li>
+</ul>
 </dd>
 </dl>
 <p class="rubric">References</p>
@@ -280,7 +282,7 @@ and n_features is the number of features.</p>
 <dd class="field-even"><p><strong>X_new</strong></p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>array-like, shape (n_samples, n_components)</p>
+<dd class="field-odd"><p>{np.ndarray, csr_matrix}, shape (n_samples, n_components)</p>
 </dd>
 </dl>
 </dd></dl>
