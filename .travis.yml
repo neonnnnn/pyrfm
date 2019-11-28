@@ -35,4 +35,4 @@ install:
 script:
   - mkdir -p $(TEST_DIR)
   - cd $(TEST_DIR)
-  - nosetest -v $(MODULE)
+  - nosetests -v $(MODULE)
