@@ -28,11 +28,11 @@ install:
   - conda info -a
 
   # Replace dep1 dep2 ... with your dependencies
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy nose cython scikit-learn sklearn-contrib-lightning
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy nose cython scikit-learn
   - conda activate test-environment
-  - python setup.py develop
+  - python setup.py install
 
 script:
-  - mkdir -p $(TEST_DIR)
-  - cd $(TEST_DIR)
-  - nosetest -v $(MODULE)
+  - mkdir -p $TEST_DIR
+  - cd $TEST_DIR
+  - nosetests -v $MODULE
