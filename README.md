@@ -1,6 +1,8 @@
 # pyrfm
 A library for random feature maps and linear models with random feature maps in Python.
 
+[![Build Status](https://travis-ci.org/neonnnnn/pyrfm.svg?branch=master)](https://travis-ci.org/neonnnnn/pyrfm)
+
 ## Installation
  1. Download the source codes by
 
