@@ -19,7 +19,7 @@ X_test = X[n_train:]
 def test_mb_classifier():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
-    mb_transform = MB(n_components=1000)
+    mb_transform = MB(n_components=1000, dense_output=True)
     X_trans = mb_transform.fit_transform(X)
     y, coef = generate_target(X_trans, rng)
     y = np.sign(y)
@@ -39,7 +39,7 @@ def test_mb_classifier():
 def test_mb_regressor():
     rng = np.random.RandomState(0)
     # approximate kernel mapping
-    mb_transform = MB(n_components=1000)
+    mb_transform = MB(n_components=1000, dense_output=True)
     X_trans = mb_transform.fit_transform(X)
     y, coef = generate_target(X_trans, rng)
 
