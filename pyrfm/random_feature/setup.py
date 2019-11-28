@@ -1,4 +1,4 @@
-from lightning._build_utils import maybe_cythonize_extensions
+from sklearn._build_utils import maybe_cythonize_extensions
 import numpy
 from os.path import join
 import os
