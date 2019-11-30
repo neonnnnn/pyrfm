@@ -5,8 +5,8 @@ from sklearn.utils.extmath import safe_sparse_dot
 
 from itertools import product, combinations
 from functools import reduce
-
 import pyrfm
+import pytest
 
 rng = np.random.RandomState(0)
 X = rng.random_sample(size=(10, 8))
@@ -68,62 +68,62 @@ def D(X, P, degree, dense_output=True):
                            dense_output)
 
 
-def test_anova_kernel():
-    for degree in range(2, 4):
-        expected = np.zeros((X.shape[0], Y.shape[0]))
-        for i in range(X.shape[0]):
-            for j in range(Y.shape[0]):
-                expected[i, j] = dumb_anova(X[i], Y[j], degree=degree)
+@pytest.mark.parametrize("degree", [2, 3, 4, 5])
+def test_anova_kernel(degree):
+    expected = np.zeros((X.shape[0], Y.shape[0]))
+    for i in range(X.shape[0]):
+        for j in range(Y.shape[0]):
+            expected[i, j] = dumb_anova(X[i], Y[j], degree=degree)
 
-        anova = pyrfm.anova(X, Y, degree)
-        assert_array_almost_equal(expected, anova, decimal=4)
+    anova = pyrfm.anova(X, Y, degree)
+    assert_array_almost_equal(expected, anova, decimal=4)
 
-        anova = pyrfm.anova_fast(X, Y, degree)
-        assert_array_almost_equal(expected, anova, decimal=4)
-
-
-def test_anova_kernel_sparse():
-    for degree in range(2, 4):
-        expected = np.zeros((X.shape[0], Y.shape[0]))
-        for i in range(X.shape[0]):
-            for j in range(Y.shape[0]):
-                expected[i, j] = dumb_anova(X[i], Y[j], degree=degree)
-
-        anova = pyrfm.anova(csr_matrix(X), Y, degree, True)
-        assert_array_almost_equal(expected, anova, decimal=4)
-
-        anova = pyrfm.anova(csr_matrix(X), Y, degree, False)
-        assert_array_almost_equal(expected, anova, decimal=4)
-        
-        anova = pyrfm.anova(X, csr_matrix(Y), degree, True)
-        assert_array_almost_equal(expected, anova, decimal=4)
-
-        anova = pyrfm.anova(X, csr_matrix(Y), degree, False)
-        assert_array_almost_equal(expected, anova, decimal=4)
-
-        anova = pyrfm.anova(csr_matrix(X), csr_matrix(Y), degree, True)
-        assert_array_almost_equal(expected, anova, decimal=4)
-
-        anova = pyrfm.anova(csr_matrix(X), csr_matrix(Y), degree, False)
-        assert_array_almost_equal(expected, anova.toarray(), decimal=4)
+    anova = pyrfm.anova_fast(X, Y, degree)
+    assert_array_almost_equal(expected, anova, decimal=4)
 
 
-def test_anova_kernel_fast_sparse():
-    for degree in range(2, 4):
-        expected = np.zeros((X.shape[0], Y.shape[0]))
-        for i in range(X.shape[0]):
-            for j in range(Y.shape[0]):
-                expected[i, j] = dumb_anova(X[i], Y[j], degree=degree)
+@pytest.mark.parametrize("degree", [2, 3, 4, 5])
+def test_anova_kernel_sparse(degree):
+    expected = np.zeros((X.shape[0], Y.shape[0]))
+    for i in range(X.shape[0]):
+        for j in range(Y.shape[0]):
+            expected[i, j] = dumb_anova(X[i], Y[j], degree=degree)
 
-        anova = pyrfm.anova_fast(csr_matrix(X), Y, degree, False)
-        assert_array_almost_equal(expected, anova.toarray(), decimal=4)
+    anova = pyrfm.anova(csr_matrix(X), Y, degree, True)
+    assert_array_almost_equal(expected, anova, decimal=4)
 
-        anova = pyrfm.anova_fast(X, csr_matrix(Y), degree, False)
-        assert_array_almost_equal(expected, anova.toarray(), decimal=4)
+    anova = pyrfm.anova(csr_matrix(X), Y, degree, False)
+    assert_array_almost_equal(expected, anova, decimal=4)
+    
+    anova = pyrfm.anova(X, csr_matrix(Y), degree, True)
+    assert_array_almost_equal(expected, anova, decimal=4)
 
-        anova = pyrfm.anova_fast(csr_matrix(X), csr_matrix(Y), degree, False)
-        assert_array_almost_equal(expected, anova.toarray(), decimal=4)
+    anova = pyrfm.anova(X, csr_matrix(Y), degree, False)
+    assert_array_almost_equal(expected, anova, decimal=4)
 
+    anova = pyrfm.anova(csr_matrix(X), csr_matrix(Y), degree, True)
+    assert_array_almost_equal(expected, anova, decimal=4)
+
+    anova = pyrfm.anova(csr_matrix(X), csr_matrix(Y), degree, False)
+    print(type(anova))
+    assert_array_almost_equal(expected, anova.toarray(), decimal=4)
+
+
+@pytest.mark.parametrize("degree", [2, 3, 4, 5])
+def test_anova_kernel_fast_sparse(degree):
+    expected = np.zeros((X.shape[0], Y.shape[0]))
+    for i in range(X.shape[0]):
+        for j in range(Y.shape[0]):
+            expected[i, j] = dumb_anova(X[i], Y[j], degree=degree)
+
+    anova = pyrfm.anova_fast(csr_matrix(X), Y, degree, False)
+    assert_array_almost_equal(expected, anova.toarray(), decimal=4)
+
+    anova = pyrfm.anova_fast(X, csr_matrix(Y), degree, False)
+    assert_array_almost_equal(expected, anova.toarray(), decimal=4)
+
+    anova = pyrfm.anova_fast(csr_matrix(X), csr_matrix(Y), degree, False)
+    assert_array_almost_equal(expected, anova.toarray(), decimal=4)
 
 def test_all_subsets_kernel():
     expected = np.zeros((X.shape[0], Y.shape[0]))
