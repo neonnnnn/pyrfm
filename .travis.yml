@@ -7,7 +7,6 @@ python:
 
 env:
   global:
-    - TEST_DIR=/tmp/test_dir/
     - MODULE=pyrfm
 
 install:
@@ -28,11 +27,9 @@ install:
   - conda info -a
 
   # Replace dep1 dep2 ... with your dependencies
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy nose cython scikit-learn
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy nose cython scikit-learn pytest
   - conda activate test-environment
   - python setup.py install
 
 script:
-  - mkdir -p $TEST_DIR
-  - cd $TEST_DIR
-  - nosetests -v $MODULE
+  - pytest -v
