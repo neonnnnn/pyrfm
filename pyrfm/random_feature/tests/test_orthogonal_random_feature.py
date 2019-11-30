@@ -4,6 +4,8 @@ from sklearn.utils.testing import (assert_less_equal,
                                    assert_allclose_dense_sparse)
 from pyrfm import OrthogonalRandomFeature, StructuredOrthogonalRandomFeature
 from sklearn.metrics.pairwise import rbf_kernel
+import pytest
+
 
 # generate data
 rng = np.random.RandomState(0)
@@ -14,46 +16,31 @@ Y /= np.sum(Y, axis=1, keepdims=True)
 X_sp = csr_matrix(X)
 
 
-def test_orthogonal_random_feature():
-    for gamma, n_components in zip([10, 100], [2048, 4096]):
-        # compute exact kernel
-        kernel = rbf_kernel(X, Y, gamma)
-        # approximate kernel mapping
-        rf_transform = OrthogonalRandomFeature(n_components=n_components,
-                                               gamma=gamma,
-                                               random_state=0)
-        X_trans = rf_transform.fit_transform(X)
-        Y_trans = rf_transform.transform(Y)
-        kernel_approx = np.dot(X_trans, Y_trans.T)
-
-        error = kernel - kernel_approx
-        assert_less_equal(np.abs(np.mean(error)), 0.01)
-        assert_less_equal(np.max(error), 0.1)  # nothing too far off
-        assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
-        # for sparse matrix
-        X_trans_sp = rf_transform.transform(csr_matrix(X))
-        assert_allclose_dense_sparse(X_trans, X_trans_sp)
+params = [
+    (10, 2048, True), (10, 2048, False),
+    (100, 7000, True), (100, 4096, False)
+]
 
 
-def test_orthogonal_random_feature_use_offset():
-    for gamma, n_components in zip([10, 100], [2048, 4096]):
-        # compute exact kernel
-        kernel = rbf_kernel(X, Y, gamma)
-        # approximate kernel mapping
-        rf_transform = OrthogonalRandomFeature(n_components=n_components,
-                                               gamma=gamma, use_offset=True,
-                                               random_state=0)
-        X_trans = rf_transform.fit_transform(X)
-        Y_trans = rf_transform.transform(Y)
-        kernel_approx = np.dot(X_trans, Y_trans.T)
+@pytest.mark.parametrize("gamma,n_components,use_offset", params)
+def test_orthogonal_random_feature(gamma, n_components, use_offset):
+    # compute exact kernel
+    kernel = rbf_kernel(X, Y, gamma)
+    # approximate kernel mapping
+    rf_transform = OrthogonalRandomFeature(n_components=n_components,
+                                           gamma=gamma, use_offset=use_offset,
+                                           random_state=0)
+    X_trans = rf_transform.fit_transform(X)
+    Y_trans = rf_transform.transform(Y)
+    kernel_approx = np.dot(X_trans, Y_trans.T)
 
-        error = kernel - kernel_approx
-        assert_less_equal(np.abs(np.mean(error)), 0.01)
-        assert_less_equal(np.max(error), 0.1)  # nothing too far off
-        assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
-        # for sparse matrix
-        X_trans_sp = rf_transform.transform(csr_matrix(X))
-        assert_allclose_dense_sparse(X_trans, X_trans_sp)
+    error = kernel - kernel_approx
+    assert_less_equal(np.abs(np.mean(error)), 0.01)
+    assert_less_equal(np.max(error), 0.1)  # nothing too far off
+    assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
+    # for sparse matrix
+    X_trans_sp = rf_transform.transform(csr_matrix(X))
+    assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
 
 def test_orthogonal_random_feature_for_dot():
@@ -76,27 +63,26 @@ def test_orthogonal_random_feature_for_dot():
     assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
 
-def test_structured_orthogonal_random_feature():
-    for gamma, n_components in zip([10, 100], [2048, 4096]):
-        # compute exact kernel
-        kernel = rbf_kernel(X, Y, gamma)
-        # approximate kernel mapping
-        rf_transform = StructuredOrthogonalRandomFeature(
-            n_components=n_components,
-            gamma=gamma,
-            random_state=0
-        )
-        X_trans = rf_transform.fit_transform(X)
-        Y_trans = rf_transform.transform(Y)
-        kernel_approx = np.dot(X_trans, Y_trans.T)
+@pytest.mark.parametrize("gamma,n_components",[(10, 2048), (100, 4096)])
+def test_structured_orthogonal_random_feature(gamma, n_components):
+    # compute exact kernel
+    kernel = rbf_kernel(X, Y, gamma)
+    # approximate kernel mapping
+    rf_transform = StructuredOrthogonalRandomFeature(
+        n_components=n_components,
+        gamma=gamma, random_state=0
+    )
+    X_trans = rf_transform.fit_transform(X)
+    Y_trans = rf_transform.transform(Y)
+    kernel_approx = np.dot(X_trans, Y_trans.T)
 
-        error = kernel - kernel_approx
-        assert_less_equal(np.abs(np.mean(error)), 0.01)
-        assert_less_equal(np.max(error), 0.1)  # nothing too far off
-        assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
-        # for sparse matrix
-        X_trans_sp = rf_transform.transform(csr_matrix(X))
-        assert_allclose_dense_sparse(X_trans, X_trans_sp)
+    error = kernel - kernel_approx
+    assert_less_equal(np.abs(np.mean(error)), 0.01)
+    assert_less_equal(np.max(error), 0.1)  # nothing too far off
+    assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
+    # for sparse matrix
+    X_trans_sp = rf_transform.transform(csr_matrix(X))
+    assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
 
 def test_structured_orthogonal_random_feature_for_dot():
@@ -104,8 +90,7 @@ def test_structured_orthogonal_random_feature_for_dot():
     kernel = np.dot(X, Y.T)
     # approximate kernel mapping
     rf_transform = StructuredOrthogonalRandomFeature(
-        n_components=64,
-        random_fourier=False,
+        n_components=64, random_fourier=False,
         random_state=0
     )
     X_trans = rf_transform.fit_transform(X)

@@ -2,4 +2,4 @@ numpy
 scipy
 cython
 scikit-learn
-nose
+pytest

@@ -13,6 +13,7 @@ import warnings
 import abc
 from .learning_kernel_with_random_feature_fast import proj_l1ball
 from .learning_kernel_with_random_feature_fast import compute_X_trans_y
+from ..kernels import kernel_alignment
 import warnings
 from math import sqrt
 
@@ -286,6 +287,8 @@ class BaseDivergence(metaclass=abc.ABCMeta):
             self.lam_s_ = 1.
         
         uniform = np.ones(len(v)) / len(v)
+        sol = np.array(importance_weights_)
+        sol_objective = np.dot(v, sol)
         if self.alpha is None:
             while self.lam_u_ == np.infty:
                 self._fit(importance_weights_, v, self.lam_s_)
@@ -294,6 +297,11 @@ class BaseDivergence(metaclass=abc.ABCMeta):
                     objective = np.dot(importance_weights_, v)
                     print("Objective: {} Divergence: {} lambda_s: {}"
                           .format(objective, div, self.lam_s_))
+                    
+                sol_objective = np.dot(v, importance_weights_)
+                if sol_objective < objective and div <= self.rho:
+                    sol_objective = objective
+                    sol[:] = importance_weights_
 
                 if div < self.rho:
                     self.lam_u_ = self.lam_s_
@@ -314,18 +322,23 @@ class BaseDivergence(metaclass=abc.ABCMeta):
                     self.lam_u_ = lam
                 else:
                     self.lam_l_ = lam
-                
+                sol_objective = np.dot(v, sol)
+                if sol_objective < objective and div <= self.rho:
+                    sol_objective = objective
+                    sol[:] = importance_weights_
+
                 if (self.lam_u_ - self.lam_l_) < self.tol * self.lam_s_:
                     if div < np.inf:
                         print("Converged.")
                         break
+            importance_weights_[:] = sol
         else:
             if self.alpha <= 0:
                 raise ValueError("alpha must be bigger than 0.")
-            self._fit(self.importance_weights_, v, self.alpha)
+            self._fit(importance_weights_, v, self.alpha)
             if self.verbose:
-                div = self.eval(self.importance_weights_, uniform) 
-                objective = np.dot(self.importance_weights_, v)
+                div = self.eval(importance_weights_, uniform) 
+                objective = np.dot(importance_weights_, v)
                 print("Objective: {} Divergence: {}".format(objective, div))
         return self
 
