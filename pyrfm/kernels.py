@@ -83,9 +83,9 @@ def anova(X, P, degree, dense_output=True):
         Ds += [D(X, P, t, dense_output) for t in range(2, degree+1)]
         anovas = [1., Ds[0]]
         for m in range(2, degree+1):
-            A = np.zeros((n1, n2))
-            sign = 1.
-            for t in range(1, m+1):
+            A = safe_np_elem_prod(anovas[m-1], Ds[0], dense_output)
+            sign = -1.
+            for t in range(2, m+1):
                 A += sign * safe_np_elem_prod(anovas[m-t], Ds[t-1],
                                               dense_output)
                 sign *= -1.

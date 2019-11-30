@@ -140,12 +140,12 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         random_weights_ = []
         for _ in range(n_stacks):
             W = self.distribution(random_state, size)
-            S = np.diag(chi.rvs(df=n_features, size=n_features))
+            S = np.diag(chi.rvs(df=n_features, size=n_features,
+                                random_state=random_state))
             SQ, _ = qr_multiply(W, S)
             random_weights_ += [SQ]
 
         self.random_weights_ = np.vstack(random_weights_).T
-
         self.random_offset_ = None
         if self.random_fourier:
             self.random_weights_ *= sqrt(2*gamma)

@@ -4,6 +4,8 @@ from sklearn.utils.testing import (assert_less_equal,
                                    assert_allclose_dense_sparse)
 from pyrfm import FastFood
 from sklearn.metrics.pairwise import rbf_kernel
+import pytest
+
 
 # generate data
 rng = np.random.RandomState(0)
@@ -14,24 +16,24 @@ Y /= np.sum(Y, axis=1, keepdims=True)
 X_sp = csr_matrix(X)
 
 
-def test_fast_food():
-    for gamma, n_components in zip([10, 100], [2048, 5000]):
-        # compute exact kernel
-        kernel = rbf_kernel(X, Y, gamma)
-        # approximate kernel mapping
-        rf_transform = FastFood(n_components=n_components, gamma=gamma,
-                                random_state=0)
-        X_trans = rf_transform.fit_transform(X)
-        Y_trans = rf_transform.transform(Y)
-        kernel_approx = np.dot(X_trans, Y_trans.T)
+@pytest.mark.parametrize("gamma,n_components",[(10, 2048), (100, 5000)])
+def test_fast_food(gamma, n_components):
+# compute exact kernel
+    kernel = rbf_kernel(X, Y, gamma)
+    # approximate kernel mapping
+    rf_transform = FastFood(n_components=n_components, gamma=gamma,
+                            random_state=0)
+    X_trans = rf_transform.fit_transform(X)
+    Y_trans = rf_transform.transform(Y)
+    kernel_approx = np.dot(X_trans, Y_trans.T)
 
-        error = kernel - kernel_approx
-        assert_less_equal(np.abs(np.mean(error)), 0.01)
-        assert_less_equal(np.max(error), 0.1)  # nothing too far off
-        assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
-        # for sparse matrix
-        X_trans_sp = rf_transform.transform(csr_matrix(X))
-        assert_allclose_dense_sparse(X_trans, X_trans_sp)
+    error = kernel - kernel_approx
+    assert_less_equal(np.abs(np.mean(error)), 0.01)
+    assert_less_equal(np.max(error), 0.1)  # nothing too far off
+    assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
+    # for sparse matrix
+    X_trans_sp = rf_transform.transform(csr_matrix(X))
+    assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
 
 def test_fastfood_for_dot():
