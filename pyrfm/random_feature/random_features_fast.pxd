@@ -86,7 +86,9 @@ cdef class CFastFood(BaseCRandomFeature):
     cdef double[:] cache
     cdef double gamma
     cdef bint random_fourier
+    cdef bint use_offset
     cdef int degree_hadamard
+    cdef Py_ssize_t n_stacks
 
 
 cdef class CSubsampledRandomHadamard(BaseCRandomFeature):
@@ -120,15 +122,15 @@ cdef class CSignedCirculantRandomMatrix(BaseCRandomFeature):
     cdef complex[:] cache
     cdef double gamma
     cdef bint random_fourier
+    cdef bint use_offset
     cdef int n_stacks
 
 
 cdef class COrthogonalRandomFeature(BaseCRandomFeature):
     cdef RowDataset random_weights
     cdef double[:] random_offset
-    cdef bint use_offset
     cdef bint random_fourier
-
+    cdef bint use_offset
 
 cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
     cdef double[:, ::1] random_weights
@@ -137,5 +139,6 @@ cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
     cdef int degree_hadamard
     cdef double gamma
     cdef bint random_fourier
+    cdef bint use_offset
     cdef int n_features_padded
     cdef int n_stacks
