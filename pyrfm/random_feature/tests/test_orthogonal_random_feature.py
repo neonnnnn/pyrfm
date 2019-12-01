@@ -18,11 +18,11 @@ X_sp = csr_matrix(X)
 
 params = [
     (10, 2048, True), (10, 2048, False),
-    (100, 7000, True), (100, 4096, False)
+    (100, 4096, True), (100, 4096, False)
 ]
 
 
-@pytest.mark.parametrize("gamma,n_components,use_offset", params)
+@pytest.mark.parametrize("gamma, n_components, use_offset", params)
 def test_orthogonal_random_feature(gamma, n_components, use_offset):
     # compute exact kernel
     kernel = rbf_kernel(X, Y, gamma)
@@ -63,13 +63,15 @@ def test_orthogonal_random_feature_for_dot():
     assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
 
-@pytest.mark.parametrize("gamma,n_components",[(10, 2048), (100, 4096)])
-def test_structured_orthogonal_random_feature(gamma, n_components):
+
+@pytest.mark.parametrize("gamma, n_components, use_offset", params)
+def test_structured_orthogonal_random_feature(gamma, n_components, use_offset):
     # compute exact kernel
     kernel = rbf_kernel(X, Y, gamma)
     # approximate kernel mapping
     rf_transform = StructuredOrthogonalRandomFeature(
         n_components=n_components,
+        use_offset=use_offset,
         gamma=gamma, random_state=0
     )
     X_trans = rf_transform.fit_transform(X)

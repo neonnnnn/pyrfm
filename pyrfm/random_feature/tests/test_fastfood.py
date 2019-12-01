@@ -15,14 +15,16 @@ X /= np.sum(X, axis=1, keepdims=True)
 Y /= np.sum(Y, axis=1, keepdims=True)
 X_sp = csr_matrix(X)
 
+params = [(10, 2048, True), (100, 4096, True), 
+          (10, 2048, False), (100, 4096, False)]
 
-@pytest.mark.parametrize("gamma,n_components",[(10, 2048), (100, 5000)])
-def test_fast_food(gamma, n_components):
+@pytest.mark.parametrize("gamma, n_components, use_offset", params)
+def test_fast_food(gamma, n_components, use_offset):
 # compute exact kernel
     kernel = rbf_kernel(X, Y, gamma)
     # approximate kernel mapping
     rf_transform = FastFood(n_components=n_components, gamma=gamma,
-                            random_state=0)
+                            use_offset=use_offset, random_state=0)
     X_trans = rf_transform.fit_transform(X)
     Y_trans = rf_transform.transform(Y)
     kernel_approx = np.dot(X_trans, Y_trans.T)
