@@ -176,19 +176,18 @@
 <span class="sd">    n_components : int (default=100)</span>
 <span class="sd">        Number of Monte Carlo samples per original features.</span>
 <span class="sd">        Equals the dimensionality of the computed (mapped) feature space.</span>
-
+<span class="sd">    </span>
+<span class="sd">    distribution : str or function (default=&quot;rademacher&quot;)</span>
+<span class="sd">        A function for sampling random bases.</span>
+<span class="sd">        Its arguments must be random_state and size.</span>
+<span class="sd">        For str, &quot;gaussian&quot; (or &quot;normal&quot;), &quot;rademacher&quot;, &quot;laplace&quot;, or</span>
+<span class="sd">        &quot;uniform&quot; can be used.</span>
+<span class="sd">    </span>
 <span class="sd">    random_state : int, RandomState instance or None, optional (default=None)</span>
 <span class="sd">        If int, random_state is the seed used by the random number generator;</span>
 <span class="sd">        If np.RandomState instance, random_state is the random number generator;</span>
 <span class="sd">        If None, the random number generator is the RandomState instance used</span>
 <span class="sd">        by `np.random`.</span>
-
-<span class="sd">    distribution : str or function (default=&quot;rademacher&quot;)</span>
-<span class="sd">        A function for sampling random basis whose arguments</span>
-<span class="sd">        are random_state and size.</span>
-<span class="sd">        Its arguments must be random_state and size.</span>
-<span class="sd">        For str, &quot;gaussian&quot; (or &quot;normal&quot;), &quot;rademacher&quot;, &quot;laplace&quot;, or</span>
-<span class="sd">        &quot;uniform&quot; can be used.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
@@ -211,11 +210,10 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>  <span class="n">gamma</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">distribution</span><span class="o">=</span><span class="s2">&quot;rademacher&quot;</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">distribution</span><span class="o">=</span><span class="s2">&quot;rademacher&quot;</span><span class="p">,</span>
                  <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="n">n_components</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span> <span class="o">=</span> <span class="n">distribution</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span>
 
 <div class="viewcode-block" id="SubsampledRandomHadamard.fit"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.SubsampledRandomHadamard.html#pyrfm.random_feature.SubsampledRandomHadamard.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -236,13 +234,15 @@
         <span class="n">X</span> <span class="o">=</span> <span class="n">check_array</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">accept_sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">n_samples</span><span class="p">,</span> <span class="n">n_features</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span> <span class="o">=</span> <span class="n">_get_random_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">)</span>
+            <span class="n">distribution</span> <span class="o">=</span> <span class="n">_get_random_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">distribution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span>
 
         <span class="n">n_features_padded</span> <span class="o">=</span> <span class="n">next_pow_of_two</span><span class="p">(</span><span class="n">n_features</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">n_features_padded</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;n_components is bigger than next power of two &quot;</span>
                              <span class="s2">&quot;of n_features.&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">(</span><span class="n">random_state</span><span class="p">,</span> <span class="n">n_features</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="n">distribution</span><span class="p">(</span><span class="n">random_state</span><span class="p">,</span> <span class="n">n_features</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
         <span class="n">perm</span> <span class="o">=</span> <span class="n">random_state</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">n_features_padded</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">random_indices_rows_</span> <span class="o">=</span> <span class="n">perm</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">n_components</span><span class="p">]</span>

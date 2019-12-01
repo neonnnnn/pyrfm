@@ -173,8 +173,7 @@
 <span class="sd">        Equals the dimensionality of the computed (mapped) feature space.</span>
 
 <span class="sd">    distribution : str or function (default=&quot;rademacher&quot;)</span>
-<span class="sd">        A function for sampling random basis whose arguments</span>
-<span class="sd">        are random_state and size.</span>
+<span class="sd">        A function for sampling random bases.</span>
 <span class="sd">        Its arguments must be random_state and size.</span>
 <span class="sd">        If None, the Rademacher distribution is used.</span>
 
@@ -243,8 +242,10 @@
                                 <span class="s2">&quot;got type </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p_sparse</span><span class="p">)))</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span> <span class="o">=</span> <span class="n">_get_random_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">(</span><span class="n">random_state</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">p_sparse</span><span class="p">)</span>
+            <span class="n">distribution</span> <span class="o">=</span> <span class="n">_get_random_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distribution</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">distribution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distribution</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_weights_</span> <span class="o">=</span> <span class="n">distribution</span><span class="p">(</span><span class="n">random_state</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">p_sparse</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
 <div class="viewcode-block" id="RandomProjection.transform"><a class="viewcode-back" href="../../../generated/pyrfm.random_feature.RandomProjection.html#pyrfm.random_feature.RandomProjection.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>

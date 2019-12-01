@@ -262,8 +262,7 @@ class SubfeatureRandomKernel(BaseEstimator, TransformerMixin):
         row = get_subfeatures_indices(self.n_components, n_features,
                                       self.n_sub_features, random_state)
         shape = (n_features, self.n_components)
-        self.random_weights_ = csr_matrix((data, (row, col)),
-                                          shape=shape)
+        self.random_weights_ = csr_matrix((data, (row, col)), shape=shape)
         return self
 
     def transform(self, X):

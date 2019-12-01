@@ -36,8 +36,7 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         parameter for the Gaussian distribution.
 
     distribution : str or function (default="gaussian")
-        A function for sampling random basis whose arguments
-        are random_state and size.
+        A function for sampling random bases. 
         Its arguments must be random_state and size.
         For str, "gaussian" (or "normal"), "rademacher", "laplace", or
         "uniform" can be used.
@@ -136,10 +135,12 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
         size = (n_features, n_features)
         if isinstance(self.distribution, str):
-            self.distribution = _get_random_matrix(self.distribution)
+            distribution = _get_random_matrix(self.distribution)
+        else:
+            distribution = self.distribution
         random_weights_ = []
         for _ in range(n_stacks):
-            W = self.distribution(random_state, size)
+            W = distribution(random_state, size)
             S = np.diag(chi.rvs(df=n_features, size=n_features,
                                 random_state=random_state))
             SQ, _ = qr_multiply(W, S)
@@ -150,8 +151,9 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         if self.random_fourier:
             self.random_weights_ *= sqrt(2*gamma)
             if self.use_offset:
-                self.random_offset_ = random_state.uniform(0, 2*np.pi,
-                                                           size=n_components)
+                self.random_offset_ = random_state.uniform(
+                    0, 2*np.pi, size=n_components
+                )
 
         return self
 
@@ -211,8 +213,7 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         parameter for the Gaussian distribution.
 
     distribution : str or function (default="rademacher")
-        A function for sampling random basis whose arguments
-        are random_state and size.
+        A function for sampling random bases.
         Its arguments must be random_state and size.
         For str, "gaussian" (or "normal"), "rademacher", "laplace", or
         "uniform" can be used.
@@ -226,6 +227,12 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         computes just structured_matrix-feature_vector product
         (i.e., approximates dot product kernel).
 
+    use_offset : bool (default=False)
+        If True, Z(x) = (cos(w_1x+b_1), cos(w_2x+b_2), ... , cos(w_Dx+b_D),
+        where w is random_weights and b is offset (D=n_components).
+        If False, Z(x) = (cos(w_1x), ..., cos(w_{D/2}x), sin(w_1x), ...,
+        sin(w_{D/2}x)).
+    
     random_state : int, RandomState instance or None, optional (default=None)
         If int, random_state is the seed used by the random number generator;
         If np.RandomState instance, random_state is the random number generator;
@@ -251,12 +258,13 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
     """
     def __init__(self, n_components=100,  gamma=0.5, distribution="rademacher",
-                 random_fourier=True, random_state=None):
+                 random_fourier=True, use_offset=False, random_state=None):
         self.n_components = n_components
         self.distribution = distribution
         self.gamma = gamma
         self.random_fourier = random_fourier
         self.random_state = random_state
+        self.use_offset = use_offset
 
     def fit(self, X, y=None):
         """Generate random weights according to n_features.
@@ -279,6 +287,10 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         n_stacks = int(np.ceil(self.n_components/n_features_padded))
         n_components = n_stacks * n_features_padded
 
+        if self.random_fourier and not self.use_offset:
+            n_stacks = int(np.ceil(n_stacks / 2))
+            n_components = 2 * n_stacks * n_features_padded
+
         if n_components != self.n_components:
             msg = "n_components is changed from {0} to {1}. ".format(
                 self.n_components, n_components
@@ -290,10 +302,12 @@ class StructuredOrthogonalRandomFeature(BaseEstimator, TransformerMixin):
 
         # n_stacks * n_features_padded = self.n_components
         if isinstance(self.distribution, str):
-            self.distribution = _get_random_matrix(self.distribution)
+            distribution = _get_random_matrix(self.distribution)
+        else:
+            distribution = self.distribution
         size = (n_stacks, n_features+2*n_features_padded)
-        self.random_weights_ = self.distribution(random_state, size)
-        if self.random_fourier:
+        self.random_weights_ = distribution(random_state, size)
+        if self.random_fourier and self.use_offset:
             self.random_offset_ = random_state.uniform(0, 2*np.pi,
                                                        size=self.n_components)
         else:

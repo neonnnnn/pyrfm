@@ -24,8 +24,7 @@ class RandomProjection(BaseEstimator, TransformerMixin):
         Equals the dimensionality of the computed (mapped) feature space.
 
     distribution : str or function (default="rademacher")
-        A function for sampling random basis whose arguments
-        are random_state and size.
+        A function for sampling random bases.
         Its arguments must be random_state and size.
         If None, the Rademacher distribution is used.
 
@@ -94,8 +93,10 @@ class RandomProjection(BaseEstimator, TransformerMixin):
                                 "got type {}".format(type(self.p_sparse)))
 
         if isinstance(self.distribution, str):
-            self.distribution = _get_random_matrix(self.distribution)
-        self.random_weights_ = self.distribution(random_state, size, p_sparse)
+            distribution = _get_random_matrix(self.distribution)
+        else:
+            distribution = self.distribution
+        self.random_weights_ = distribution(random_state, size, p_sparse)
         return self
 
     def transform(self, X):

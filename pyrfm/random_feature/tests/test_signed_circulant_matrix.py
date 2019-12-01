@@ -17,17 +17,19 @@ X /= np.sum(X, axis=1, keepdims=True)
 Y /= np.sum(Y, axis=1, keepdims=True)
 X_sp = csr_matrix(X)
 
+params = [(10, 2500, True), (100, 10000, True), 
+          (10, 2500, False), (100, 10000, False)]
 
-
-@pytest.mark.parametrize("gamma,n_components", [(10, 2500), [100, 5000]])
-def test_signed_circulant_matrix(gamma, n_components):
+@pytest.mark.parametrize("gamma, n_components, use_offset", params)
+def test_signed_circulant_matrix(gamma, n_components, use_offset):
     # compute exact kernel
     kernel = rbf_kernel(X, Y, gamma)
 
     # approximate kernel mapping
     transformer = SignedCirculantRandomMatrix(n_components=n_components, 
-                                                gamma=gamma,
-                                                random_state=0)
+                                              gamma=gamma, 
+                                              use_offset=use_offset,
+                                              random_state=0)
     X_trans = transformer.fit_transform(X)
     Y_trans = transformer.transform(Y)
     kernel_approx = np.dot(X_trans, Y_trans.T)
@@ -45,10 +47,15 @@ def test_signed_circulant_matrix(gamma, n_components):
     for random_weights, sign in zip(transformer.random_weights_,
                                     transformer.random_sign_):
         circ = circulant(ifft(random_weights).real)
-        circ *= sign.reshape(-1, 1)
+        circ = np.dot(np.diag(sign), circ)
         result += [np.dot(X, circ.T)*np.sqrt(2*gamma)]
     X_trans_naive = np.hstack(result)
-    X_trans_naive = np.cos(X_trans_naive+transformer.random_offset_)
+    
+    if use_offset:
+        X_trans_naive = np.cos(X_trans_naive+transformer.random_offset_)
+    else:
+        X_trans_naive = np.hstack([np.cos(X_trans_naive),
+                                   np.sin(X_trans_naive)])
     X_trans_naive *= np.sqrt(2/n_components)
     assert_allclose(X_trans, X_trans_naive)
 

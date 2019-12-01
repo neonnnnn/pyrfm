@@ -39,8 +39,7 @@ class FastFood(BaseEstimator, TransformerMixin):
         parameter for the Gaussian distribution.
 
     distribution : str or function (default="gaussian")
-        A function for sampling random basis whose arguments
-        are random_state and size.
+        A function for sampling random bases.
         Its arguments must be random_state and size.
         For str, "gaussian" (or "normal"), "rademacher", "laplace", or
         "uniform" can be used.
@@ -53,7 +52,13 @@ class FastFood(BaseEstimator, TransformerMixin):
         If False, Fastfood does not sample it and computes just
         structured_matrix-feature_vector product (i.e., approximates dot product
         kernel).
-
+    
+    use_offset : bool (default=False)
+        If True, Z(x) = (cos(w_1x+b_1), cos(w_2x+b_2), ... , cos(w_Dx+b_D),
+        where w is random_weights and b is offset (D=n_components).
+        If False, Z(x) = (cos(w_1x), ..., cos(w_{D/2}x), sin(w_1x), ...,
+        sin(w_{D/2}x)).
+    
     random_state : int, RandomState instance or None, optional (default=None)
         If int, random_state is the seed used by the random number generator;
         If np.RandomState instance, random_state is the random number generator;
@@ -89,12 +94,13 @@ class FastFood(BaseEstimator, TransformerMixin):
     """
 
     def __init__(self, n_components=100,  gamma=0.5, distribution="gaussian",
-                 random_fourier=True, random_state=None):
+                 random_fourier=True, use_offset=False, random_state=None):
         self.n_components = n_components
         self.distribution = distribution
         self.gamma = gamma
         self.random_fourier = random_fourier
         self.random_state = random_state
+        self.use_offset = use_offset
 
     def fit(self, X, y=None):
         """Generate random weights according to n_features.
@@ -115,8 +121,13 @@ class FastFood(BaseEstimator, TransformerMixin):
         n_samples, n_features = X.shape
         n_features_padded = next_pow_of_two(n_features)
         n_stacks = int(np.ceil(self.n_components/n_features_padded))
-        n_components = n_stacks * n_features_padded
 
+        if self.random_fourier and not self.use_offset:
+            n_stacks = int(np.ceil(n_stacks / 2))
+            n_components = 2 * n_stacks * n_features_padded
+        else:
+            n_components = n_stacks * n_features_padded
+        
         if n_components != self.n_components:
             warnings.warn("n_components is changed from {0} to {1}. "
                           "You should set n_components n-tuple of the next "
@@ -127,8 +138,10 @@ class FastFood(BaseEstimator, TransformerMixin):
         # n_stacks * n_features_padded = self.n_components
         size = (n_stacks, n_features_padded)
         if isinstance(self.distribution, str):
-            self.distribution = _get_random_matrix(self.distribution)
-        self.random_weights_ = self.distribution(random_state, size)
+            distribution = _get_random_matrix(self.distribution)
+        else:
+            distribution = self.distribution
+        self.random_weights_ = distribution(random_state, size)
         self.random_sign_ = rademacher(random_state, (n_stacks, n_features))
 
         self.random_perm_ = np.zeros(size, dtype=np.int32)
@@ -143,9 +156,10 @@ class FastFood(BaseEstimator, TransformerMixin):
         self.random_scaling_ = chi.rvs(n_features_padded, size=size,
                                        random_state=random_state) / Frobs
 
-        if self.random_fourier:
-            self.random_offset_ = random_state.uniform(0, 2*np.pi,
-                                                       self.n_components)
+        if self.random_fourier and self.use_offset:
+            self.random_offset_ = random_state.uniform(
+                0, 2*np.pi, self.n_components
+            )
         else:
             self.random_offset_ = None
         return self

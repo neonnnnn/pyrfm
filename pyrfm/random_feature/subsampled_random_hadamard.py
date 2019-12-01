@@ -27,19 +27,18 @@ class SubsampledRandomHadamard(BaseEstimator, TransformerMixin):
     n_components : int (default=100)
         Number of Monte Carlo samples per original features.
         Equals the dimensionality of the computed (mapped) feature space.
-
+    
+    distribution : str or function (default="rademacher")
+        A function for sampling random bases.
+        Its arguments must be random_state and size.
+        For str, "gaussian" (or "normal"), "rademacher", "laplace", or
+        "uniform" can be used.
+    
     random_state : int, RandomState instance or None, optional (default=None)
         If int, random_state is the seed used by the random number generator;
         If np.RandomState instance, random_state is the random number generator;
         If None, the random number generator is the RandomState instance used
         by `np.random`.
-
-    distribution : str or function (default="rademacher")
-        A function for sampling random basis whose arguments
-        are random_state and size.
-        Its arguments must be random_state and size.
-        For str, "gaussian" (or "normal"), "rademacher", "laplace", or
-        "uniform" can be used.
 
     Attributes
     ----------
@@ -62,11 +61,10 @@ class SubsampledRandomHadamard(BaseEstimator, TransformerMixin):
 
     """
 
-    def __init__(self, n_components=100,  gamma=0.5, distribution="rademacher",
+    def __init__(self, n_components=100, distribution="rademacher",
                  random_state=None):
         self.n_components = n_components
         self.distribution = distribution
-        self.gamma = gamma
         self.random_state = random_state
 
     def fit(self, X, y=None):
@@ -87,13 +85,15 @@ class SubsampledRandomHadamard(BaseEstimator, TransformerMixin):
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         if isinstance(self.distribution, str):
-            self.distribution = _get_random_matrix(self.distribution)
+            distribution = _get_random_matrix(self.distribution)
+        else:
+            distribution = self.distribution
 
         n_features_padded = next_pow_of_two(n_features)
         if n_features_padded < self.n_components:
             raise ValueError("n_components is bigger than next power of two "
                              "of n_features.")
-        self.random_weights_ = self.distribution(random_state, n_features)
+        self.random_weights_ = distribution(random_state, n_features)
         self.random_weights_ = self.random_weights_.astype(np.float64)
         perm = random_state.permutation(n_features_padded).astype(np.int32)
         self.random_indices_rows_ = perm[:self.n_components]

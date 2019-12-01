@@ -176,7 +176,7 @@
 <h1>pyrfm.random_feature.SignedCirculantRandomMatrix<a class="headerlink" href="#pyrfm-random-feature-signedcirculantrandommatrix" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="pyrfm.random_feature.SignedCirculantRandomMatrix">
-<em class="property">class </em><code class="sig-prename descclassname">pyrfm.random_feature.</code><code class="sig-name descname">SignedCirculantRandomMatrix</code><span class="sig-paren">(</span><em class="sig-param">n_components=100</em>, <em class="sig-param">gamma=0.5</em>, <em class="sig-param">distribution='gaussian'</em>, <em class="sig-param">random_fourier=True</em>, <em class="sig-param">random_state=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyrfm/random_feature/signed_circulant_random_projection.html#SignedCirculantRandomMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.random_feature.SignedCirculantRandomMatrix" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">pyrfm.random_feature.</code><code class="sig-name descname">SignedCirculantRandomMatrix</code><span class="sig-paren">(</span><em class="sig-param">n_components=100</em>, <em class="sig-param">gamma=0.5</em>, <em class="sig-param">distribution='gaussian'</em>, <em class="sig-param">random_fourier=True</em>, <em class="sig-param">use_offset=False</em>, <em class="sig-param">random_state=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyrfm/random_feature/signed_circulant_random_projection.html#SignedCirculantRandomMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.random_feature.SignedCirculantRandomMatrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.base.BaseEstimator</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.base.TransformerMixin</span></code></p>
 <p>Approximates the product between random matrix and
 feature vectors by signed circulant random matrix.</p>
@@ -192,6 +192,10 @@ If n_components is not a n-tuple of the n_features, it is automatically
 changed to the smallest n-tuple of the n_features.</p></li>
 <li><p><strong>gamma</strong> (<em>float</em><em> (</em><em>default=0.5</em><em>)</em>) – Bandwidth parameter. gamma = 1/2sigma^2, where sigma is a std
 parameter for gaussian distribution.</p></li>
+<li><p><strong>distribution</strong> (<em>str</em><em> or </em><em>function</em><em> (</em><em>default=&quot;gaussian&quot;</em><em>)</em>) – A function for sampling random bases.
+Its arguments must be random_state and size.
+For str, “gaussian” (or “normal”), “rademacher”, “laplace”, or
+“uniform” can be used.</p></li>
 <li><p><strong>random_fourier</strong> (<em>boolean</em><em> (</em><em>default=True</em><em>)</em>) – Whether to approximate the RBF kernel or not.
 If True, this class samples <a href="#id1"><span class="problematic" id="id2">random_offset_</span></a> in the fit method and
 computes the cosine of structured_matrix-feature_vector product
@@ -199,15 +203,14 @@ computes the cosine of structured_matrix-feature_vector product
 If False, this class does not sample it and computes just
 structured_matrix-feature_vector product (i.e., approximates dot product
 kernel).</p></li>
+<li><p><strong>use_offset</strong> (<em>bool</em><em> (</em><em>default=False</em><em>)</em>) – If True, Z(x) = (cos(w_1x+b_1), cos(w_2x+b_2), … , cos(w_Dx+b_D),
+where w is random_weights and b is offset (D=n_components).
+If False, Z(x) = (cos(w_1x), …, cos(w_{D/2}x), sin(w_1x), …,
+sin(w_{D/2}x)).</p></li>
 <li><p><strong>random_state</strong> (<em>int</em><em>, </em><em>RandomState instance</em><em> or </em><em>None</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – If int, random_state is the seed used by the random number generator;
 If np.RandomState instance, random_state is the random number generator;
 If None, the random number generator is the RandomState instance used
 by <cite>np.random</cite>.</p></li>
-<li><p><strong>distribution</strong> (<em>str</em><em> or </em><em>function</em><em> (</em><em>default=&quot;gaussian&quot;</em><em>)</em>) – A function for sampling random basis whose arguments
-are random_state and size.
-Its arguments must be random_state and size.
-For str, “gaussian” (or “normal”), “rademacher”, “laplace”, or
-“uniform” can be used.</p></li>
 </ul>
 </dd>
 </dl>

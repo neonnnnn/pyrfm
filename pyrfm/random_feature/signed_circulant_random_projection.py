@@ -9,6 +9,7 @@ from scipy.sparse import issparse
 from .utils import rademacher, get_random_matrix
 from scipy.fftpack import fft, ifft
 import warnings
+from math import sqrt
 
 
 def _get_random_matrix(distribution):
@@ -34,6 +35,12 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
     gamma : float (default=0.5)
         Bandwidth parameter. gamma = 1/2\sigma^2, where \sigma is a std
         parameter for gaussian distribution.
+    
+    distribution : str or function (default="gaussian")
+        A function for sampling random bases.
+        Its arguments must be random_state and size.
+        For str, "gaussian" (or "normal"), "rademacher", "laplace", or
+        "uniform" can be used.
 
     random_fourier : boolean (default=True)
         Whether to approximate the RBF kernel or not.
@@ -44,18 +51,17 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
         structured_matrix-feature_vector product (i.e., approximates dot product
         kernel).
 
+    use_offset : bool (default=False)
+        If True, Z(x) = (cos(w_1x+b_1), cos(w_2x+b_2), ... , cos(w_Dx+b_D),
+        where w is random_weights and b is offset (D=n_components).
+        If False, Z(x) = (cos(w_1x), ..., cos(w_{D/2}x), sin(w_1x), ...,
+        sin(w_{D/2}x)).
+
     random_state : int, RandomState instance or None, optional (default=None)
         If int, random_state is the seed used by the random number generator;
         If np.RandomState instance, random_state is the random number generator;
         If None, the random number generator is the RandomState instance used
         by `np.random`.
-
-    distribution : str or function (default="gaussian")
-        A function for sampling random basis whose arguments
-        are random_state and size.
-        Its arguments must be random_state and size.
-        For str, "gaussian" (or "normal"), "rademacher", "laplace", or
-        "uniform" can be used.
 
     Attributes
     ----------
@@ -81,11 +87,12 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
     """
 
     def __init__(self, n_components=100,  gamma=0.5, distribution="gaussian",
-                 random_fourier=True, random_state=None):
+                 random_fourier=True, use_offset=False, random_state=None):
         self.n_components = n_components
         self.distribution = distribution
         self.gamma = gamma
         self.random_fourier = random_fourier
+        self.use_offset = use_offset
         self.random_state = random_state
 
     def fit(self, X, y=None):
@@ -106,10 +113,16 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         if isinstance(self.distribution, str):
-            self.distribution = _get_random_matrix(self.distribution)
-
+            distribution = _get_random_matrix(self.distribution)
+        else:
+            distribution = self.distribution
         n_stacks = int(np.ceil(self.n_components/n_features))
-        n_components = n_stacks * n_features
+        if self.random_fourier and not self.use_offset:
+            n_stacks = int(np.ceil(n_stacks / 2))
+            n_components = 2 * n_stacks * n_features
+        else:
+            n_components = n_stacks * n_features
+
         if n_components != self.n_components:
             warnings.warn("n_components is changed from {0} to {1}. "
                           "You should set n_components n-tuple of the "
@@ -117,14 +130,14 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
                           .format(self.n_components, n_components))
             self.n_components = n_components
 
-        # n_stacks * n_features= self.n_components
         size = (n_stacks, n_features)
-        self.random_weights_ = fft(self.distribution(random_state, size))
+        self.random_weights_ = fft(distribution(random_state, size))
         self.random_sign_ = rademacher(random_state, size)
 
-        if self.random_fourier:
-            self.random_offset_ = random_state.uniform(0, 2*np.pi,
-                                                       self.n_components)
+        if self.random_fourier and self.use_offset:
+            self.random_offset_ = random_state.uniform(
+                0, 2*np.pi, self.n_components
+            )
         else:
             self.random_offset_ = None
         return self
@@ -146,7 +159,7 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
         X = check_array(X, accept_sparse=True)
         n_samples, n_features = X.shape
         n_stacks = self.random_weights_.shape[0]
-        Z = np.zeros((n_samples, self.n_components))
+        Z = np.zeros((n_samples, n_features * n_stacks))
         if issparse(X):
             from .random_features_fast import transform_all_fast
             Z = transform_all_fast(X, self)
@@ -156,9 +169,15 @@ class SignedCirculantRandomMatrix(BaseEstimator, TransformerMixin):
             for t, (fft_rw, sign) in enumerate(zip(self.random_weights_,
                                                    self.random_sign_)):
                 projection = sign * ifft(fft_X * fft_rw).real
-                Z[:, t * n_features:(t + 1) * n_features] = projection
+                Z[:, t*n_features:(t + 1)*n_features] = projection
 
             if self.random_fourier:
-                Z = np.cos(Z*np.sqrt(2*self.gamma)+self.random_offset_)
-                Z *= np.sqrt(2)
+                Z *= sqrt(2*self.gamma)
+                if self.use_offset:
+                    Z = np.cos(Z+self.random_offset_)
+                else:
+                    Z_cos = np.cos(Z)
+                    Z_sin = np.sin(Z)
+                    Z = np.hstack((Z_cos, Z_sin))
+                Z *= sqrt(2)
             return Z / np.sqrt(self.n_components)

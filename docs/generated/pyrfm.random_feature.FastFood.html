@@ -176,7 +176,7 @@
 <h1>pyrfm.random_feature.FastFood<a class="headerlink" href="#pyrfm-random-feature-fastfood" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="pyrfm.random_feature.FastFood">
-<em class="property">class </em><code class="sig-prename descclassname">pyrfm.random_feature.</code><code class="sig-name descname">FastFood</code><span class="sig-paren">(</span><em class="sig-param">n_components=100</em>, <em class="sig-param">gamma=0.5</em>, <em class="sig-param">distribution='gaussian'</em>, <em class="sig-param">random_fourier=True</em>, <em class="sig-param">random_state=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyrfm/random_feature/fastfood.html#FastFood"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.random_feature.FastFood" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">pyrfm.random_feature.</code><code class="sig-name descname">FastFood</code><span class="sig-paren">(</span><em class="sig-param">n_components=100</em>, <em class="sig-param">gamma=0.5</em>, <em class="sig-param">distribution='gaussian'</em>, <em class="sig-param">random_fourier=True</em>, <em class="sig-param">use_offset=False</em>, <em class="sig-param">random_state=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyrfm/random_feature/fastfood.html#FastFood"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyrfm.random_feature.FastFood" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.base.BaseEstimator</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.base.TransformerMixin</span></code></p>
 <p>Approximates feature maps of the product between random matrix and
 feature vectors by FastFood.</p>
@@ -195,8 +195,7 @@ That is, ceil(n_components/2**{p})*2**{p}, where
 p = ceil(log_2 (n_features)).</p></li>
 <li><p><strong>gamma</strong> (<em>float</em><em> (</em><em>default=0.5</em><em>)</em>) – Bandwidth parameter. gamma = 1/2sigma^2, where sigma is a std
 parameter for the Gaussian distribution.</p></li>
-<li><p><strong>distribution</strong> (<em>str</em><em> or </em><em>function</em><em> (</em><em>default=&quot;gaussian&quot;</em><em>)</em>) – A function for sampling random basis whose arguments
-are random_state and size.
+<li><p><strong>distribution</strong> (<em>str</em><em> or </em><em>function</em><em> (</em><em>default=&quot;gaussian&quot;</em><em>)</em>) – A function for sampling random bases.
 Its arguments must be random_state and size.
 For str, “gaussian” (or “normal”), “rademacher”, “laplace”, or
 “uniform” can be used.</p></li>
@@ -207,6 +206,10 @@ in transform.
 If False, Fastfood does not sample it and computes just
 structured_matrix-feature_vector product (i.e., approximates dot product
 kernel).</p></li>
+<li><p><strong>use_offset</strong> (<em>bool</em><em> (</em><em>default=False</em><em>)</em>) – If True, Z(x) = (cos(w_1x+b_1), cos(w_2x+b_2), … , cos(w_Dx+b_D),
+where w is random_weights and b is offset (D=n_components).
+If False, Z(x) = (cos(w_1x), …, cos(w_{D/2}x), sin(w_1x), …,
+sin(w_{D/2}x)).</p></li>
 <li><p><strong>random_state</strong> (<em>int</em><em>, </em><em>RandomState instance</em><em> or </em><em>None</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – If int, random_state is the seed used by the random number generator;
 If np.RandomState instance, random_state is the random number generator;
 If None, the random number generator is the RandomState instance used

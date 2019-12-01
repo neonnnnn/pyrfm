@@ -101,11 +101,12 @@ class RandomFourier(BaseEstimator, TransformerMixin):
             self.random_weights_ = random_state.normal(size=size)
             self.random_weights_ *= sqrt(2*gamma)
         else:
-            raise ValueError('Kernel {} is not supported.'
+            raise ValueError('Kernel {} is not supported. '
                              'Use "rbf" or "Gaussian"'.format(self.kernel))
         if self.use_offset:
-            self.random_offset_ = random_state.uniform(0, 2*np.pi,
-                                                       size=self.n_components)
+            self.random_offset_ = random_state.uniform(
+                0, 2*np.pi, size=self.n_components
+            )
         else:
             self.random_offset_ = None
 

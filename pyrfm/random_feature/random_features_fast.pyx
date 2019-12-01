@@ -410,12 +410,13 @@ cdef class CFastFood(BaseCRandomFeature):
         self.gamma = transformer.gamma
         self.random_fourier = transformer.random_fourier
         self.degree_hadamard = (self.n_features-1).bit_length()
-
         self.random_weights = transformer.random_weights_
         self.random_sign = transformer.random_sign_
         self.fy_vec = transformer._fy_vector_
         self.random_scaling = transformer.random_scaling_
         self.random_offset = transformer.random_offset_
+        self.n_stacks = self.random_weights.shape[0]
+        self.use_offset = transformer.use_offset
         self.cache = array((2**self.degree_hadamard, ), sizeof(double),
                            format='d')
         if self.random_fourier:
@@ -428,12 +429,13 @@ cdef class CFastFood(BaseCRandomFeature):
                         double* data,
                         int* indices,
                         int n_nz):
-        cdef Py_ssize_t i, j, jj, k, n_features_padded, t, n_stacks
-        cdef double tmp, factor
-        factor = sqrt(2*self.gamma)
+        cdef Py_ssize_t i, j, jj, k, n_features_padded, t
+        cdef double tmp, scale_weight
+        cdef Py_ssize_t index_offset = int(self.n_components/2)
+        scale_weight = sqrt(2*self.gamma)
         n_features_padded = 2**self.degree_hadamard
-        n_stacks = self.n_components // n_features_padded
-        for t in range(n_stacks):
+
+        for t in range(self.n_stacks):
             for j in range(n_features_padded):
                 self.cache[j] = 0
             # Bx, B is the diagonal random signed matrix
@@ -464,8 +466,14 @@ cdef class CFastFood(BaseCRandomFeature):
                 z[i] = self.cache[j] / sqrt(n_features_padded)
 
         if self.random_fourier:
-            for i in range(self.n_components):
-                z[i] = cos(factor*z[i]+self.random_offset[i])
+            if not self.use_offset:
+                for i in range(index_offset):
+                    z[i+index_offset] = sin(scale_weight*z[i])
+                    z[i] = cos(scale_weight*z[i])
+            else:
+                for i in range(self.n_components):
+                    z[i] = cos(scale_weight*z[i]+self.random_offset[i])
+            
         for i in range(self.n_components):
             z[i] /= self.scale
 
@@ -589,6 +597,7 @@ cdef class CSignedCirculantRandomMatrix(BaseCRandomFeature):
         self.gamma = transformer.gamma
         self.random_fourier = transformer.random_fourier
         self.n_stacks = self.random_weights.shape[0]
+        self.use_offset = transformer.use_offset
         if self.random_fourier:
             self.scale = sqrt(self.n_components/2.)
         else:
@@ -600,7 +609,8 @@ cdef class CSignedCirculantRandomMatrix(BaseCRandomFeature):
                         int* indices,
                         int n_nz):
         cdef Py_ssize_t ii, j, jj, i
-        cdef double factor = sqrt(2*self.gamma)
+        cdef Py_ssize_t index_offset = int(self.n_components / 2)
+        cdef double scale_weight = sqrt(2*self.gamma)
         for ii in range(self.n_stacks):
             for j in range(self.n_features):
                 self.cache[j] = 0
@@ -620,8 +630,14 @@ cdef class CSignedCirculantRandomMatrix(BaseCRandomFeature):
                 z[i] = self.cache[j].real * self.random_sign[ii, j]
 
         if self.random_fourier:
-            for i in range(self.n_components):
-                z[i] = cos(factor*z[i]+self.random_offset[i])
+            if self.use_offset:
+                for i in range(self.n_components):
+                    z[i] = cos(scale_weight*z[i]+self.random_offset[i])
+            else:
+                for i in range(index_offset):
+                    z[i] *= scale_weight
+                    z[i+index_offset] = sin(z[i])
+                    z[i] = cos(z[i])
 
         for i in range(self.n_components):
             z[i] /= self.scale
@@ -667,17 +683,22 @@ cdef class COrthogonalRandomFeature(BaseCRandomFeature):
 cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
     def __init__(self, transformer):
         self.n_stacks = transformer.random_weights_.shape[0]
-        self.n_features_padded = transformer.n_components // self.n_stacks
         self.n_components = transformer.n_components
+        self.random_fourier = transformer.random_fourier
+        self.use_offset = transformer.use_offset
+        
+        if self.random_fourier and not self.use_offset:
+            self.n_features_padded = self.n_components // (self.n_stacks*2)
+        else:
+            self.n_features_padded = self.n_components // self.n_stacks
         self.n_features = transformer.random_weights_.shape[1] - 2*self.n_features_padded
-
         self.random_weights = transformer.random_weights_
         self.random_offset = transformer.random_offset_
         self.cache = array((self.n_features_padded, ), sizeof(double),
                            format='d')
         self.degree_hadamard = (self.n_features-1).bit_length()
         self.gamma = transformer.gamma
-        self.random_fourier = transformer.random_fourier
+        
         self.scale = sqrt(self.n_components)
 
     cdef void transform(self,
@@ -686,6 +707,8 @@ cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
                         int* indices,
                         int n_nz):
         cdef Py_ssize_t i, ii, j, jj, offset
+        cdef Py_ssize_t index_offset = int(self.n_components/2)
+        cdef double scale_weight = sqrt(2*self.gamma)
         for ii in range(self.n_stacks):
             for i in range(self.n_features_padded):
                 self.cache[i] = 0
@@ -714,9 +737,16 @@ cdef class CStructuredOrthogonalRandomFeature(BaseCRandomFeature):
                 z[i] = self.cache[j]*sqrt(self.n_features_padded)
 
         if self.random_fourier:
-            for i in range(self.n_components):
-                z[i] = cos(z[i]*sqrt(2*self.gamma)+self.random_offset[i])
-                z[i] *= sqrt(2)
+            if self.use_offset:
+                for i in range(self.n_components):
+                    z[i] *= scale_weight
+                    z[i] = cos(z[i]+self.random_offset[i])
+                    z[i] *= sqrt(2)
+            else:
+                for i in range(index_offset):
+                    z[i] *= scale_weight
+                    z[i+index_offset] = sin(z[i]) * sqrt(2)
+                    z[i] = cos(z[i]) * sqrt(2)
 
         for i in range(self.n_components):
             z[i] /= self.scale
