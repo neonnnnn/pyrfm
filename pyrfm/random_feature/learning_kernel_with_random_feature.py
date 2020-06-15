@@ -7,7 +7,6 @@ from sklearn.utils import check_array, check_X_y
 from sklearn.utils.validation import check_is_fitted
 from sklearn.kernel_approximation import RBFSampler
 from scipy.sparse import csc_matrix
-from sklearn.utils.extmath import safe_sparse_dot
 from scipy.optimize import linprog
 import warnings
 import abc

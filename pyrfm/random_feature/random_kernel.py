@@ -24,7 +24,9 @@ def _anova_fast(degree=2):
 
 
 def dot():
-    return lambda X, Y, dense_output: safe_sparse_dot(X, Y.T, dense_output)
+    return lambda X, Y, dense_output: safe_sparse_dot(
+        X, Y.T, dense_output=dense_output
+    )
 
 
 def _pairwise(symmetric=False):

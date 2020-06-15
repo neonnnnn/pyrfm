@@ -172,7 +172,7 @@ class OrthogonalRandomFeature(BaseEstimator, TransformerMixin):
         """
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=True)
-        output = safe_sparse_dot(X, self.random_weights_, True)
+        output = safe_sparse_dot(X, self.random_weights_, dense_output=True)
         if self.random_fourier:
             if self.use_offset:
                 output = np.cos(output+self.random_offset_)
