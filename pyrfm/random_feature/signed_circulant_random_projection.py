@@ -7,7 +7,7 @@ from sklearn.utils import check_random_state, check_array
 from sklearn.utils.validation import check_is_fitted
 from scipy.sparse import issparse
 from .utils import rademacher, get_random_matrix
-from scipy.fftpack import fft, ifft
+from scipy.fft import fft, ifft
 import warnings
 from math import sqrt
 
