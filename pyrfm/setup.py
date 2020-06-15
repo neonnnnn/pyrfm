@@ -1,4 +1,4 @@
-from sklearn._build_utils import maybe_cythonize_extensions
+from sklearn._build_utils import cythonize_extensions
 import numpy
 
 
@@ -20,7 +20,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage('random_feature')
     config.add_subpackage('linear_model')
 
-    maybe_cythonize_extensions(top_path, config)
+    cythonize_extensions(top_path, config)
     return config
 
 
