@@ -1,10 +1,9 @@
 import numpy as np
 from scipy.sparse import csr_matrix, issparse
 
-from sklearn.utils.testing import (assert_less_equal,
-                                   assert_allclose_dense_sparse,
-                                   assert_almost_equal,
-                                   assert_true)
+from sklearn.utils.testing import (assert_allclose_dense_sparse,
+                                   assert_almost_equal)
+                                   
 from pyrfm import anova, all_subsets, RandomKernel
 import pytest
 import itertools
@@ -39,9 +38,9 @@ def test_anova_kernel(dist, degree, kernel):
     Y_trans = rk_transform.transform(Y)
     kernel_approx = np.dot(X_trans, Y_trans.T)
     error =  gram - kernel_approx
-    assert_less_equal(np.abs(np.mean(error)), 0.0001)
-    assert_less_equal(np.max(error), 0.001)  # nothing too far off
-    assert_less_equal(np.mean(error), 0.0005)  # mean is fairly close
+    assert np.abs(np.mean(error)) < 0.0001
+    assert np.max(error) < 0.001  # nothing too far off
+    assert np.mean(error) < 0.0005  # mean is fairly close
 
     # sparse input
     X_trans_sp = rk_transform.transform(X_sp)
@@ -51,12 +50,12 @@ def test_anova_kernel(dist, degree, kernel):
     if dist == "sparse_rademacher":
         rk_transform.dense_output = False
         X_trans_sp = rk_transform.transform(X_sp)
-        assert_true(issparse(X_trans_sp))
+        assert issparse(X_trans_sp)
         assert_allclose_dense_sparse(X_trans, X_trans_sp.toarray())
     else:
         rk_transform.dense_output = False
         X_trans_sp = rk_transform.transform(X_sp)
-        assert_true(not issparse(X_trans_sp))
+        assert not issparse(X_trans_sp)
         assert_allclose_dense_sparse(X_trans, X_trans_sp)
 
 
@@ -93,10 +92,10 @@ def test_all_subsets_kernel(dist):
         nnz = rk_transform.random_weights_.nnz
         nnz_expect = np.prod(rk_transform.random_weights_.shape)*p_sparse
         nnz_var = np.sqrt(nnz_expect * (1-p_sparse))
-        assert_less_equal(np.abs(nnz-nnz_expect), 3*nnz_var)
-    assert_less_equal(np.abs(np.mean(error)), 0.01)
-    assert_less_equal(np.max(error), 0.1)  # nothing too far off
-    assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
+        assert np.abs(nnz-nnz_expect) < 3*nnz_var
+    assert np.abs(np.mean(error)) < 0.01
+    assert np.max(error) < 0.1  # nothing too far off
+    assert np.mean(error) < 0.05  # mean is fairly close
 
     X_trans_sp = rk_transform.transform(X_sp)
     assert_allclose_dense_sparse(X_trans, X_trans_sp)

@@ -1,15 +1,13 @@
 import numpy as np
 from scipy.sparse import csr_matrix
-from sklearn.utils.testing import (assert_less_equal,
-                                   assert_allclose_dense_sparse)
+from sklearn.utils.testing import assert_allclose_dense_sparse
 from sklearn.utils.extmath import safe_sparse_dot
 from pyrfm import TensorSketch
-from scipy.fftpack._fftpack import drfft
 import pytest
 
 
 def polynomial(X, Y, degree):
-    return safe_sparse_dot(X, Y.T, True)**degree
+    return safe_sparse_dot(X, Y.T, dense_output=True)**degree
 
 
 # generate data
@@ -33,9 +31,9 @@ def test_tensor_sketching(degree):
     kernel_approx = np.dot(X_trans, Y_trans.T)
 
     error = kernel - kernel_approx
-    assert_less_equal(np.abs(np.mean(error)), 0.001)
-    assert_less_equal(np.max(error), 0.01)  # nothing too far off
-    assert_less_equal(np.mean(error), 0.005)  # mean is fairly close
+    assert np.abs(np.mean(error)) < 0.001
+    assert np.max(error) < 0.01  # nothing too far off
+    assert np.mean(error) < 0.005  # mean is fairly close
 
     X_trans_sp = ts_transform.transform(X_sp)
     assert_allclose_dense_sparse(X_trans, X_trans_sp)

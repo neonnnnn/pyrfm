@@ -1,7 +1,6 @@
 import numpy as np
 
-from sklearn.utils.testing import (assert_greater_equal, assert_almost_equal,
-                                   assert_less_equal)
+from sklearn.utils.testing import assert_almost_equal
 from pyrfm import (TensorSketch, RandomKernel, RandomMaclaurin, RandomFourier,
                    DoublySGDClassifier, DoublySGDRegressor)
 from sklearn.kernel_approximation import RBFSampler, SkewedChi2Sampler
@@ -32,7 +31,7 @@ def _test_regressor(transform, y_train, y_test, X_trans, max_iter=100,
                                 random_state=0, tol=0, power_t=1, eta0=eta0)
     clf.fit(X_train, y_train)
     l2 = np.mean((y_train - clf.predict(X_train))**2)
-    assert_less_equal(l2, 0.01)
+    assert l2 < 0.01
     
     # compare the norms of coefs: overfitting vs underfitting
     clf_over = DoublySGDRegressor(transform, warm_start=True,
@@ -46,8 +45,7 @@ def _test_regressor(transform, y_train, y_test, X_trans, max_iter=100,
                                     alpha=10000, random_state=0, power_t=1,
                                     eta0=eta0)
     clf_under.fit(X_train, y_train)
-    assert_greater_equal(np.sum(clf_over.coef_ ** 2),
-                            np.sum(clf_under.coef_ ** 2))
+    assert np.sum(clf_under.coef_ ** 2) < np.sum(clf_over.coef_ ** 2)
 
     # use same seed?
     assert_almost_equal(clf_over.predict(X_train),
@@ -94,7 +92,7 @@ def _test_classifier(transform, y_train, y_test, X_trans, max_iter=100,
                               random_state=0, tol=0, power_t=1)
     clf.fit(X_train, y_train)
     train_acc = clf.score(X_train, y_train)
-    assert_greater_equal(train_acc, .80)
+    assert train_acc >= .80
         
     # compare the norms of coefs: overfitting vs underfitting
     clf_over = DoublySGDClassifier(transform, warm_start=True,
@@ -108,8 +106,7 @@ def _test_classifier(transform, y_train, y_test, X_trans, max_iter=100,
                                     loss=loss, alpha=1000, random_state=0,
                                     power_t=1, eta0=eta0)
     clf_under.fit(X_train, y_train)
-    assert_greater_equal(np.sum(clf_over.coef_ ** 2),
-                         np.sum(clf_under.coef_ ** 2))
+    assert np.sum(clf_under.coef_ ** 2) < np.sum(clf_over.coef_ ** 2)
 
     # use same seed?
     assert_almost_equal(clf_over.decision_function(X_train),

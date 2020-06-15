@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.utils.testing import assert_less_equal
 from pyrfm import MB, SparseMB
 from pyrfm import SparseMBClassifier, SparseMBRegressor
 from sklearn.linear_model import LogisticRegression, Ridge
@@ -33,7 +32,7 @@ def test_mb_classifier():
     clf = SparseMBClassifier(n_components=1000, max_iter=100, warm_start=True,
                              verbose=False, fit_intercept=False, alpha=0.1)
     clf.fit(X_train, y_train)
-    assert_less_equal(score_lr, clf.score(X_test, y_test))
+    assert score_lr <= clf.score(X_test, y_test)
 
 
 def test_mb_regressor():
@@ -52,4 +51,4 @@ def test_mb_regressor():
     clf = SparseMBRegressor(n_components=1000, max_iter=100, warm_start=True,
                             verbose=False, fit_intercept=False, alpha=0.1)
     clf.fit(X_train, y_train)
-    assert_less_equal(score_lr, clf.score(X_test, y_test))
+    assert score_lr <= clf.score(X_test, y_test)

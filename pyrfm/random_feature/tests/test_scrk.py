@@ -1,8 +1,7 @@
 import numpy as np
 from scipy.sparse import csr_matrix
 
-from sklearn.utils.testing import (assert_less_equal,
-                                   assert_allclose_dense_sparse)
+from sklearn.utils.testing import assert_allclose_dense_sparse
 from pyrfm import anova, SignedCirculantRandomKernel
 import pytest
 
@@ -30,9 +29,9 @@ def test_anova_kernel(degree):
     kernel_approx = np.dot(X_trans, Y_trans.T)
 
     error = kernel - kernel_approx
-    assert_less_equal(np.abs(np.mean(error)), 0.0001)
-    assert_less_equal(np.max(error), 0.001)  # nothing too far off
-    assert_less_equal(np.mean(error), 0.0005)  # mean is fairly close
+    assert np.abs(np.mean(error)) < 0.0001
+    assert np.max(error) < 0.001  # nothing too far off
+    assert np.mean(error) < 0.0005  # mean is fairly close
 
     X_trans_sp = rk_transform.transform(X_sp)
     assert_allclose_dense_sparse(X_trans, X_trans_sp)

@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.sparse import csr_matrix
-from sklearn.utils.testing import assert_less_equal, assert_allclose
-from sklearn.utils.testing import assert_allclose_dense_sparse
+from sklearn.utils.testing import assert_allclose
 from sklearn.utils.extmath import safe_sparse_dot
 from pyrfm import (CompactRandomFeature, RandomProjection,
                    SubsampledRandomHadamard,
@@ -11,7 +10,7 @@ import pytest
 
 
 def polynomial(X, Y, degree, bias=0):
-    return (safe_sparse_dot(X, Y.T, True)+bias)**degree
+    return (safe_sparse_dot(X, Y.T, dense_output=True)+bias)**degree
 
 
 def exp_kernel(X, Y, gamma):

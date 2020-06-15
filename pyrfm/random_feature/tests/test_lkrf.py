@@ -1,6 +1,6 @@
 import numpy as np
 
-from sklearn.utils.testing import assert_greater_equal, assert_almost_equal
+from sklearn.utils.testing import assert_almost_equal
 from sklearn.utils.testing import assert_allclose_dense_sparse
 from sklearn.datasets import load_digits
 from sklearn.kernel_approximation import RBFSampler
@@ -27,9 +27,9 @@ def _test_learning_kernel_with_random_feature(divergence, trans=None, rho=1):
                                            max_iter=100, rho=rho)
     X_trans = lkrf.fit_transform(X, y)
     score_lkrf = kernel_alignment(np.dot(X_trans, X_trans.T), y, False)
-    assert_greater_equal(score_lkrf, score)
+    assert score_lkrf >= score
     assert_almost_equal(np.sum(lkrf.importance_weights_), 1)
-    assert_greater_equal(np.min(lkrf.importance_weights_), 0)
+    assert np.min(lkrf.importance_weights_) >= 0
  
     # weak constrain: rho = 10*rho
     trans.fit(X)
@@ -40,7 +40,7 @@ def _test_learning_kernel_with_random_feature(divergence, trans=None, rho=1):
     X_trans = lkrf.fit_transform(X, y)
     score_lkrf_weak = kernel_alignment(np.dot(X_trans, X_trans.T), y, False)
     print(score_lkrf_weak, score_lkrf, score)
-    assert_greater_equal(score_lkrf_weak, score_lkrf)
+    assert score_lkrf_weak >= score_lkrf
 
     # remove bases
     n_nz = np.sum(lkrf.importance_weights_ != 0)
