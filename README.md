@@ -26,6 +26,9 @@ A library for random feature maps and linear models with random feature maps in 
 
 For running example codes (pyrfm/benchmarks), jupyter and matplotlib are required.
 
+## Dependencies
+ - Python >= 3.6 with NumPy >= 1.18, SciPy >= 1.4, Cython >= 0.29 and scikit-learn >= 0.23
+
 ## Documentation
 https://neonnnnn.github.io/pyrfm/
 
