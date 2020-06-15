@@ -140,8 +140,11 @@ class SAGAClassifier(BaseSAGAEstimator, LinearClassifierMixin):
     """SAGA solver for linear classifier with random feature maps.
 
     Random feature mapping is computed just before computing prediction and
-    gradient.
-    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
+    gradient. Minimize  
+    
+    .. math::
+        
+        \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
 
     Parameters
     ----------
@@ -290,8 +293,11 @@ class SAGARegressor(BaseSAGAEstimator, LinearRegressorMixin):
     """SAGA solver for linear regression with random feature maps.
 
     Random feature mapping is computed just before computing prediction and
-    gradient.
-    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
+    gradient. Minimize
+
+    .. math::
+    
+        \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
 
     Parameters
     ----------

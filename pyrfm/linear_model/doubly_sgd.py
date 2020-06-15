@@ -175,8 +175,11 @@ class DoublySGDClassifier(BaseDoublySGDEstimator, LinearClassifierMixin):
     """Doubly SGD solver for linear classifier with random feature maps.
 
     Random feature mapping is computed just before computing prediction and
-    gradient.
-    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
+    gradient. Minimize
+
+    .. math::
+        
+        \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
 
     Parameters
     ----------
@@ -333,8 +336,11 @@ class DoublySGDRegressor(BaseDoublySGDEstimator, LinearRegressorMixin):
     """Doubly SGD solver for linear regression with random feature maps.
 
     Random feature mapping is computed just before computing prediction and
-    gradient.
-    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
+    gradient. Minimize
+    
+    .. math::
+    
+        \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
 
     Parameters
     ----------

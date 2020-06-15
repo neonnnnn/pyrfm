@@ -109,8 +109,11 @@ class SDCAClassifier(BaseSDCAEstimator, LinearClassifierMixin):
     random feature maps.
 
     Random feature mapping is computed just before computing prediction and
-    gradient.
-    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
+    gradient. Minimize
+
+    .. math::
+        
+        \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
 
     Parameters
     ----------
@@ -232,8 +235,11 @@ class SDCARegressor(BaseSDCAEstimator, LinearRegressorMixin):
     random feature maps.
 
     Random feature mapping is computed just before computing prediction and
-    gradient.
-    minimize  \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
+    gradient. Minimize
+
+    .. math::
+
+      \sum_{i=1}^{n} loss(x_i, y_i) + alpha/C*reg
 
     Parameters
     ----------
