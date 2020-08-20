@@ -1,5 +1,5 @@
-numpy
-scipy
-cython
-scikit-learn
+numpy >= 1.18.0
+scipy >= 1.4.0
+cython >= 0.29.0
+scikit-learn >= 0.23.0
 pytest
