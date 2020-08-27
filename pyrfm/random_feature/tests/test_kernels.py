@@ -65,7 +65,7 @@ def safe_np_elem_prod(X, Y, dense_output=False):
 
 def D(X, P, degree, dense_output=True):
     return safe_sparse_dot(safe_power(X, degree), safe_power(P, degree).T,
-                           dense_output)
+                           dense_output=dense_output)
 
 
 @pytest.mark.parametrize("degree", [2, 3, 4, 5])

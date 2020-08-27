@@ -2,7 +2,6 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 
-from sklearn.utils.testing import assert_less_equal
 from sklearn.utils.testing import assert_allclose_dense_sparse
 from sklearn.utils.extmath import safe_sparse_dot
 from pyrfm import RandomMaclaurin
@@ -11,7 +10,7 @@ import itertools
 
 
 def polynomial(X, Y, degree, bias=0):
-    return (safe_sparse_dot(X, Y.T, True)+bias)**degree
+    return (safe_sparse_dot(X, Y.T, dense_output=True)+bias)**degree
 
 
 def exp_kernel(X, Y, gamma):
@@ -43,9 +42,9 @@ def test_random_maclaurin_polynomial_bias(bias, degree, h01):
     Y_trans = rm_transform.transform(Y)
     kernel_approx = np.dot(X_trans, Y_trans.T)
     error = kernel - kernel_approx
-    assert_less_equal(np.abs(np.mean(error)), 0.01)
-    assert_less_equal(np.max(error), 0.1)  # nothing too far off
-    assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
+    assert np.abs(np.mean(error)) < 0.01
+    assert np.max(error) < 0.1  # nothing too far off
+    assert np.mean(error) < 0.05  # mean is fairly close
 
     X_trans_sp = rm_transform.transform(X_sp)
     assert_allclose_dense_sparse(X_trans, X_trans_sp)
@@ -63,9 +62,9 @@ def test_random_maclaurin_exp():
     kernel_approx = np.dot(X_trans, Y_trans.T)
 
     error = kernel - kernel_approx
-    assert_less_equal(np.abs(np.mean(error)), 0.01)
-    assert_less_equal(np.max(error), 0.1)  # nothing too far off
-    assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
+    assert np.abs(np.mean(error)) < 0.01
+    assert np.max(error) < 0.1  # nothing too far off
+    assert np.mean(error) < 0.05  # mean is fairly close
 
     X_trans_sp = rm_transform.transform(X_sp)
     assert_allclose_dense_sparse(X_trans, X_trans_sp)

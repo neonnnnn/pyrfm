@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.sparse import csr_matrix
-from sklearn.utils.testing import (assert_less_equal,
-                                   assert_allclose_dense_sparse)
+from sklearn.utils.testing import assert_allclose
 from pyrfm import CountSketch
 
 
@@ -24,10 +23,10 @@ def test_count_sketch():
     kernel_approx = np.dot(X_trans, Y_trans.T)
 
     error = kernel - kernel_approx
-    assert_less_equal(np.abs(np.mean(error)), 0.01)
-    assert_less_equal(np.max(error), 0.1)  # nothing too far off
-    assert_less_equal(np.mean(error), 0.05)  # mean is fairly close
+    assert np.abs(np.mean(error)) < 0.01
+    assert np.max(error) < 0.1  # nothing too far off
+    assert np.mean(error) < 0.05  # mean is fairly close
     # for sparse matrix
     transformer.dense_output = True
     X_trans_sp = transformer.transform(csr_matrix(X))
-    assert_allclose_dense_sparse(X_trans, X_trans_sp)
+    assert_allclose(X_trans, X_trans_sp)

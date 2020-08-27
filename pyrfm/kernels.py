@@ -33,7 +33,7 @@ def safe_np_elem_prod(X, Y, dense_output=False):
 
 def D(X, P, degree, dense_output=True):
     return safe_sparse_dot(safe_power(X, degree), safe_power(P, degree).T,
-                           dense_output)
+                           dense_output=dense_output)
 
 
 def anova(X, P, degree, dense_output=True):
@@ -41,7 +41,7 @@ def anova(X, P, degree, dense_output=True):
 
     .. math::
 
-        k(x, y) = \sum_{j_1 < \cdots < j_m} x_{j_1}p_{j_1}\cdots x_{j_m}p_{j_m}
+        k(x, y) = \\sum_{j_1 < \cdots < j_m} x_{j_1}p_{j_1}\\cdots x_{j_m}p_{j_m}
 
     Parameters
     ----------
@@ -66,11 +66,12 @@ def anova(X, P, degree, dense_output=True):
     P = check_array(P, True)
 
     if degree == 2:
-        H2 = safe_power(safe_sparse_dot(X, P.T, dense_output), 2, dense_output)
+        H2 = safe_power(safe_sparse_dot(X, P.T, dense_output=dense_output), 
+                        2, dense_output)
         D2 = D(X, P, 2, dense_output)
         A = (H2-D2) / 2.
     elif degree == 3:
-        dot = safe_sparse_dot(X, P.T, dense_output)
+        dot = safe_sparse_dot(X, P.T, dense_output=dense_output)
         A = safe_power(dot, 3, dense_output)
         A -= 3. * safe_np_elem_prod(D(X, P, 2, dense_output), dot,
                                     dense_output)
@@ -79,7 +80,7 @@ def anova(X, P, degree, dense_output=True):
     else:
         n1 = X.shape[0]
         n2 = P.shape[0]
-        Ds = [safe_sparse_dot(X, P.T, dense_output)]
+        Ds = [safe_sparse_dot(X, P.T, dense_output=dense_output)]
         Ds += [D(X, P, t, dense_output) for t in range(2, degree+1)]
         anovas = [1., Ds[0]]
         for m in range(2, degree+1):
@@ -131,13 +132,17 @@ def pairwise(X, P, dense_output=True, symmetric=False):
 
     n_features = X.shape[1]//2
 
-    K1 = safe_sparse_dot(X[:, :n_features], P[:, :n_features], dense_output)
-    K2 = safe_sparse_dot(X[:, n_features:], P[:, n_features:], dense_output)
-    K = safe_np_elem_prod(K1, K2, dense_output)
+    K1 = safe_sparse_dot(X[:, :n_features], P[:, :n_features], 
+                         dense_output=dense_output)
+    K2 = safe_sparse_dot(X[:, n_features:], P[:, n_features:], 
+                         dense_output=dense_output)
+    K = safe_np_elem_prod(K1, K2, dense_output=dense_output)
     if symmetric:
-        K1 = safe_sparse_dot(X[:, :n_features], P[:, n_features:], dense_output)
-        K2 = safe_sparse_dot(X[:, n_features:], P[:, :n_features], dense_output)
-        K += safe_np_elem_prod(K1, K2, dense_output)
+        K1 = safe_sparse_dot(X[:, :n_features], P[:, n_features:], 
+                             dense_output=dense_output)
+        K2 = safe_sparse_dot(X[:, n_features:], P[:, :n_features], 
+                             dense_output=dense_output)
+        K += safe_np_elem_prod(K1, K2, dense_output=dense_output)
         K *= 0.5
     return K
 
@@ -145,7 +150,9 @@ def pairwise(X, P, dense_output=True, symmetric=False):
 def hellinger(X, P):
     """Compute hellinger kernel.
 
-    .. math:: k(x, y) = \sum_{j=1}^d \sqrt{x_j}\sqrt{y_j}
+    .. math:: 
+    
+        k(x, y) = \sum_{j=1}^d \sqrt{x_j}\sqrt{y_j}
 
     Parameters
     ----------
@@ -170,6 +177,7 @@ def all_subsets(X, P, dense_output=True):
     """Compute all-subsets kernel.
 
     .. math::
+
         k(x, y) = \prod_{j=1}^d (1+x_jy_j)
 
     Parameters

@@ -7,7 +7,7 @@
 # License: BSD-2-Clause
 
 from libc.math cimport cos, sin, sqrt, cosh, pi, log
-from scipy.fftpack._fftpack import zfft
+from scipy.fft._pocketfft import c2c
 import numpy as np
 cimport numpy as np
 from sklearn.kernel_approximation import (RBFSampler, SkewedChi2Sampler)
@@ -310,7 +310,7 @@ cdef class CTensorSketch(BaseCRandomFeature):
             j = indices[jj]
             self.tmp1[self.hash_indices[j]] += data[jj]*self.hash_signs[j]
 
-        zfft(self.tmp1, direction=1, overwrite_x=True)
+        c2c(True, self.tmp1, overwrite_x=True)
         for offset in range(self.n_features, self.n_features*self.degree, self.n_features):
             for i in range(self.n_components):
                 self.tmp2[i] = 0
@@ -320,11 +320,11 @@ cdef class CTensorSketch(BaseCRandomFeature):
                 i = self.hash_indices[j+offset]
                 self.tmp2[i] += data[jj]*self.hash_signs[j+offset]
 
-            zfft(self.tmp2, direction=1, overwrite_x=True)
+            c2c(True, self.tmp2, overwrite_x=True)
             for i in range(self.n_components):
                 self.tmp1[i] *= self.tmp2[i]
 
-        zfft(self.tmp1, direction=-1, overwrite_x=True)
+        c2c(False, self.tmp1, overwrite_x=True)
         for i in range(self.n_components):
             z[i] = self.tmp1[i].real
 
@@ -619,11 +619,11 @@ cdef class CSignedCirculantRandomMatrix(BaseCRandomFeature):
                 j = indices[jj]
                 self.cache[j] = data[jj]
 
-            zfft(self.cache, direction=1, overwrite_x=True)
+            c2c(True, self.cache, overwrite_x=True)
             for j in range(self.n_features):
                 self.cache[j] *= self.random_weights[ii, j]
 
-            zfft(self.cache, direction=-1, overwrite_x=True)
+            c2c(False, self.cache, overwrite_x=True)
 
             for j in range(self.n_features):
                 i = ii*self.n_features + j

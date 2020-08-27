@@ -1,4 +1,3 @@
-from sklearn._build_utils import maybe_cythonize_extensions
 import numpy
 from os.path import join
 
@@ -49,7 +48,6 @@ def configuration(parent_package='', top_path=None):
                          include_dirs=[numpy.get_include(), sfmtdir])
 
     config.add_subpackage("tests")
-    maybe_cythonize_extensions(top_path, config)
     return config
 
 

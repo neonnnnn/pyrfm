@@ -121,4 +121,5 @@ class CountSketch(BaseEstimator, TransformerMixin):
         """
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=True)
-        return safe_sparse_dot(X, self.random_weights_.T, self.dense_output)
+        return safe_sparse_dot(X, self.random_weights_.T, 
+                               dense_output=self.dense_output)

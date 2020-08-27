@@ -1,8 +1,7 @@
 import numpy as np
 from scipy.sparse import csr_matrix
 
-from sklearn.utils.testing import assert_less_equal, assert_almost_equal
-from sklearn.utils.testing import assert_allclose_dense_sparse
+from sklearn.utils.testing import assert_almost_equal
 from pyrfm.random_feature import proj_l1ball, proj_l1ball_sort
 
 # generate data

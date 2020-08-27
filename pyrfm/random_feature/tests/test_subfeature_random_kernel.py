@@ -2,7 +2,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 
-from sklearn.utils.testing import (assert_less_equal, assert_almost_equal,
+from sklearn.utils.testing import (assert_almost_equal,
                                    assert_allclose_dense_sparse)
 from sklearn.utils.extmath import safe_sparse_dot
 from pyrfm import anova, SubfeatureRandomKernel, RandomKernel
@@ -47,9 +47,9 @@ def test_anova_kernel(degree, kernel):
     kernel_approx = np.dot(X_trans, Y_trans.T)
 
     error = gram - kernel_approx
-    assert_less_equal(np.abs(np.mean(error)), 0.001)
-    assert_less_equal(np.max(error), 0.01)  # nothing too far off
-    assert_less_equal(np.mean(error), 0.005)  # mean is fairly close
+    assert np.abs(np.mean(error)) < 0.001
+    assert np.max(error) < 0.01  # nothing too far off
+    assert np.mean(error) < 0.005  # mean is fairly close
 
 
 @pytest.mark.parametrize("degree", [2,3,4,5])
@@ -69,11 +69,11 @@ def test_anova_kernel_sparse_subset(degree):
     assert_almost_equal(rk_transform.random_weights_.nnz,
                         n_components*n_sub_features)
 
-    kernel_approx = safe_sparse_dot(X_trans, Y_trans.T, True)
+    kernel_approx = safe_sparse_dot(X_trans, Y_trans.T, dense_output=True)
     error = gram - kernel_approx
-    assert_less_equal(np.abs(np.mean(error)), 0.001)
-    assert_less_equal(np.max(error), 0.1)  # nothing too far off
-    assert_less_equal(np.mean(error), 0.005)  # mean is fairly close
+    assert np.abs(np.mean(error)) < 0.001
+    assert np.max(error) < 0.1  # nothing too far off
+    assert np.mean(error) < 0.005  # mean is fairly close
     assert_almost_equal(n_sub_features*n_components,
                         rk_transform.random_weights_.nnz)
     assert_allclose_dense_sparse(

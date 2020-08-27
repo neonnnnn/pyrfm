@@ -1,7 +1,6 @@
 import numpy as np
 
-from sklearn.utils.testing import (assert_greater_equal, assert_almost_equal,
-                                   assert_less_equal)
+from sklearn.utils.testing import assert_almost_equal
 from pyrfm import (TensorSketch, RandomKernel, RandomMaclaurin, RandomFourier,
                    AdditiveChi2Sampler, SGDClassifier, SGDRegressor)
 from sklearn.kernel_approximation import (RBFSampler, SkewedChi2Sampler)
@@ -42,7 +41,7 @@ def test_regressor_regularization(normalize, loss):
                        random_state=0, tol=0, normalize=normalize)
     clf.fit(X_train[:100], y_train[:100])
     l2 = np.mean((y_train[:100] - clf.predict(X_train[:100]))**2)
-    assert_less_equal(l2, 0.01)
+    assert l2 < 0.01
 
     # underfitting
     clf_under = SGDRegressor(transformer, max_iter=100, warm_start=True,
@@ -50,8 +49,7 @@ def test_regressor_regularization(normalize, loss):
                              alpha=100000, random_state=0,
                              normalize=normalize)
     clf_under.fit(X_train, y_train)
-    assert_greater_equal(np.sum(clf.coef_ ** 2),
-                         np.sum(clf_under.coef_ ** 2))
+    assert np.sum(clf_under.coef_ ** 2) < np.sum(clf.coef_ ** 2) 
 
     # l1 regularization
     clf_l1 = SGDRegressor(transformer, max_iter=100, warm_start=True,
@@ -83,7 +81,7 @@ def test_classifier_regularization(normalize, loss):
                         normalize=normalize)
     clf.fit(X_train[:100], y_train[:100])
     train_acc = clf.score(X_train[:100], y_train[:100])
-    assert_greater_equal(train_acc, 0.95)
+    assert train_acc >= 0.95
 
     # underfitting
     clf_under = SGDClassifier(transformer, max_iter=100, warm_start=True,
@@ -91,8 +89,7 @@ def test_classifier_regularization(normalize, loss):
                               loss=loss, alpha=10000,
                               random_state=0, normalize=normalize)
     clf_under.fit(X_train, y_train)
-    assert_greater_equal(np.sum(clf.coef_ ** 2),
-                         np.sum(clf_under.coef_ ** 2))
+    assert np.sum(clf_under.coef_ ** 2) < np.sum(clf.coef_ ** 2)
 
     # l1 regularization
     clf_l1 = SGDClassifier(transformer, max_iter=100, warm_start=True,

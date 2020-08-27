@@ -114,7 +114,7 @@ class RandomProjection(BaseEstimator, TransformerMixin):
         """
         check_is_fitted(self, "random_weights_")
         X = check_array(X, accept_sparse=True)
-        output = safe_sparse_dot(X, self.random_weights_, True)
+        output = safe_sparse_dot(X, self.random_weights_, dense_output=True)
         return output / sqrt(self.n_components)
 
     def _remove_bases(self, indices):

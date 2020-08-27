@@ -9,7 +9,6 @@ from sklearn.utils.extmath import safe_sparse_dot, softmax
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.utils import check_X_y
 from sklearn.utils.validation import check_is_fitted
-from sklearn.externals import six
 from sklearn.utils.multiclass import type_of_target
 from ..random_feature.random_features_fast import get_fast_random_feature
 from ..random_feature.random_features_doubly import get_doubly_random_feature
@@ -25,7 +24,7 @@ def sigmoid(pred):
     return np.exp(np.minimum(0, pred)) / (1.+np.exp(-np.abs(pred)))
 
 
-class BaseLinear(six.with_metaclass(ABCMeta, BaseEstimator)):
+class BaseLinear(BaseEstimator, metaclass=ABCMeta):
     def _valid_params(self):
         if not self.C > 0:
             raise ValueError("C <= 0.")
